@@ -1,14 +1,22 @@
 function useTeleportStone(scene) {
   if (scene.currentMapName === 'mine') {
-    scene.mineReturnPosition = { x: scene.player.x, y: scene.player.y };
+    scene.mineReturnPosition = {
+      x: scene.player.x,
+      y: scene.player.y
+    };
+
     switchToHome(scene);
+
     scene.player.x = scene.homePosition.x;
     scene.player.y = scene.homePosition.y;
+
     setMessage(scene, 'Teleported home.');
   } else {
     switchToMine(scene);
+
     scene.player.x = scene.mineReturnPosition.x;
     scene.player.y = scene.mineReturnPosition.y;
+
     setMessage(scene, 'Returned to the mine.');
   }
 
@@ -16,7 +24,9 @@ function useTeleportStone(scene) {
 }
 
 function placeFurnace(scene) {
-  const furnaceSlot = scene.hotbarItems.findIndex(item => item && item.id === 'furnace');
+  const furnaceSlot = scene.hotbarItems.findIndex(item => {
+    return item && item.id === 'furnace';
+  });
 
   if (scene.currentMapName !== 'home') {
     setMessage(scene, 'Furnace can only be placed at home.');
@@ -30,7 +40,10 @@ function placeFurnace(scene) {
 
   const px = scene.player.x + scene.lastMoveDirection.x;
   const py = scene.player.y + scene.lastMoveDirection.y;
-  const tile = scene.map[py] ? scene.map[py][px] : null;
+
+  const tile = scene.map[py]
+    ? scene.map[py][px]
+    : null;
 
   if (!tile || tile.type !== 'homeFloor') {
     setMessage(scene, 'Furnace can only be placed on home floor.');
@@ -51,10 +64,17 @@ function placeFurnace(scene) {
 }
 
 function toggleCraftingMenu(scene) {
+  if (scene.craftingOpen) {
+    closeCraftingMenu(scene);
+    return;
+  }
+
   const tx = scene.player.x + scene.lastMoveDirection.x;
   const ty = scene.player.y + scene.lastMoveDirection.y;
 
-  const tile = scene.map[ty] ? scene.map[ty][tx] : null;
+  const tile = scene.map[ty]
+    ? scene.map[ty][tx]
+    : null;
 
   if (!tile || tile.type !== 'furnace') {
     setMessage(scene, 'Face the furnace to craft.');
@@ -63,15 +83,23 @@ function toggleCraftingMenu(scene) {
 
   if (!scene.craftingScreen) {
     scene.craftingScreen = document.getElementById('craftingScreen');
-    scene.craftCopperBarsButton = document.getElementById('craftCopperBars');
-
-    scene.craftCopperBarsButton.addEventListener('click', () => {
-      craftCopperBars(scene);
-    });
   }
 
-  scene.craftingOpen = !scene.craftingOpen;
-  scene.craftingScreen.style.display = scene.craftingOpen ? 'flex' : 'none';
+  if (!scene.craftingScreen) {
+    setMessage(scene, 'Crafting menu is missing from index.html.');
+    return;
+  }
+
+  scene.craftingOpen = true;
+  scene.craftingScreen.style.display = 'flex';
+}
+
+function closeCraftingMenu(scene) {
+  scene.craftingOpen = false;
+
+  if (scene.craftingScreen) {
+    scene.craftingScreen.style.display = 'none';
+  }
 }
 
 function craftCopperBars(scene) {
