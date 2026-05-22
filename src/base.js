@@ -49,3 +49,46 @@ function placeFurnace(scene) {
   updateInventoryUI(scene);
   redraw(scene);
 }
+
+function toggleCraftingMenu(scene) {
+  const tx = scene.player.x + scene.lastMoveDirection.x;
+  const ty = scene.player.y + scene.lastMoveDirection.y;
+
+  const tile = scene.map[ty] ? scene.map[ty][tx] : null;
+
+  if (!tile || tile.type !== 'furnace') {
+    setMessage(scene, 'Face the furnace to craft.');
+    return;
+  }
+
+  if (!scene.craftingScreen) {
+    scene.craftingScreen = document.getElementById('craftingScreen');
+    scene.craftCopperBarsButton = document.getElementById('craftCopperBars');
+
+    scene.craftCopperBarsButton.addEventListener('click', () => {
+      craftCopperBars(scene);
+    });
+  }
+
+  scene.craftingOpen = !scene.craftingOpen;
+  scene.craftingScreen.style.display = scene.craftingOpen ? 'flex' : 'none';
+}
+
+function craftCopperBars(scene) {
+  if (scene.inventory.copperOre < 5) {
+    setMessage(scene, 'Need 5 Copper Ore.');
+    return;
+  }
+
+  if (scene.inventory.coal < 2) {
+    setMessage(scene, 'Need 2 Coal.');
+    return;
+  }
+
+  scene.inventory.copperOre -= 5;
+  scene.inventory.coal -= 2;
+  scene.inventory.copperBars += 5;
+
+  setMessage(scene, 'Crafted 5 Copper Bars.');
+  updateInventoryUI(scene);
+}
