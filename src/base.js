@@ -41,9 +41,7 @@ function placeFurnace(scene) {
   const px = scene.player.x + scene.lastMoveDirection.x;
   const py = scene.player.y + scene.lastMoveDirection.y;
 
-  const tile = scene.map[py]
-    ? scene.map[py][px]
-    : null;
+  const tile = scene.map[py] ? scene.map[py][px] : null;
 
   if (!tile || tile.type !== 'homeFloor') {
     setMessage(scene, 'Furnace can only be placed on home floor.');
@@ -72,9 +70,7 @@ function toggleCraftingMenu(scene) {
   const tx = scene.player.x + scene.lastMoveDirection.x;
   const ty = scene.player.y + scene.lastMoveDirection.y;
 
-  const tile = scene.map[ty]
-    ? scene.map[ty][tx]
-    : null;
+  const tile = scene.map[ty] ? scene.map[ty][tx] : null;
 
   if (!tile || tile.type !== 'furnace') {
     setMessage(scene, 'Face the furnace to craft.');
@@ -101,27 +97,33 @@ function craftCopperBars(scene) {
     return;
   }
 
-  if (scene.inventory.copperOre < 5) {
-    setMessage(scene, 'Need 5 Copper Ore.');
+  const amount = Number(scene.copperBarAmountSlider.value);
+
+  const neededCopperOre = amount * 5;
+  const neededCoal = amount * 1;
+
+  if (scene.inventory.copperOre < neededCopperOre) {
+    setMessage(scene, 'Not enough Copper Ore.');
     return;
   }
 
-  if (scene.inventory.coal < 1) {
-    setMessage(scene, 'Need 1 Coal.');
+  if (scene.inventory.coal < neededCoal) {
+    setMessage(scene, 'Not enough Coal.');
     return;
   }
 
-  scene.inventory.copperOre -= 5;
-  scene.inventory.coal -= 1;
+  scene.inventory.copperOre -= neededCopperOre;
+  scene.inventory.coal -= neededCoal;
 
   scene.furnaceQueue.push({
     item: 'Copper Bar',
-    amount: 1,
-    totalTime: 5000,
+    amount: amount,
+    completed: 0,
+    timePerItem: 5000,
     elapsed: 0
   });
 
-  setMessage(scene, 'Started crafting Copper Bar.');
+  setMessage(scene, 'Started crafting ' + amount + ' Copper Bar(s).');
   updateInventoryUI(scene);
   updateFurnaceMenu(scene);
 }
@@ -133,12 +135,15 @@ function updateFurnaceQueue(scene, delta) {
 
   job.elapsed += delta;
 
-  if (job.elapsed >= job.totalTime) {
-    scene.inventory.copperBars += job.amount;
-    scene.furnaceQueue.shift();
+  if (job.elapsed >= job.timePerItem) {
+    job.elapsed -= job.timePerItem;
+    job.completed += 1;
+    scene.furnaceOutput.copperBars += 1;
 
-    setMessage(scene, 'Finished 1 Copper Bar.');
-    updateInventoryUI(scene);
+    if (job.completed >= job.amount) {
+      scene.furnaceQueue.shift();
+      setMessage(scene, 'Furnace job complete.');
+    }
   }
 
   updateFurnaceMenu(scene);
@@ -147,18 +152,46 @@ function updateFurnaceQueue(scene, delta) {
 function updateFurnaceMenu(scene) {
   const queueItem = document.getElementById('furnaceQueueItem');
   const progressBar = document.getElementById('furnaceProgressInner');
+  const outputItem = document.getElementById('furnaceOutputItem');
 
-  if (!queueItem || !progressBar) return;
+  if (!queueItem || !progressBar || !outputItem) return;
 
   if (!scene.furnaceQueue || scene.furnaceQueue.length === 0) {
     queueItem.textContent = 'Empty';
     progressBar.style.width = '0%';
+  } else {
+    const job = scene.furnaceQueue[0];
+    const progress = Math.min(job.elapsed / job.timePerItem, 1);
+
+    queueItem.textContent =
+      job.item +
+      ' ' +
+      job.completed +
+      '/' +
+      job.amount;
+
+    progressBar.style.width = progress * 100 + '%';
+  }
+
+  if (scene.furnaceOutput.copperBars > 0) {
+    outputItem.textContent = 'Copper Bars x' + scene.furnaceOutput.copperBars;
+  } else {
+    outputItem.textContent = 'Empty';
+  }
+}
+
+function collectFurnaceOutput(scene) {
+  if (scene.furnaceOutput.copperBars <= 0) {
+    setMessage(scene, 'No completed items to collect.');
     return;
   }
 
-  const job = scene.furnaceQueue[0];
-  const progress = Math.min(job.elapsed / job.totalTime, 1);
+  scene.inventory.copperBars += scene.furnaceOutput.copperBars;
 
-  queueItem.textContent = `${job.item} x${job.amount}`;
-  progressBar.style.width = `${progress * 100}%`;
+  setMessage(scene, 'Collected ' + scene.furnaceOutput.copperBars + ' Copper Bar(s).');
+
+  scene.furnaceOutput.copperBars = 0;
+
+  updateInventoryUI(scene);
+  updateFurnaceMenu(scene);
 }
