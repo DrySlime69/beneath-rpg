@@ -85,29 +85,42 @@ function generateMineArea(scene) {
 }
 
 function generateHomeBase(scene) {
-  for (let y = 5; y <= 12; y++) {
-    for (let x = 30; x <= 36; x++) {
-      scene.map[y][x] = { type: 'homeFloor', hardness: 0 };
+  // Starter 3x3 home room
+  for (let y = 7; y <= 9; y++) {
+    for (let x = 32; x <= 34; x++) {
+      scene.map[y][x] = {
+        type: 'homeFloor',
+        hardness: 0
+      };
     }
   }
 
-  for (let y = 5; y <= 8; y++) {
-    scene.map[y][37] = { type: 'stone', hardness: 1, hp: 4, maxHp: 4 };
-    for (let x = 38; x <= 42; x++) {
-      scene.map[y][x] = { type: 'homeFloor', hardness: 0 };
+  // Teleport pad in center
+  scene.map[8][33] = {
+    type: 'teleportPad',
+    hardness: 0
+  };
+
+  // Copper expansion room
+  for (let y = 7; y <= 9; y++) {
+    for (let x = 28; x <= 30; x++) {
+      scene.map[y][x] = {
+        type: 'copper',
+        hardness: 2,
+        hp: 10,
+        maxHp: 10
+      };
     }
   }
 
-  for (let y = 9; y <= 12; y++) {
-    scene.map[y][37] = { type: 'copper', hardness: 2, hp: 10, maxHp: 10 };
-    for (let x = 38; x <= 42; x++) {
-      scene.map[y][x] = { type: 'homeFloor', hardness: 0 };
-    }
-  }
-
-  scene.map[8][32] = { type: 'teleportPad', hardness: 0 };
+  // Connector wall
+  scene.map[8][31] = {
+    type: 'copper',
+    hardness: 2,
+    hp: 10,
+    maxHp: 10
+  };
 }
-
 function carveMineFloor(scene, x, y) {
   if (x <= 0 || y <= 0 || x >= scene.mineWidth - 1 || y >= scene.mapHeight - 1) return;
   scene.map[y][x] = { type: 'floor', hardness: 0 };
