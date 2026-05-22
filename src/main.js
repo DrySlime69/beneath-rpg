@@ -19,10 +19,14 @@ class GameScene extends Phaser.Scene {
     this.pickaxeTier = 1;
     this.pickaxeDamage = 1;
     this.hasFurnace = false;
+
     this.mineCooldown = false;
     this.moveCooldown = false;
+
     this.inventoryOpen = false;
     this.craftingOpen = false;
+
+    this.furnaceQueue = [];
 
     this.lastMoveDirection = {
       x: 1,
@@ -43,6 +47,7 @@ class GameScene extends Phaser.Scene {
     this.homePlacedObjects = [];
 
     this.messageBox = document.getElementById('message');
+
     this.hotbarDisplaySlots = Array.from(
       document.querySelectorAll('#inventory .slot')
     );
@@ -155,7 +160,9 @@ class GameScene extends Phaser.Scene {
     redraw(this);
   }
 
-  update() {
+  update(time, delta) {
+    updateFurnaceQueue(this, delta);
+
     if (Phaser.Input.Keyboard.JustDown(this.inventoryKey)) {
       toggleInventoryScreen(this);
     }
