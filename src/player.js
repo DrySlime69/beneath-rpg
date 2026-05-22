@@ -1,0 +1,124 @@
+function handleMovement(scene) {
+  if (scene.moveCooldown) return;
+
+  let dx = 0;
+  let dy = 0;
+
+  if (scene.cursors.left.isDown) dx = -1;
+  if (scene.cursors.right.isDown) dx = 1;
+  if (scene.cursors.up.isDown) dy = -1;
+  if (scene.cursors.down.isDown) dy = 1;
+
+  if (dx !== 0 || dy !== 0) {
+    scene.lastMoveDirection = { x: dx, y: dy };
+    redraw(scene);
+    tryMove(scene, dx, dy);
+    scene.moveCooldown = true;
+
+    scene.time.delayedCall(145, () => {
+      scene.moveCooldown = false;
+    });
+  }
+}
+
+function tryMove(scene, dx, dy) {
+  const nx = scene.player.x + dx;
+  const ny = scene.player.y + dy;
+  const tile = scene.map[ny] ? scene.map[ny][nx] : null;
+
+  if (!tile) return;
+
+  if (tile.type === 'floor' || tile.type === 'homeFloor' || tile.type === 'teleportPad') {
+    scene.player.x = nx;
+    scene.player.y = ny;
+    redraw(scene);
+    return;
+  }
+
+  if (tile.type === 'exit') {
+    if (scene.pickaxeTier >= 2) setMessage(scene, 'You descend deeper into the mine...');
+    else setMessage(scene, 'Craft a Stone Pickaxe first.');
+  }
+}
+
+function mineAdjacentTile(scene) {
+  if (scene.mineCooldown) return;
+
+  const tx = scene.player.x + scene.lastMoveDirection.x;
+  const ty = scene.player.y + scene.lastMoveDirection.y;
+  const tile = scene.map[ty] ? scene.map[ty][tx] : null;
+
+  if (!tile) return;
+
+  scene.mineCooldown = true;
+  const mineDelay = scene.pickaxeTier === 1 ? 450 : 300;
+
+  scene.time.delayedCall(mineDelay, () => {
+    scene.mineCooldown = false;
+  });
+
+  if (tile.type === 'stone') {
+    hitResource(scene, tile, tx, ty, 'stone', 'stone', 0x888888, '+1 Stone');
+    return;
+  }
+
+  if (tile.type === 'coal') {
+    hitResource(scene, tile, tx, ty, 'coal', 'coal', 0x222222, '+1 Coal');
+    return;
+  }
+
+  if (tile.type === 'copper') {
+    if (scene.pickaxeTier < 2) {
+      setMessage(scene, 'Need Stone Pickaxe to mine Copper');
+      return;
+    }
+
+    hitResource(scene, tile, tx, ty, 'copperOre', 'copper', 0xcc7744, '+1 Copper Ore');
+    return;
+  }
+
+  if (tile.type === 'caveWall') {
+    setMessage(scene, 'Cave wall is too hard to mine.');
+  }
+}
+
+function hitResource(scene, tile, tx, ty, inventoryKey, label, particleColor, successMessage) {
+  scene.cameras.main.shake(40, 0.0015);
+  tile.hp -= scene.pickaxeDamage;
+  spawnParticles(scene, tx, ty, particleColor);
+
+  if (tile.hp <= 0) {
+    scene.inventory[inventoryKey]++;
+    const newFloorType = tx >= 30 ? 'homeFloor' : 'floor';
+    scene.map[ty][tx] = { type: newFloorType, hardness: 0 };
+    setMessage(scene, successMessage);
+  } else {
+    setMessage(scene, label + ' HP: ' + tile.hp + '/' + tile.maxHp);
+  }
+
+  updateInventoryUI(scene);
+  redraw(scene);
+}
+
+function spawnParticles(scene, x, y, color) {
+  for (let i = 0; i < 6; i++) {
+    const particle = scene.add.rectangle(
+      x * scene.tileSize + scene.tileSize / 2,
+      y * scene.tileSize + scene.tileSize / 2,
+      4,
+      4,
+      color
+    );
+
+    particle.setDepth(20);
+
+    scene.tweens.add({
+      targets: particle,
+      x: particle.x + Phaser.Math.Between(-14, 14),
+      y: particle.y + Phaser.Math.Between(-14, 14),
+      alpha: 0,
+      duration: 400,
+      onComplete: () => particle.destroy()
+    });
+  }
+}
