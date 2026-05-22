@@ -1,4 +1,4 @@
-class GameScene extends Phaser.Scene {
+\class GameScene extends Phaser.Scene {
   constructor() {
     super('GameScene');
   }
@@ -27,6 +27,9 @@ class GameScene extends Phaser.Scene {
     this.craftingOpen = false;
 
     this.furnaceQueue = [];
+    this.furnaceOutput = {
+      copperBars: 0
+    };
 
     this.lastMoveDirection = {
       x: 1,
@@ -59,9 +62,31 @@ class GameScene extends Phaser.Scene {
     this.craftingScreen = document.getElementById('craftingScreen');
     this.craftCopperBarsButton = document.getElementById('craftCopperBars');
 
+    this.copperBarAmountSlider =
+      document.getElementById('copperBarAmount');
+
+    this.copperBarAmountLabel =
+      document.getElementById('copperBarAmountLabel');
+
+    this.collectFurnaceOutputButton =
+      document.getElementById('collectFurnaceOutput');
+
     if (this.craftCopperBarsButton) {
       this.craftCopperBarsButton.addEventListener('click', () => {
         craftCopperBars(this);
+      });
+    }
+
+    if (this.copperBarAmountSlider) {
+      this.copperBarAmountSlider.addEventListener('input', () => {
+        this.copperBarAmountLabel.textContent =
+          this.copperBarAmountSlider.value;
+      });
+    }
+
+    if (this.collectFurnaceOutputButton) {
+      this.collectFurnaceOutputButton.addEventListener('click', () => {
+        collectFurnaceOutput(this);
       });
     }
 
