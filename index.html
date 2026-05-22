@@ -65,17 +65,39 @@
 
       <h2>Furnace</h2>
 
-      <button id="craftCopperBars">
-        Craft 1 Copper Bar
-      </button>
+      <div id="recipeCopperBars" class="recipeCard">
 
-      <div id="craftingHint">
-        Costs: 5 Copper Ore + 1 Coal → 1 Copper Bar
+        <strong>Copper Bar</strong>
+
+        <div>
+          5 Copper Ore + 1 Coal → 1 Copper Bar
+        </div>
+
+        <label for="copperBarAmount">
+          Amount:
+        </label>
+
+        <input
+          id="copperBarAmount"
+          type="range"
+          min="1"
+          max="10"
+          value="1"
+        />
+
+        <div id="copperBarAmountLabel">
+          1
+        </div>
+
+        <button id="craftCopperBars">
+          Start Crafting
+        </button>
+
       </div>
 
       <div id="furnaceQueue">
 
-        <h3>Queue</h3>
+        <h3>In Progress</h3>
 
         <div id="furnaceQueueItem">
           Empty
@@ -84,6 +106,20 @@
         <div id="furnaceProgressOuter">
           <div id="furnaceProgressInner"></div>
         </div>
+
+      </div>
+
+      <div id="furnaceOutput">
+
+        <h3>Completed</h3>
+
+        <div id="furnaceOutputItem">
+          Empty
+        </div>
+
+        <button id="collectFurnaceOutput">
+          Collect
+        </button>
 
       </div>
 
