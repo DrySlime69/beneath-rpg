@@ -189,8 +189,8 @@ function redraw(scene) {
       let color = getTileBaseColor(tile);
 
       const distance = Phaser.Math.Distance.Between(x, y, scene.player.x, scene.player.y);
-      const lightRadius = 7.5;
-      const minBrightness = 0.08;
+      const lightRadius = 8.5;
+      const minBrightness = 0.16;
       const lightStrength = Phaser.Math.Clamp(1 - distance / lightRadius, 0, 1);
       const smoothFalloff = lightStrength * lightStrength;
       const brightness = minBrightness + smoothFalloff * 0.92;
