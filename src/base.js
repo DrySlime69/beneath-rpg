@@ -16,12 +16,12 @@ function useTeleportStone(scene) {
 }
 
 function placeFurnace(scene) {
+  const furnaceSlot = scene.hotbarItems.findIndex(item => item && item.id === 'furnace');
+
   if (scene.currentMapName !== 'home') {
     setMessage(scene, 'Furnace can only be placed at home.');
     return;
   }
-
-  const furnaceSlot = scene.hotbarItems.findIndex(item => item && item.id === 'furnace');
 
   if (!scene.hasFurnace || furnaceSlot === -1) {
     setMessage(scene, 'Move Furnace to hotbar first.');
@@ -37,18 +37,10 @@ function placeFurnace(scene) {
     return;
   }
 
-  for (const object of scene.homePlacedObjects) {
-    if (object.x === px && object.y === py) {
-      setMessage(scene, 'Something is already there.');
-      return;
-    }
-  }
-
-  scene.homePlacedObjects.push({
+  scene.map[py][px] = {
     type: 'furnace',
-    x: px,
-    y: py
-  });
+    hardness: 999
+  };
 
   scene.hotbarItems[furnaceSlot] = null;
   scene.hasFurnace = false;
