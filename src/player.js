@@ -33,16 +33,18 @@ function tryMove(scene, dx, dy) {
 
   if (!tile) return;
 
-  // Prevent walking through placed objects
   const placedObjects =
     scene.currentMapName === 'home'
       ? scene.homePlacedObjects
       : scene.minePlacedObjects;
 
-  for (const object of placedObjects) {
-    if (object.x === nx && object.y === ny) {
-      return;
-    }
+  const objectAtTarget = placedObjects.some(object => {
+    return object.x === nx && object.y === ny;
+  });
+
+  if (objectAtTarget) {
+    setMessage(scene, 'Blocked.');
+    return;
   }
 
   if (
@@ -71,7 +73,10 @@ function mineAdjacentTile(scene) {
 
   const tx = scene.player.x + scene.lastMoveDirection.x;
   const ty = scene.player.y + scene.lastMoveDirection.y;
-  const tile = scene.map[ty] ? scene.map[ty][tx] : null;
+
+  const tile = scene.map[ty]
+    ? scene.map[ty][tx]
+    : null;
 
   if (!tile) return;
 
@@ -94,6 +99,7 @@ function mineAdjacentTile(scene) {
       0x888888,
       '+10 Stone'
     );
+
     return;
   }
 
@@ -108,6 +114,7 @@ function mineAdjacentTile(scene) {
       0x222222,
       '+10 Coal'
     );
+
     return;
   }
 
@@ -127,6 +134,7 @@ function mineAdjacentTile(scene) {
       0xcc7744,
       '+10 Copper Ore'
     );
+
     return;
   }
 
@@ -154,9 +162,10 @@ function hitResource(
   if (tile.hp <= 0) {
     scene.inventory[inventoryKey] += 10;
 
-    const newFloorType = scene.currentMapName === 'home'
-      ? 'homeFloor'
-      : 'floor';
+    const newFloorType =
+      scene.currentMapName === 'home'
+        ? 'homeFloor'
+        : 'floor';
 
     scene.map[ty][tx] = {
       type: newFloorType,
