@@ -2,48 +2,97 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
+
   <title>Beneath - Mining RPG Prototype</title>
+
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.js"></script>
+
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
+
+  <!-- UI -->
   <div id="ui">
     <div id="message"></div>
+
     <div id="inventory">
-      <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
-      <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
     </div>
   </div>
 
+  <!-- Inventory -->
   <div id="inventoryScreen">
     <div id="inventoryPanel">
+
       <h2>Inventory</h2>
-      <div class="inventoryLabel">Hotbar</div>
+
+      <div class="inventoryLabel">
+        Hotbar
+      </div>
+
       <div id="hotbarGrid"></div>
-      <div class="inventoryLabel">Backpack</div>
+
+      <div class="inventoryLabel">
+        Backpack
+      </div>
+
       <div id="backpackGrid"></div>
-      <div id="inventoryHint">I = close inventory. T = teleport. P = place Furnace.</div>
+
+      <div id="inventoryHint">
+        I = close inventory. T = teleport. P = place Furnace.
+      </div>
+
     </div>
   </div>
 
+  <!-- Furnace Crafting -->
   <div id="craftingScreen">
-  <div id="craftingPanel">
-    <h2>Furnace</h2>
-    <button id="craftCopperBars">Craft Copper Bars</button>
-    <div id="craftingHint">Costs: 5 Copper Ore + 2 Coal → 5 Copper Bars</div>
-    <div id="craftingCloseHint">Press E to close.</div>
-  </div>
-</div>
 
+    <div id="craftingPanel">
+
+      <h2>Furnace</h2>
+
+      <button id="craftCopperBars">
+        Craft Copper Bars
+      </button>
+
+      <div id="craftingHint">
+        Costs: 5 Copper Ore + 2 Coal → 5 Copper Bars
+      </div>
+
+      <div id="craftingCloseHint">
+        Press E to close.
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Scripts -->
   <script src="src/ui.js"></script>
   <script src="src/inventory.js"></script>
+
   <script src="src/maps/home.js"></script>
   <script src="src/maps/mine.js"></script>
+
   <script src="src/world.js"></script>
   <script src="src/player.js"></script>
   <script src="src/crafting.js"></script>
   <script src="src/base.js"></script>
   <script src="src/main.js"></script>
+
 </body>
 </html>
