@@ -25,7 +25,7 @@ class GameScene extends Phaser.Scene {
     this.isHome = false;
     this.lastMoveDirection = { x: 1, y: 0 };
     this.mineReturnPosition = { x: 2, y: 2 };
-    this.homePosition = { x: 32, y: 8 };
+    this.homePosition = { x: 33, y: 8 };
     this.placedObjects = [];
 
     this.messageBox = document.getElementById('message');
