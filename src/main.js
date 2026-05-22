@@ -1,4 +1,4 @@
-\class GameScene extends Phaser.Scene {
+class GameScene extends Phaser.Scene {
   constructor() {
     super('GameScene');
   }
@@ -27,9 +27,6 @@
     this.craftingOpen = false;
 
     this.furnaceQueue = [];
-    this.furnaceOutput = {
-      copperBars: 0
-    };
 
     this.lastMoveDirection = {
       x: 1,
@@ -55,12 +52,20 @@
       document.querySelectorAll('#inventory .slot')
     );
 
-    this.inventoryScreen = document.getElementById('inventoryScreen');
-    this.hotbarGrid = document.getElementById('hotbarGrid');
-    this.backpackGrid = document.getElementById('backpackGrid');
+    this.inventoryScreen =
+      document.getElementById('inventoryScreen');
 
-    this.craftingScreen = document.getElementById('craftingScreen');
-    this.craftCopperBarsButton = document.getElementById('craftCopperBars');
+    this.hotbarGrid =
+      document.getElementById('hotbarGrid');
+
+    this.backpackGrid =
+      document.getElementById('backpackGrid');
+
+    this.craftingScreen =
+      document.getElementById('craftingScreen');
+
+    this.craftCopperBarsButton =
+      document.getElementById('craftCopperBars');
 
     this.copperBarAmountSlider =
       document.getElementById('copperBarAmount');
@@ -72,22 +77,35 @@
       document.getElementById('collectFurnaceOutput');
 
     if (this.craftCopperBarsButton) {
-      this.craftCopperBarsButton.addEventListener('click', () => {
-        craftCopperBars(this);
-      });
+      this.craftCopperBarsButton.addEventListener(
+        'click',
+        () => {
+          if (typeof craftCopperBars === 'function') {
+            craftCopperBars(this);
+          }
+        }
+      );
     }
 
     if (this.copperBarAmountSlider) {
-      this.copperBarAmountSlider.addEventListener('input', () => {
-        this.copperBarAmountLabel.textContent =
-          this.copperBarAmountSlider.value;
-      });
+      this.copperBarAmountSlider.addEventListener(
+        'input',
+        () => {
+          this.copperBarAmountLabel.textContent =
+            this.copperBarAmountSlider.value;
+        }
+      );
     }
 
     if (this.collectFurnaceOutputButton) {
-      this.collectFurnaceOutputButton.addEventListener('click', () => {
-        collectFurnaceOutput(this);
-      });
+      this.collectFurnaceOutputButton.addEventListener(
+        'click',
+        () => {
+          if (typeof collectFurnaceOutput === 'function') {
+            collectFurnaceOutput(this);
+          }
+        }
+      );
     }
 
     this.hotbarItems = [
@@ -115,31 +133,38 @@
 
     setupInventoryScreen(this);
 
-    this.cursors = this.input.keyboard.createCursorKeys();
+    this.cursors =
+      this.input.keyboard.createCursorKeys();
 
-    this.mineKey = this.input.keyboard.addKey(
-      Phaser.Input.Keyboard.KeyCodes.SPACE
-    );
+    this.mineKey =
+      this.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.SPACE
+      );
 
-    this.craftKey = this.input.keyboard.addKey(
-      Phaser.Input.Keyboard.KeyCodes.C
-    );
+    this.craftKey =
+      this.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.C
+      );
 
-    this.inventoryKey = this.input.keyboard.addKey(
-      Phaser.Input.Keyboard.KeyCodes.I
-    );
+    this.inventoryKey =
+      this.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.I
+      );
 
-    this.teleportKey = this.input.keyboard.addKey(
-      Phaser.Input.Keyboard.KeyCodes.T
-    );
+    this.teleportKey =
+      this.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.T
+      );
 
-    this.placeKey = this.input.keyboard.addKey(
-      Phaser.Input.Keyboard.KeyCodes.P
-    );
+    this.placeKey =
+      this.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.P
+      );
 
-    this.interactKey = this.input.keyboard.addKey(
-      Phaser.Input.Keyboard.KeyCodes.E
-    );
+    this.interactKey =
+      this.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.E
+      );
 
     generateMaps(this);
 
@@ -157,8 +182,12 @@
     this.playerLayer.setDepth(5);
 
     this.followTarget = this.add.zone(
-      this.player.x * this.tileSize + this.tileSize / 2,
-      this.player.y * this.tileSize + this.tileSize / 2,
+      this.player.x * this.tileSize +
+        this.tileSize / 2,
+
+      this.player.y * this.tileSize +
+        this.tileSize / 2,
+
       1,
       1
     );
@@ -178,63 +207,102 @@
     );
 
     this.cameras.main.setDeadzone(120, 80);
+
     this.cameras.main.setZoom(1.5);
 
     setMessage(this, '');
+
     updateInventoryUI(this);
+
     redraw(this);
   }
 
   update(time, delta) {
-    if (typeof updateFurnaceQueue === 'function') {
-  updateFurnaceQueue(this, delta);
-}
+    if (
+      typeof updateFurnaceQueue === 'function'
+    ) {
+      updateFurnaceQueue(this, delta);
+    }
 
-    if (Phaser.Input.Keyboard.JustDown(this.inventoryKey)) {
+    if (
+      Phaser.Input.Keyboard.JustDown(
+        this.inventoryKey
+      )
+    ) {
       toggleInventoryScreen(this);
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+    if (
+      Phaser.Input.Keyboard.JustDown(
+        this.interactKey
+      )
+    ) {
       toggleCraftingMenu(this);
     }
 
-    if (this.inventoryOpen || this.craftingOpen) {
+    if (
+      this.inventoryOpen ||
+      this.craftingOpen
+    ) {
       return;
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this.teleportKey)) {
+    if (
+      Phaser.Input.Keyboard.JustDown(
+        this.teleportKey
+      )
+    ) {
       useTeleportStone(this);
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this.placeKey)) {
+    if (
+      Phaser.Input.Keyboard.JustDown(
+        this.placeKey
+      )
+    ) {
       placeFurnace(this);
     }
 
     handleMovement(this);
 
-    if (Phaser.Input.Keyboard.JustDown(this.mineKey)) {
+    if (
+      Phaser.Input.Keyboard.JustDown(
+        this.mineKey
+      )
+    ) {
       mineAdjacentTile(this);
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this.craftKey)) {
+    if (
+      Phaser.Input.Keyboard.JustDown(
+        this.craftKey
+      )
+    ) {
       tryCraft(this);
     }
 
     this.followTarget.x =
-      this.player.x * this.tileSize + this.tileSize / 2;
+      this.player.x * this.tileSize +
+      this.tileSize / 2;
 
     this.followTarget.y =
-      this.player.y * this.tileSize + this.tileSize / 2;
+      this.player.y * this.tileSize +
+      this.tileSize / 2;
   }
 }
 
 const config = {
   type: Phaser.AUTO,
+
   width: 900,
   height: 620,
+
   backgroundColor: '#000000',
+
   scene: [GameScene],
+
   pixelArt: true,
+
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
