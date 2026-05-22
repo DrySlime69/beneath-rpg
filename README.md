@@ -1,29 +1,7 @@
-# Beneath - Modular Mining RPG Prototype
+# Beneath - Separated Maps Build
 
-## Controls
-- Arrow Keys = Move
-- Space = Mine
-- C = Craft / Smelt
-- I = Open Inventory
-- T = Teleport between mine and home base
-- P = Place Furnace if built and moved to hotbar
+Upload all files to GitHub, replacing the old files.
 
-## GitHub Pages
-Upload all files and folders to your repository root.
+Home is now split into `src/maps/home.js` and the mine is in `src/maps/mine.js`.
 
-Your repo should look like:
-
-```
-index.html
-style.css
-src/
-  main.js
-  ui.js
-  inventory.js
-  world.js
-  player.js
-  crafting.js
-  base.js
-```
-
-Then enable GitHub Pages from Settings → Pages → Deploy from branch → main → root.
+Controls: Arrow Keys move, Space mines, C crafts, I inventory, T teleport, P place furnace.
