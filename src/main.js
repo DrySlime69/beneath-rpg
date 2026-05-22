@@ -186,7 +186,9 @@
   }
 
   update(time, delta) {
-    updateFurnaceQueue(this, delta);
+    if (typeof updateFurnaceQueue === 'function') {
+  updateFurnaceQueue(this, delta);
+}
 
     if (Phaser.Input.Keyboard.JustDown(this.inventoryKey)) {
       toggleInventoryScreen(this);
