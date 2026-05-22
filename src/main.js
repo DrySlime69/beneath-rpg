@@ -18,6 +18,7 @@ class GameScene extends Phaser.Scene {
 
     this.pickaxeTier = 1;
     this.pickaxeDamage = 1;
+
     this.hasFurnace = false;
 
     this.mineCooldown = false;
@@ -27,6 +28,10 @@ class GameScene extends Phaser.Scene {
     this.craftingOpen = false;
 
     this.furnaceQueue = [];
+
+    this.furnaceOutput = {
+      copperBars: 0
+    };
 
     this.lastMoveDirection = {
       x: 1,
@@ -46,7 +51,8 @@ class GameScene extends Phaser.Scene {
     this.minePlacedObjects = [];
     this.homePlacedObjects = [];
 
-    this.messageBox = document.getElementById('message');
+    this.messageBox =
+      document.getElementById('message');
 
     this.hotbarDisplaySlots = Array.from(
       document.querySelectorAll('#inventory .slot')
@@ -76,11 +82,17 @@ class GameScene extends Phaser.Scene {
     this.collectFurnaceOutputButton =
       document.getElementById('collectFurnaceOutput');
 
+    this.closeCraftingButton =
+      document.getElementById('closeCraftingMenu');
+
     if (this.craftCopperBarsButton) {
       this.craftCopperBarsButton.addEventListener(
         'click',
         () => {
-          if (typeof craftCopperBars === 'function') {
+          if (
+            typeof craftCopperBars ===
+            'function'
+          ) {
             craftCopperBars(this);
           }
         }
@@ -101,8 +113,25 @@ class GameScene extends Phaser.Scene {
       this.collectFurnaceOutputButton.addEventListener(
         'click',
         () => {
-          if (typeof collectFurnaceOutput === 'function') {
+          if (
+            typeof collectFurnaceOutput ===
+            'function'
+          ) {
             collectFurnaceOutput(this);
+          }
+        }
+      );
+    }
+
+    if (this.closeCraftingButton) {
+      this.closeCraftingButton.addEventListener(
+        'click',
+        () => {
+          if (
+            typeof closeCraftingMenu ===
+            'function'
+          ) {
+            closeCraftingMenu(this);
           }
         }
       );
@@ -173,9 +202,14 @@ class GameScene extends Phaser.Scene {
       y: 2
     };
 
-    this.worldLayer = this.add.graphics();
-    this.objectLayer = this.add.graphics();
-    this.playerLayer = this.add.graphics();
+    this.worldLayer =
+      this.add.graphics();
+
+    this.objectLayer =
+      this.add.graphics();
+
+    this.playerLayer =
+      this.add.graphics();
 
     this.worldLayer.setDepth(1);
     this.objectLayer.setDepth(4);
@@ -206,7 +240,10 @@ class GameScene extends Phaser.Scene {
       0.06
     );
 
-    this.cameras.main.setDeadzone(120, 80);
+    this.cameras.main.setDeadzone(
+      120,
+      80
+    );
 
     this.cameras.main.setZoom(1.5);
 
@@ -219,7 +256,8 @@ class GameScene extends Phaser.Scene {
 
   update(time, delta) {
     if (
-      typeof updateFurnaceQueue === 'function'
+      typeof updateFurnaceQueue ===
+      'function'
     ) {
       updateFurnaceQueue(this, delta);
     }
@@ -305,7 +343,9 @@ const config = {
 
   scale: {
     mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
+
+    autoCenter:
+      Phaser.Scale.CENTER_BOTH
   }
 };
 
