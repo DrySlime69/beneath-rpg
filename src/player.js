@@ -26,9 +26,24 @@ function handleMovement(scene) {
 function tryMove(scene, dx, dy) {
   const nx = scene.player.x + dx;
   const ny = scene.player.y + dy;
-  const tile = scene.map[ny] ? scene.map[ny][nx] : null;
+
+  const tile = scene.map[ny]
+    ? scene.map[ny][nx]
+    : null;
 
   if (!tile) return;
+
+  // Prevent walking through placed objects
+  const placedObjects =
+    scene.currentMapName === 'home'
+      ? scene.homePlacedObjects
+      : scene.minePlacedObjects;
+
+  for (const object of placedObjects) {
+    if (object.x === nx && object.y === ny) {
+      return;
+    }
+  }
 
   if (
     tile.type === 'floor' ||
@@ -37,6 +52,7 @@ function tryMove(scene, dx, dy) {
   ) {
     scene.player.x = nx;
     scene.player.y = ny;
+
     redraw(scene);
     return;
   }
