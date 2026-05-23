@@ -68,6 +68,10 @@ function getTileBaseColor(tile) {
     return 0xff2222;
   }
 
+  if (tile.type === 'craftingTable') {
+    return 0x8b5a2b;
+  }
+
   if (tile.type === 'caveWall') {
     return 0x2a160c;
   }
@@ -109,10 +113,6 @@ function getTileBaseColor(tile) {
   }
 
   return 0x000000;
-}
-
-if (tile.type === 'craftingTable') {
-  return 0x8b5a2b;
 }
 
 function redraw(scene) {
