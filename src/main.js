@@ -33,6 +33,13 @@ class GameScene extends Phaser.Scene {
       copperBars: 0
     };
 
+    this.tableQueue = [];
+
+  this.tableOutput = {
+  stonePickaxe: 0,
+  furnace: 0
+    };
+
     this.lastMoveDirection = {
       x: 1,
       y: 0
