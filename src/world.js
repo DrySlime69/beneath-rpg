@@ -36,17 +36,9 @@ function switchToHome(scene) {
 }
 
 function darkenColor(color, factor) {
-  const r = Math.floor(
-    ((color >> 16) & 255) * factor
-  );
-
-  const g = Math.floor(
-    ((color >> 8) & 255) * factor
-  );
-
-  const b = Math.floor(
-    (color & 255) * factor
-  );
+  const r = Math.floor(((color >> 16) & 255) * factor);
+  const g = Math.floor(((color >> 8) & 255) * factor);
+  const b = Math.floor((color & 255) * factor);
 
   return (r << 16) + (g << 8) + b;
 }
@@ -68,8 +60,6 @@ function getTileBaseColor(tile) {
     return 0xff2222;
   }
 
-  function getTileBaseColor(tile) {
-    
   if (tile.type === 'craftingTable') {
     return 0x8b5a2b;
   }
@@ -137,29 +127,25 @@ function redraw(scene) {
 
       let color = getTileBaseColor(tile);
 
-      const distance =
-        Phaser.Math.Distance.Between(
-          x,
-          y,
-          scene.player.x,
-          scene.player.y
-        );
+      const distance = Phaser.Math.Distance.Between(
+        x,
+        y,
+        scene.player.x,
+        scene.player.y
+      );
 
       const lightRadius = 8.5;
       const minBrightness = 0.16;
 
-      const lightStrength =
-        Phaser.Math.Clamp(
-          1 - distance / lightRadius,
-          0,
-          1
-        );
+      const lightStrength = Phaser.Math.Clamp(
+        1 - distance / lightRadius,
+        0,
+        1
+      );
 
-      const smoothFalloff =
-        lightStrength * lightStrength;
+      const smoothFalloff = lightStrength * lightStrength;
 
-      const brightness =
-        minBrightness + smoothFalloff * 0.84;
+      const brightness = minBrightness + smoothFalloff * 0.84;
 
       color = darkenColor(color, brightness);
 
@@ -190,12 +176,10 @@ function redraw(scene) {
       scene.tileSize / 2 -
       2 +
       scene.lastMoveDirection.x * 7,
-
     scene.player.y * scene.tileSize +
       scene.tileSize / 2 -
       2 +
       scene.lastMoveDirection.y * 7,
-
     4,
     4
   );
