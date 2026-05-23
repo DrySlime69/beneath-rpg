@@ -193,6 +193,28 @@ class GameScene extends Phaser.Scene {
       );
     }
 
+    this.craftingRecipeButtons = Array.from(
+  document.querySelectorAll('.craftRecipeSlot')
+);
+
+this.craftingRecipeButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    selectCraftingTableRecipe(
+      this,
+      button.dataset.recipe
+    );
+  });
+});
+
+this.craftSelectedRecipeButton =
+  document.getElementById('craftSelectedRecipe');
+
+if (this.craftSelectedRecipeButton) {
+  this.craftSelectedRecipeButton.addEventListener('click', () => {
+    craftSelectedCraftingTableRecipe(this);
+  });
+}
+
     this.hotbarItems = [
       { id: 'pickaxe' },
       { id: 'teleportStone' },
