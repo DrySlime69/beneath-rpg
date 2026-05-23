@@ -398,6 +398,23 @@ function craftSelectedCraftingTableRecipe(scene) {
     setMessage(scene, 'Unknown recipe.');
     return;
   }
+  function setupFurnaceRecipeSelection(scene) {
+  const furnaceRecipeButtons = Array.from(
+    document.querySelectorAll('.furnaceRecipeSlot')
+  );
+
+  furnaceRecipeButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      document.querySelectorAll('.furnaceRecipeSlot').forEach(slot => {
+        slot.classList.remove('selected');
+      });
+
+      button.classList.add('selected');
+
+      setMessage(scene, 'Selected Copper Bar recipe.');
+    });
+  });
+}
 
   recipe.craft(scene);
 }
