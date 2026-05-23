@@ -1,4 +1,3 @@
-
 function createEmptyMap(scene, width, height) {
   const map = [];
   for (let y = 0; y < height; y++) {
@@ -16,6 +15,7 @@ function makeTile(type, extra = {}) {
     type,
     hardness: type === 'caveWall' ? 999 : 0,
     variation: Phaser.Math ? Phaser.Math.Between(0, 4) : 0,
+    detailSeed: Phaser.Math ? Phaser.Math.Between(0, 9999) : 0,
     ...extra
   };
 
@@ -72,6 +72,20 @@ function darkenColor(color, factor) {
   return (r << 16) + (g << 8) + b;
 }
 
+function tintColor(color, amount) {
+  const r = Math.min(255, ((color >> 16) & 255) + amount);
+  const g = Math.min(255, ((color >> 8) & 255) + amount);
+  const b = Math.min(255, (color & 255) + amount);
+  return (r << 16) + (g << 8) + b;
+}
+
+function seededNoise(x, y, seed = 0) {
+  let n = x * 374761393 + y * 668265263 + seed * 1442695041;
+  n = (n ^ (n >> 13)) * 1274126177;
+  n = n ^ (n >> 16);
+  return Math.abs(n % 10000) / 10000;
+}
+
 function getTileBaseColor(tile) {
   if (tile.type === 'floor') return tile.variation % 2 ? 0x151515 : 0x101010;
   if (tile.type === 'homeFloor') return tile.variation % 2 ? 0x211911 : 0x18120d;
@@ -89,32 +103,104 @@ function getTileBaseColor(tile) {
 }
 
 function isWallLike(tile) {
-  return ['caveWall', 'stone', 'coal', 'copper', 'copperWall'].includes(tile.type);
+  return tile && ['caveWall', 'stone', 'coal', 'copper', 'copperWall'].includes(tile.type);
 }
 
-function drawNaturalEdges(scene, tile, x, y, brightness) {
+function isWalkableTile(tile) {
+  return tile && ['floor', 'homeFloor', 'teleportPad', 'exit', 'exitUp', 'exitDown'].includes(tile.type);
+}
+
+function getWallMask(scene, x, y) {
+  const top = isWallLike(getTile(scene, x, y - 1));
+  const right = isWallLike(getTile(scene, x + 1, y));
+  const bottom = isWallLike(getTile(scene, x, y + 1));
+  const left = isWallLike(getTile(scene, x - 1, y));
+  return { top, right, bottom, left };
+}
+
+function getWallVisualColors(tile) {
+  if (tile.type === 'stone') return { base: 0x5a5a5a, edge: 0xa8a8a8, shadow: 0x262626, speck: 0xc0c0c0 };
+  if (tile.type === 'coal') return { base: 0x303030, edge: 0x686868, shadow: 0x111111, speck: 0x777777 };
+  if (tile.type === 'copper') return { base: 0x9b5a2e, edge: 0xffb066, shadow: 0x3a1b12, speck: 0xffaa55 };
+  if (tile.type === 'copperWall') return { base: 0x71381f, edge: 0xff8844, shadow: 0x28110b, speck: 0xff9a58 };
+  return { base: 0x2b180d, edge: 0x7a5238, shadow: 0x0b0503, speck: 0x56321e };
+}
+
+function drawAutotiledWall(scene, tile, x, y, brightness) {
   if (!isWallLike(tile)) return;
 
   const px = x * scene.tileSize;
   const py = y * scene.tileSize;
   const s = scene.tileSize;
-  const shadow = darkenColor(0x000000, brightness + 0.12);
-  const rim = darkenColor(0x7a5238, brightness * 0.7);
+  const mask = getWallMask(scene, x, y);
+  const colors = getWallVisualColors(tile);
+  const seed = tile.detailSeed || tile.variation || 0;
+  const n1 = seededNoise(x, y, seed);
+  const n2 = seededNoise(x + 17, y - 9, seed);
 
-  const top = getTile(scene, x, y - 1);
-  const bottom = getTile(scene, x, y + 1);
-  const left = getTile(scene, x - 1, y);
-  const right = getTile(scene, x + 1, y);
+  const base = darkenColor(colors.base, brightness);
+  const edge = darkenColor(colors.edge, brightness);
+  const shadow = darkenColor(colors.shadow, Math.min(1, brightness + 0.2));
 
-  scene.worldLayer.fillStyle(shadow, 0.35);
-  if (top && !isWallLike(top)) scene.worldLayer.fillRect(px + 2, py, s - 4, 3);
-  if (bottom && !isWallLike(bottom)) scene.worldLayer.fillRect(px + 2, py + s - 4, s - 4, 4);
-  if (left && !isWallLike(left)) scene.worldLayer.fillRect(px, py + 2, 3, s - 4);
-  if (right && !isWallLike(right)) scene.worldLayer.fillRect(px + s - 4, py + 2, 4, s - 4);
+  const insetTop = mask.top ? 0 : 2 + Math.floor(n1 * 3);
+  const insetBottom = mask.bottom ? 0 : 2 + Math.floor(n2 * 3);
+  const insetLeft = mask.left ? 0 : 2 + Math.floor(seededNoise(x - 3, y, seed) * 3);
+  const insetRight = mask.right ? 0 : 2 + Math.floor(seededNoise(x, y + 5, seed) * 3);
 
-  scene.worldLayer.lineStyle(1, rim, 0.55);
-  if (top && !isWallLike(top)) scene.worldLayer.lineBetween(px + 4, py + 4, px + s - 5, py + 3);
-  if (left && !isWallLike(left)) scene.worldLayer.lineBetween(px + 3, py + 5, px + 4, py + s - 5);
+  scene.worldLayer.fillStyle(base);
+  scene.worldLayer.fillRect(px + insetLeft, py + insetTop, s - insetLeft - insetRight, s - insetTop - insetBottom);
+
+  // Dark cavities against open floor make square tile joins read as rounded cave edges.
+  scene.worldLayer.fillStyle(shadow, 0.62);
+  if (!mask.top) scene.worldLayer.fillRect(px + 3 + Math.floor(n1 * 3), py, s - 7, 5);
+  if (!mask.bottom) scene.worldLayer.fillRect(px + 3, py + s - 5, s - 7 - Math.floor(n2 * 3), 5);
+  if (!mask.left) scene.worldLayer.fillRect(px, py + 4, 5, s - 8);
+  if (!mask.right) scene.worldLayer.fillRect(px + s - 5, py + 4, 5, s - 8);
+
+  // Highlight rims only where wall touches walkable space.
+  scene.worldLayer.lineStyle(1, edge, 0.72);
+  if (!mask.top) scene.worldLayer.lineBetween(px + 5, py + insetTop + 1, px + s - 6, py + Math.max(2, insetTop));
+  if (!mask.left) scene.worldLayer.lineBetween(px + insetLeft + 1, py + 5, px + Math.max(2, insetLeft), py + s - 6);
+  scene.worldLayer.lineStyle(1, shadow, 0.55);
+  if (!mask.bottom) scene.worldLayer.lineBetween(px + 5, py + s - insetBottom - 1, px + s - 6, py + s - Math.max(2, insetBottom));
+  if (!mask.right) scene.worldLayer.lineBetween(px + s - insetRight - 1, py + 5, px + s - Math.max(2, insetRight), py + s - 6);
+
+  // Rounded inner-corner shadows remove the checkerboard feel at cave bends.
+  scene.worldLayer.fillStyle(shadow, 0.5);
+  if (!mask.top && !mask.left) scene.worldLayer.fillCircle(px + 4, py + 4, 5);
+  if (!mask.top && !mask.right) scene.worldLayer.fillCircle(px + s - 4, py + 4, 5);
+  if (!mask.bottom && !mask.left) scene.worldLayer.fillCircle(px + 4, py + s - 4, 5);
+  if (!mask.bottom && !mask.right) scene.worldLayer.fillCircle(px + s - 4, py + s - 4, 5);
+}
+
+function drawFloorDetails(scene, tile, x, y, brightness) {
+  if (!isWalkableTile(tile)) return;
+
+  const px = x * scene.tileSize;
+  const py = y * scene.tileSize;
+  const s = scene.tileSize;
+  const seed = tile.detailSeed || tile.variation || 0;
+  const floorColor = tile.type === 'homeFloor' ? 0x3a2a19 : 0x222222;
+  const pebbleColor = darkenColor(floorColor, brightness * 0.85);
+  const lightPebble = darkenColor(tintColor(floorColor, 25), brightness * 0.8);
+
+  // Ground texture speckles, deterministic per tile so it does not shimmer.
+  scene.worldLayer.fillStyle(pebbleColor, 0.45);
+  if (seededNoise(x, y, seed) > 0.25) scene.worldLayer.fillRect(px + 5, py + 6, 2, 2);
+  if (seededNoise(x + 11, y + 4, seed) > 0.5) scene.worldLayer.fillRect(px + 17, py + 15, 3, 1);
+  scene.worldLayer.fillStyle(lightPebble, 0.35);
+  if (seededNoise(x - 8, y + 13, seed) > 0.62) scene.worldLayer.fillRect(px + 10, py + 20, 2, 2);
+
+  // Ambient occlusion beside nearby walls makes caves feel naturally carved.
+  const top = isWallLike(getTile(scene, x, y - 1));
+  const right = isWallLike(getTile(scene, x + 1, y));
+  const bottom = isWallLike(getTile(scene, x, y + 1));
+  const left = isWallLike(getTile(scene, x - 1, y));
+  scene.worldLayer.fillStyle(0x000000, scene.currentMapName === 'home' ? 0.08 : 0.18);
+  if (top) scene.worldLayer.fillRect(px, py, s, 5);
+  if (bottom) scene.worldLayer.fillRect(px, py + s - 5, s, 5);
+  if (left) scene.worldLayer.fillRect(px, py, 5, s);
+  if (right) scene.worldLayer.fillRect(px + s - 5, py, 5, s);
 }
 
 function drawTileDetails(scene, tile, x, y, brightness) {
@@ -122,12 +208,14 @@ function drawTileDetails(scene, tile, x, y, brightness) {
   const py = y * scene.tileSize;
   const size = scene.tileSize;
 
-  drawNaturalEdges(scene, tile, x, y, brightness);
+  drawFloorDetails(scene, tile, x, y, brightness);
+  drawAutotiledWall(scene, tile, x, y, brightness);
 
   if (tile.type === 'caveWall') {
-    scene.worldLayer.fillStyle(darkenColor(0x3a2114, brightness));
+    scene.worldLayer.fillStyle(darkenColor(0x56321e, brightness), 0.55);
     scene.worldLayer.fillRect(px + 5, py + 5, 4 + tile.variation, 3);
     scene.worldLayer.fillRect(px + 15, py + 13, 5, 4);
+    if ((tile.detailSeed || 0) % 2 === 0) scene.worldLayer.fillRect(px + 8, py + 19, 3, 2);
   }
 
   if (tile.type === 'stone') {

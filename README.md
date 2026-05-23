@@ -24,3 +24,7 @@ GitHub Pages-ready Phaser mining RPG prototype.
 ## Deployment
 
 Upload the contents of this folder to the root of your GitHub Pages repo. The root should contain `index.html`, `style.css`, and `src/`.
+
+## Autotiling / Natural Cave Visual Pass
+
+This build keeps collision, mining, crafting, and progression tile-based, but the renderer now draws walls using neighbor-aware autotile masks. Cave edges receive rounded corner shadows, rim highlights, deterministic floor speckles, and ambient-occlusion shading where floors touch walls. This makes generated caves look less square while preserving the simple grid data model.
