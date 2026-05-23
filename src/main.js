@@ -4,39 +4,6 @@ class GameScene extends Phaser.Scene {
   }
 
   create() {
-
-    if (this.craftStonePickaxeButton) {
-  this.craftStonePickaxeButton.addEventListener('click', () => {
-    craftStonePickaxeAtTable(this);
-  });
-}
-
-if (this.craftFurnaceButton) {
-  this.craftFurnaceButton.addEventListener('click', () => {
-    craftFurnaceAtTable(this);
-  });
-}
-
-if (this.closeCraftingTableButton) {
-  this.closeCraftingTableButton.addEventListener('click', () => {
-    closeCraftingTableMenu(this);
-  });
-}
-
-    this.craftingTableOpen = false;
-
-this.craftingTableScreen =
-  document.getElementById('craftingTableScreen');
-
-this.craftStonePickaxeButton =
-  document.getElementById('craftStonePickaxe');
-
-this.craftFurnaceButton =
-  document.getElementById('craftFurnace');
-
-this.closeCraftingTableButton =
-  document.getElementById('closeCraftingTable');
-    
     this.tileSize = 26;
     this.mineWidth = 25;
     this.mapWidth = 44;
@@ -51,7 +18,6 @@ this.closeCraftingTableButton =
 
     this.pickaxeTier = 1;
     this.pickaxeDamage = 1;
-
     this.hasFurnace = false;
 
     this.mineCooldown = false;
@@ -59,6 +25,7 @@ this.closeCraftingTableButton =
 
     this.inventoryOpen = false;
     this.craftingOpen = false;
+    this.craftingTableOpen = false;
 
     this.furnaceQueue = [];
 
@@ -118,6 +85,18 @@ this.closeCraftingTableButton =
     this.closeCraftingButton =
       document.getElementById('closeCraftingMenu');
 
+    this.craftingTableScreen =
+      document.getElementById('craftingTableScreen');
+
+    this.craftStonePickaxeButton =
+      document.getElementById('craftStonePickaxe');
+
+    this.craftFurnaceButton =
+      document.getElementById('craftFurnace');
+
+    this.closeCraftingTableButton =
+      document.getElementById('closeCraftingTable');
+
     if (this.craftCopperBarsButton) {
       this.craftCopperBarsButton.addEventListener(
         'click',
@@ -136,8 +115,10 @@ this.closeCraftingTableButton =
       this.copperBarAmountSlider.addEventListener(
         'input',
         () => {
-          this.copperBarAmountLabel.textContent =
-            this.copperBarAmountSlider.value;
+          if (this.copperBarAmountLabel) {
+            this.copperBarAmountLabel.textContent =
+              this.copperBarAmountSlider.value;
+          }
         }
       );
     }
@@ -165,6 +146,48 @@ this.closeCraftingTableButton =
             'function'
           ) {
             closeCraftingMenu(this);
+          }
+        }
+      );
+    }
+
+    if (this.craftStonePickaxeButton) {
+      this.craftStonePickaxeButton.addEventListener(
+        'click',
+        () => {
+          if (
+            typeof craftStonePickaxeAtTable ===
+            'function'
+          ) {
+            craftStonePickaxeAtTable(this);
+          }
+        }
+      );
+    }
+
+    if (this.craftFurnaceButton) {
+      this.craftFurnaceButton.addEventListener(
+        'click',
+        () => {
+          if (
+            typeof craftFurnaceAtTable ===
+            'function'
+          ) {
+            craftFurnaceAtTable(this);
+          }
+        }
+      );
+    }
+
+    if (this.closeCraftingTableButton) {
+      this.closeCraftingTableButton.addEventListener(
+        'click',
+        () => {
+          if (
+            typeof closeCraftingTableMenu ===
+            'function'
+          ) {
+            closeCraftingTableMenu(this);
           }
         }
       );
@@ -201,11 +224,6 @@ this.closeCraftingTableButton =
     this.mineKey =
       this.input.keyboard.addKey(
         Phaser.Input.Keyboard.KeyCodes.SPACE
-      );
-
-    this.craftKey =
-      this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.C
       );
 
     this.inventoryKey =
@@ -308,22 +326,16 @@ this.closeCraftingTableButton =
         this.interactKey
       )
     ) {
-      const tx = this.player.x + this.lastMoveDirection.x;
-const ty = this.player.y + this.lastMoveDirection.y;
-const tile = this.map[ty] ? this.map[ty][tx] : null;
-
-if (tile && tile.type === 'furnace') {
-  toggleCraftingMenu(this);
-} else if (tile && tile.type === 'craftingTable') {
-  toggleCraftingTableMenu(this);
-} else {
-  setMessage(this, 'Nothing to interact with.');
-}
+      this.handleInteract();
     }
 
-if (this.inventoryOpen || this.craftingOpen || this.craftingTableOpen) {
-  return;
-}
+    if (
+      this.inventoryOpen ||
+      this.craftingOpen ||
+      this.craftingTableOpen
+    ) {
+      return;
+    }
 
     if (
       Phaser.Input.Keyboard.JustDown(
@@ -358,6 +370,49 @@ if (this.inventoryOpen || this.craftingOpen || this.craftingTableOpen) {
     this.followTarget.y =
       this.player.y * this.tileSize +
       this.tileSize / 2;
+  }
+
+  handleInteract() {
+    const tx =
+      this.player.x +
+      this.lastMoveDirection.x;
+
+    const ty =
+      this.player.y +
+      this.lastMoveDirection.y;
+
+    const tile = this.map[ty]
+      ? this.map[ty][tx]
+      : null;
+
+    if (!tile) {
+      setMessage(this, 'Nothing to interact with.');
+      return;
+    }
+
+    if (tile.type === 'furnace') {
+      if (
+        typeof toggleCraftingMenu ===
+        'function'
+      ) {
+        toggleCraftingMenu(this);
+      }
+
+      return;
+    }
+
+    if (tile.type === 'craftingTable') {
+      if (
+        typeof toggleCraftingTableMenu ===
+        'function'
+      ) {
+        toggleCraftingTableMenu(this);
+      }
+
+      return;
+    }
+
+    setMessage(this, 'Nothing to interact with.');
   }
 }
 
