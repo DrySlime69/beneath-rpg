@@ -68,6 +68,8 @@ function getTileBaseColor(tile) {
     return 0xff2222;
   }
 
+  function getTileBaseColor(tile) {
+    
   if (tile.type === 'craftingTable') {
     return 0x8b5a2b;
   }
