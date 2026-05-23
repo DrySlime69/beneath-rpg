@@ -16,7 +16,6 @@
 </head>
 
 <body>
-
   <!-- UI -->
   <div id="ui">
     <div id="message"></div>
@@ -36,7 +35,6 @@
   <!-- Inventory -->
   <div id="inventoryScreen">
     <div id="inventoryPanel">
-
       <h2>Inventory</h2>
 
       <div class="inventoryLabel">
@@ -54,122 +52,133 @@
       <div id="inventoryHint">
         I = close inventory. T = teleport. P = place Furnace.
       </div>
-
     </div>
   </div>
 
-  <!-- Furnace Crafting -->
+  <!-- Furnace -->
   <div id="craftingScreen">
-
     <div id="craftingPanel">
-
       <h2>Furnace</h2>
 
-      <div id="recipeCopperBars" class="recipeCard">
-
-        <strong>Copper Bar</strong>
-
-        <div>
-          5 Copper Ore + 1 Coal -> 1 Copper Bar
+      <div id="furnaceLayout">
+        <div id="furnaceRecipeGrid">
+          <button
+            class="furnaceRecipeSlot selected"
+            data-recipe="copperBar"
+          >
+            Copper Bar
+          </button>
         </div>
 
-        <label for="copperBarAmount">
-          Amount:
-        </label>
+        <div id="furnaceRecipeDetails">
+          <h3 id="selectedFurnaceRecipeName">
+            Copper Bar
+          </h3>
 
-        <input
-          id="copperBarAmount"
-          type="range"
-          min="1"
-          max="10"
-          value="1"
-        />
+          <div id="selectedFurnaceRecipeDescription">
+            Smelt copper ore into a usable copper bar.
+          </div>
 
-        <div id="copperBarAmountLabel">
-          1
+          <div id="selectedFurnaceRecipeRequirements">
+            Requires: 5 Copper Ore + 1 Coal
+          </div>
+
+          <label for="copperBarAmount">
+            Amount:
+          </label>
+
+          <input
+            id="copperBarAmount"
+            type="range"
+            min="1"
+            max="10"
+            value="1"
+          />
+
+          <div id="copperBarAmountLabel">
+            1
+          </div>
+
+          <button id="craftCopperBars">
+            Start Crafting
+          </button>
+
+          <div id="furnaceQueue">
+            <h3>In Progress</h3>
+
+            <div id="furnaceQueueItem">
+              Empty
+            </div>
+
+            <div id="furnaceProgressOuter">
+              <div id="furnaceProgressInner"></div>
+            </div>
+          </div>
+
+          <div id="furnaceOutput">
+            <h3>Completed</h3>
+
+            <div id="furnaceOutputItem">
+              Empty
+            </div>
+
+            <button id="collectFurnaceOutput">
+              Collect
+            </button>
+          </div>
         </div>
-
-        <button id="craftCopperBars">
-          Start Crafting
-        </button>
-
-      </div>
-
-      <div id="furnaceQueue">
-
-        <h3>In Progress</h3>
-
-        <div id="furnaceQueueItem">
-          Empty
-        </div>
-
-        <div id="furnaceProgressOuter">
-          <div id="furnaceProgressInner"></div>
-        </div>
-
-      </div>
-
-      <div id="furnaceOutput">
-
-        <h3>Completed</h3>
-
-        <div id="furnaceOutputItem">
-          Empty
-        </div>
-
-        <button id="collectFurnaceOutput">
-          Collect
-        </button>
-
-      </div>
-
-      <div id="craftingCloseHint">
-        Press E to close.
       </div>
 
       <button id="closeCraftingMenu">
-      Close
+        Close
       </button>
-
     </div>
-
   </div>
 
-<div id="craftingTableScreen">
-  <div id="craftingTablePanel">
-    <h2>Crafting Table</h2>
+  <!-- Crafting Table -->
+  <div id="craftingTableScreen">
+    <div id="craftingTablePanel">
+      <h2>Crafting Table</h2>
 
-    <div id="craftingTableLayout">
-      <div id="craftingRecipeGrid">
-        <button class="craftRecipeSlot" data-recipe="stonePickaxe">
-          Stone Pickaxe
-        </button>
+      <div id="craftingTableLayout">
+        <div id="craftingRecipeGrid">
+          <button
+            class="craftRecipeSlot"
+            data-recipe="stonePickaxe"
+          >
+            Stone Pickaxe
+          </button>
 
-        <button class="craftRecipeSlot" data-recipe="furnace">
-          Furnace
-        </button>
-      </div>
-
-      <div id="craftingRecipeDetails">
-        <h3 id="selectedRecipeName">Select a Recipe</h3>
-
-        <div id="selectedRecipeDescription">
-          Choose a recipe from the grid.
+          <button
+            class="craftRecipeSlot"
+            data-recipe="furnace"
+          >
+            Furnace
+          </button>
         </div>
 
-        <div id="selectedRecipeRequirements"></div>
+        <div id="craftingRecipeDetails">
+          <h3 id="selectedRecipeName">
+            Select a Recipe
+          </h3>
 
-        <button id="craftSelectedRecipe">
-          Craft
-        </button>
+          <div id="selectedRecipeDescription">
+            Choose a recipe from the grid.
+          </div>
+
+          <div id="selectedRecipeRequirements"></div>
+
+          <button id="craftSelectedRecipe">
+            Craft
+          </button>
+        </div>
       </div>
-    </div>
 
-    <button id="closeCraftingTable">
-      Close
-    </button>
+      <button id="closeCraftingTable">
+        Close
+      </button>
+    </div>
   </div>
-</div>
 
   <!-- Scripts -->
   <script src="src/ui.js"></script>
@@ -183,6 +192,5 @@
   <script src="src/crafting.js"></script>
   <script src="src/base.js"></script>
   <script src="src/main.js"></script>
-
 </body>
 </html>
