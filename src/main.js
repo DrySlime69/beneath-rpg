@@ -5,6 +5,24 @@ class GameScene extends Phaser.Scene {
 
   create() {
 
+    if (this.craftStonePickaxeButton) {
+  this.craftStonePickaxeButton.addEventListener('click', () => {
+    craftStonePickaxeAtTable(this);
+  });
+}
+
+if (this.craftFurnaceButton) {
+  this.craftFurnaceButton.addEventListener('click', () => {
+    craftFurnaceAtTable(this);
+  });
+}
+
+if (this.closeCraftingTableButton) {
+  this.closeCraftingTableButton.addEventListener('click', () => {
+    closeCraftingTableMenu(this);
+  });
+}
+
     this.craftingTableOpen = false;
 
 this.craftingTableScreen =
