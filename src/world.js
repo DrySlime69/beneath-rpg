@@ -64,6 +64,23 @@ function drawTileDetails(scene, tile, x, y, brightness) {
   const py = y * scene.tileSize;
   const size = scene.tileSize;
 
+  if (tile.type === 'caveWall') {
+  scene.worldLayer.fillStyle(darkenColor(0x3a2114, brightness));
+  scene.worldLayer.fillRect(px + 3, py + 3, size - 6, size - 6);
+
+  scene.worldLayer.fillStyle(darkenColor(0x1c0f08, brightness));
+  scene.worldLayer.fillRect(px + 5, py + 6, 5, 4);
+  scene.worldLayer.fillRect(px + 15, py + 4, 6, 5);
+  scene.worldLayer.fillRect(px + 10, py + 16, 9, 5);
+
+  scene.worldLayer.lineStyle(1, darkenColor(0x5a3320, brightness), 0.8);
+  scene.worldLayer.beginPath();
+  scene.worldLayer.moveTo(px + 4, py + 13);
+  scene.worldLayer.lineTo(px + 11, py + 10);
+  scene.worldLayer.lineTo(px + 18, py + 14);
+  scene.worldLayer.strokePath();
+}
+
   if (tile.type === 'stone') {
     scene.worldLayer.lineStyle(1, darkenColor(0xaaaaaa, brightness), 0.8);
     scene.worldLayer.beginPath();
