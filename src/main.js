@@ -225,7 +225,7 @@ this.craftSelectedRecipeButton =
 
 if (this.craftSelectedRecipeButton) {
   this.craftSelectedRecipeButton.addEventListener('click', () => {
-    craftSelectedCraftingTableRecipe(this);
+    startCraftingTableRecipe(this);
   });
 }
 
@@ -347,7 +347,26 @@ if (this.craftSelectedRecipeButton) {
       'function'
     ) {
       updateFurnaceQueue(this, delta);
+
+      if (
+  typeof updateCraftingTableQueue ===
+  'function'
+) {
+  updateCraftingTableQueue(this, delta);
+}
     }
+
+    this.collectTableOutputButton =
+  document.getElementById('collectTableOutput');
+
+if (this.collectTableOutputButton) {
+  this.collectTableOutputButton.addEventListener(
+    'click',
+    () => {
+      collectCraftingTableOutput(this);
+    }
+  );
+}
 
     if (
       Phaser.Input.Keyboard.JustDown(
