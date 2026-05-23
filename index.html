@@ -135,24 +135,34 @@
 
   </div>
 
-  <div id="craftingTableScreen">
+<div id="craftingTableScreen">
   <div id="craftingTablePanel">
     <h2>Crafting Table</h2>
 
-    <button id="craftStonePickaxe">
-      Craft Stone Pickaxe
-    </button>
+    <div id="craftingTableLayout">
+      <div id="craftingRecipeGrid">
+        <button class="craftRecipeSlot" data-recipe="stonePickaxe">
+          Stone Pickaxe
+        </button>
 
-    <div class="recipeCost">
-      Costs: 15 Stone
-    </div>
+        <button class="craftRecipeSlot" data-recipe="furnace">
+          Furnace
+        </button>
+      </div>
 
-    <button id="craftFurnace">
-      Craft Furnace
-    </button>
+      <div id="craftingRecipeDetails">
+        <h3 id="selectedRecipeName">Select a Recipe</h3>
 
-    <div class="recipeCost">
-      Costs: 20 Stone
+        <div id="selectedRecipeDescription">
+          Choose a recipe from the grid.
+        </div>
+
+        <div id="selectedRecipeRequirements"></div>
+
+        <button id="craftSelectedRecipe">
+          Craft
+        </button>
+      </div>
     </div>
 
     <button id="closeCraftingTable">
