@@ -1,16 +1,16 @@
 
 function useTeleportStone(scene) {
   if (scene.currentMapName === 'mine') {
-    scene.mineReturnPosition = { x: scene.player.x, y: scene.player.y };
+    scene.mineReturnPosition = { x: scene.player.x, y: scene.player.y, level: scene.mineLevel || 1 };
     switchToHome(scene);
     scene.player.x = scene.homePosition.x;
     scene.player.y = scene.homePosition.y;
     setMessage(scene, 'Teleported home.');
   } else {
-    switchToMine(scene);
+    switchToMine(scene, scene.mineReturnPosition.level || 1);
     scene.player.x = scene.mineReturnPosition.x;
     scene.player.y = scene.mineReturnPosition.y;
-    setMessage(scene, 'Returned to the mine.');
+    setMessage(scene, 'Returned to Mine Level ' + scene.mineLevel + '.');
   }
 }
 
@@ -59,6 +59,11 @@ function handleInteract(scene) {
 
   if (tile.type === 'craftingTable') {
     toggleCraftingTableMenu(scene);
+    return;
+  }
+
+  if (tile.type === 'exitUp' || tile.type === 'exitDown') {
+    tryUseMineExit(scene, tile);
     return;
   }
 
@@ -182,9 +187,15 @@ function collectFurnaceOutput(scene) {
 const craftingTableRecipes = {
   stonePickaxe: {
     name: 'Stone Pickaxe',
-    description: 'A stronger pickaxe that can break copper blocks.',
+    description: 'A stronger pickaxe that can break copper ore blocks.',
     requirements: '15 Stone',
     timePerItem: 10000
+  },
+  copperPickaxe: {
+    name: 'Copper Pickaxe',
+    description: 'Breaks copper walls and unlocks Mine Level 6.',
+    requirements: '10 Copper Bars + 20 Stone',
+    timePerItem: 15000
   },
   furnace: {
     name: 'Furnace',
@@ -258,6 +269,19 @@ function startCraftingTableRecipe(scene) {
     scene.inventory.stone -= 15;
   }
 
+  if (recipeId === 'copperPickaxe') {
+    if (scene.pickaxeTier >= 3) {
+      setMessage(scene, 'Copper Pickaxe already crafted.');
+      return;
+    }
+    if (scene.inventory.copperBars < 10 || scene.inventory.stone < 20) {
+      setMessage(scene, 'Need 10 Copper Bars and 20 Stone.');
+      return;
+    }
+    scene.inventory.copperBars -= 10;
+    scene.inventory.stone -= 20;
+  }
+
   if (recipeId === 'furnace') {
     if (scene.hasFurnace) {
       setMessage(scene, 'Furnace already crafted or in backpack.');
@@ -313,20 +337,29 @@ function updateCraftingTableUI(scene) {
 
   const output = [];
   if (scene.tableOutput.stonePickaxe > 0) output.push('Stone Pickaxe x' + scene.tableOutput.stonePickaxe);
+  if (scene.tableOutput.copperPickaxe > 0) output.push('Copper Pickaxe x' + scene.tableOutput.copperPickaxe);
   if (scene.tableOutput.furnace > 0) output.push('Furnace x' + scene.tableOutput.furnace);
   scene.tableOutputItem.textContent = output.join(' ') || 'Empty';
 }
 
 function collectCraftingTableOutput(scene) {
-  if (scene.tableOutput.stonePickaxe <= 0 && scene.tableOutput.furnace <= 0) {
+  if (scene.tableOutput.stonePickaxe <= 0 && scene.tableOutput.copperPickaxe <= 0 && scene.tableOutput.furnace <= 0) {
     setMessage(scene, 'No completed items.');
     return;
   }
 
   if (scene.tableOutput.stonePickaxe > 0) {
-    scene.pickaxeTier = 2;
-    scene.pickaxeDamage = 2;
+    scene.pickaxeTier = Math.max(scene.pickaxeTier, 2);
+    scene.pickaxeDamage = Math.max(scene.pickaxeDamage, 2);
     scene.tableOutput.stonePickaxe = 0;
+  }
+
+  if (scene.tableOutput.copperPickaxe > 0) {
+    scene.pickaxeTier = Math.max(scene.pickaxeTier, 3);
+    scene.pickaxeDamage = Math.max(scene.pickaxeDamage, 3);
+    scene.maxUnlockedMineLevel = Math.max(scene.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS, FIRST_LOCKED_MINE_LEVEL);
+    if (!scene.mineMaps[FIRST_LOCKED_MINE_LEVEL]) scene.mineMaps[FIRST_LOCKED_MINE_LEVEL] = createMineMap(scene, FIRST_LOCKED_MINE_LEVEL);
+    scene.tableOutput.copperPickaxe = 0;
   }
 
   if (scene.tableOutput.furnace > 0) {

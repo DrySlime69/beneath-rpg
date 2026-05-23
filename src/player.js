@@ -21,12 +21,8 @@ function handleMovement(scene, delta) {
   moveWithCollision(scene, 0, dy * distance);
 
   const tile = getTileAtPixel(scene, scene.player.x, scene.player.y);
-  if (tile && tile.type === 'exit') {
-    if (scene.pickaxeTier >= 2) {
-      setMessage(scene, 'The deeper mine is planned for the copper-wall expansion.');
-    } else {
-      setMessage(scene, 'Craft a Stone Pickaxe before going deeper.');
-    }
+  if (tile && (tile.type === 'exitUp' || tile.type === 'exitDown')) {
+    tryUseMineExit(scene, tile);
   }
 }
 
@@ -65,7 +61,7 @@ function collidesAt(scene, px, py) {
 }
 
 function isSolidTile(tile) {
-  return !['floor', 'homeFloor', 'teleportPad', 'exit'].includes(tile.type);
+  return !['floor', 'homeFloor', 'teleportPad', 'exit', 'exitUp', 'exitDown'].includes(tile.type);
 }
 
 function getTileAtPixel(scene, px, py) {
@@ -124,17 +120,27 @@ function mineTargetTile(scene) {
     return;
   }
 
+  if (tile.type === 'copperWall') {
+    if (scene.pickaxeTier < 3) {
+      setMessage(scene, 'Need Copper Pickaxe to break Copper Wall.');
+      return;
+    }
+
+    hitResource(scene, tile, target.x, target.y, 'copperOre', 'copper wall', 0xff8844, '+5 Copper Ore', 5);
+    return;
+  }
+
   if (tile.type === 'caveWall') setMessage(scene, 'Cave wall is too hard to mine.');
   else setMessage(scene, 'Nothing mineable there.');
 }
 
-function hitResource(scene, tile, tx, ty, inventoryKey, label, particleColor, successMessage) {
+function hitResource(scene, tile, tx, ty, inventoryKey, label, particleColor, successMessage, yieldAmount = 10) {
   scene.cameras.main.shake(40, 0.0015);
   tile.hp -= scene.pickaxeDamage;
   spawnParticles(scene, tx, ty, particleColor);
 
   if (tile.hp <= 0) {
-    scene.inventory[inventoryKey] += 10;
+    scene.inventory[inventoryKey] += yieldAmount;
     scene.map[ty][tx] = {
       type: scene.currentMapName === 'home' ? 'homeFloor' : 'floor',
       hardness: 0,
@@ -167,5 +173,45 @@ function spawnParticles(scene, tx, ty, color) {
       duration: 400,
       onComplete: () => particle.destroy()
     });
+  }
+}
+
+function tryUseMineExit(scene, tile) {
+  if (scene.exitCooldown) return;
+  scene.exitCooldown = true;
+  scene.time.delayedCall(550, () => {
+    scene.exitCooldown = false;
+  });
+
+  if (tile.type === 'exitUp') {
+    if (scene.mineLevel <= 1) {
+      switchToHome(scene);
+      scene.player.x = scene.homePosition.x;
+      scene.player.y = scene.homePosition.y;
+      setMessage(scene, 'Returned home from Mine Level 1.');
+      return;
+    }
+
+    switchToMine(scene, scene.mineLevel - 1);
+    scene.player.x = (scene.mapWidth - 5.5) * scene.tileSize;
+    scene.player.y = (scene.mapHeight - 4.5) * scene.tileSize;
+    setMessage(scene, 'Mine Level ' + scene.mineLevel);
+    return;
+  }
+
+  if (tile.type === 'exitDown') {
+    const targetLevel = tile.targetLevel || scene.mineLevel + 1;
+    const requiredTier = tile.requiredPickaxeTier || 1;
+
+    if (targetLevel >= FIRST_LOCKED_MINE_LEVEL && scene.pickaxeTier < requiredTier) {
+      setMessage(scene, 'Copper Wall blocks Level ' + targetLevel + '. Craft a Copper Pickaxe first.');
+      return;
+    }
+
+    scene.maxUnlockedMineLevel = Math.max(scene.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS, targetLevel);
+    switchToMine(scene, targetLevel);
+    scene.player.x = 3.5 * scene.tileSize;
+    scene.player.y = 3.5 * scene.tileSize;
+    setMessage(scene, 'Mine Level ' + scene.mineLevel);
   }
 }

@@ -22,20 +22,34 @@ function makeTile(type, extra = {}) {
   if (type === 'stone') Object.assign(tile, { hardness: 1, hp: 4, maxHp: 4 });
   if (type === 'coal') Object.assign(tile, { hardness: 1, hp: 3, maxHp: 3 });
   if (type === 'copper') Object.assign(tile, { hardness: 2, hp: 10, maxHp: 10 });
+  if (type === 'copperWall') Object.assign(tile, { hardness: 3, hp: 14, maxHp: 14 });
   if (type === 'furnace' || type === 'craftingTable') tile.hardness = 999;
-  if (type === 'exit') tile.hardness = 999;
+  if (type === 'exit' || type === 'exitUp' || type === 'exitDown') tile.hardness = 999;
   return tile;
 }
 
 function generateMaps(scene) {
-  scene.mineMap = createMineMap(scene);
+  scene.mineLevel = 1;
+  scene.maxUnlockedMineLevel = STARTING_UNLOCKED_MINE_LEVELS;
+  scene.mineMaps = {};
+
+  for (let level = 1; level <= STARTING_UNLOCKED_MINE_LEVELS; level++) {
+    scene.mineMaps[level] = createMineMap(scene, level);
+  }
+
   scene.homeMap = createHomeMap(scene);
   scene.currentMapName = 'mine';
-  scene.map = scene.mineMap;
+  scene.map = scene.mineMaps[scene.mineLevel];
 }
 
-function switchToMine(scene) {
-  scene.map = scene.mineMap;
+function getMineMap(scene, level) {
+  if (!scene.mineMaps[level]) scene.mineMaps[level] = createMineMap(scene, level);
+  return scene.mineMaps[level];
+}
+
+function switchToMine(scene, level = scene.mineLevel || 1) {
+  scene.mineLevel = Phaser.Math.Clamp(level, 1, 99);
+  scene.map = getMineMap(scene, scene.mineLevel);
   scene.currentMapName = 'mine';
   setCameraBounds(scene);
 }
@@ -65,15 +79,17 @@ function getTileBaseColor(tile) {
   if (tile.type === 'furnace') return 0xff4422;
   if (tile.type === 'craftingTable') return 0x8b5a2b;
   if (tile.type === 'caveWall') return tile.variation % 2 ? 0x321c10 : 0x25140b;
-  if (tile.type === 'exit') return 0x00aa00;
+  if (tile.type === 'exit' || tile.type === 'exitDown') return 0x00aa00;
+  if (tile.type === 'exitUp') return 0x2255cc;
   if (tile.type === 'stone') return 0x5a5a5a;
   if (tile.type === 'coal') return 0x333333;
   if (tile.type === 'copper') return 0xaa6633;
+  if (tile.type === 'copperWall') return 0x7f3f24;
   return 0x000000;
 }
 
 function isWallLike(tile) {
-  return ['caveWall', 'stone', 'coal', 'copper'].includes(tile.type);
+  return ['caveWall', 'stone', 'coal', 'copper', 'copperWall'].includes(tile.type);
 }
 
 function drawNaturalEdges(scene, tile, x, y, brightness) {
@@ -128,8 +144,8 @@ function drawTileDetails(scene, tile, x, y, brightness) {
     scene.worldLayer.fillRect(px + 11, py + 20, 2, 2);
   }
 
-  if (tile.type === 'copper') {
-    scene.worldLayer.fillStyle(darkenColor(0xffaa55, brightness));
+  if (tile.type === 'copper' || tile.type === 'copperWall') {
+    scene.worldLayer.fillStyle(darkenColor(tile.type === 'copperWall' ? 0xff8844 : 0xffaa55, brightness));
     scene.worldLayer.fillRect(px + 5, py + 6, 4, 4);
     scene.worldLayer.fillRect(px + 16, py + 9, 3, 3);
     scene.worldLayer.fillRect(px + 9, py + 18, 4, 3);
@@ -162,10 +178,10 @@ function drawTileDetails(scene, tile, x, y, brightness) {
     scene.worldLayer.strokeCircle(px + size / 2, py + size / 2, 4);
   }
 
-  if (tile.type === 'exit') {
-    scene.worldLayer.fillStyle(darkenColor(0x002800, brightness));
+  if (tile.type === 'exit' || tile.type === 'exitDown' || tile.type === 'exitUp') {
+    scene.worldLayer.fillStyle(darkenColor(tile.type === 'exitUp' ? 0x001d48 : 0x002800, brightness));
     scene.worldLayer.fillCircle(px + size / 2, py + size / 2, 10);
-    scene.worldLayer.lineStyle(2, darkenColor(0x44ff77, brightness), 0.8);
+    scene.worldLayer.lineStyle(2, darkenColor(tile.type === 'exitUp' ? 0x66aaff : 0x44ff77, brightness), 0.8);
     scene.worldLayer.strokeCircle(px + size / 2, py + size / 2, 11);
   }
 }
@@ -230,7 +246,7 @@ function redraw(scene) {
 
   const target = getTargetTile(scene, 1);
   const targetTile = getTile(scene, target.x, target.y);
-  if (targetTile && !['floor', 'homeFloor', 'teleportPad'].includes(targetTile.type)) {
+  if (targetTile && !['floor', 'homeFloor', 'teleportPad', 'exitUp', 'exitDown'].includes(targetTile.type)) {
     scene.playerLayer.lineStyle(1, 0xffcc66, 0.45);
     scene.playerLayer.strokeRect(target.x * scene.tileSize + 2, target.y * scene.tileSize + 2, scene.tileSize - 4, scene.tileSize - 4);
   }

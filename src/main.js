@@ -18,7 +18,7 @@ class GameScene extends Phaser.Scene {
     };
 
     this.lastMoveDirection = { x: 1, y: 0 };
-    this.mineReturnPosition = { x: this.player.x, y: this.player.y };
+    this.mineReturnPosition = { x: this.player.x, y: this.player.y, level: 1 };
     this.homePosition = {
       x: 33.5 * this.tileSize,
       y: 8.5 * this.tileSize
@@ -43,7 +43,7 @@ class GameScene extends Phaser.Scene {
     this.furnaceQueue = [];
     this.furnaceOutput = { copperBars: 0 };
     this.tableQueue = [];
-    this.tableOutput = { stonePickaxe: 0, furnace: 0 };
+    this.tableOutput = { stonePickaxe: 0, copperPickaxe: 0, furnace: 0 };
     this.selectedCraftingTableRecipe = null;
 
     cacheDom(this);
@@ -97,7 +97,7 @@ class GameScene extends Phaser.Scene {
     this.cameras.main.setDeadzone(120, 80);
     this.cameras.main.setZoom(1.5);
 
-    setMessage(this, 'Arrow keys/WASD move. Space mines. E interacts.');
+    setMessage(this, 'Mine Level 1. Levels 1-5 are open. Craft Copper Pickaxe for Level 6.');
     updateInventoryUI(this);
     redraw(this);
   }

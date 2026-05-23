@@ -1,16 +1,26 @@
-# Beneath - Phaser Mining RPG Prototype
+# Beneath RPG - Procedural Cave Progression Build
 
-Free-movement version with tile-based terrain, mining, crafting, inventory/hotbar drag-drop, teleport stone, placeable furnace, lighting, home base, mine map, and copper-wall expansion hook.
+GitHub Pages-ready Phaser mining RPG prototype.
+
+## What's new
+
+- Free-moving player with tile-based collision/mining preserved.
+- Procedural mine levels.
+- Mine Levels 1-5 are accessible from the start.
+- Mine Level 6 is gated behind the Copper Pickaxe.
+- Copper ore appears in the starter levels so the player can progress naturally.
+- Copper Pickaxe recipe added to the crafting table.
+- Copper walls added as the first progression barrier.
 
 ## Controls
 
-- Arrow Keys or WASD: move freely
-- Space: mine the tile you are facing
-- E: interact with furnace/crafting table
-- I: inventory
-- T: teleport stone
-- P: place furnace when a crafted Furnace is in the hotbar
+- WASD / Arrow Keys: Move
+- Space: Mine facing tile
+- E: Interact
+- T: Teleport stone
+- P: Place furnace at home
+- I: Inventory
 
-## GitHub Pages
+## Deployment
 
-Upload these files to your repo and enable GitHub Pages from the repository settings. The game loads from `index.html` with relative paths, so it should work from GitHub Pages directly.
+Upload the contents of this folder to the root of your GitHub Pages repo. The root should contain `index.html`, `style.css`, and `src/`.
