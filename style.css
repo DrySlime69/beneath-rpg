@@ -57,7 +57,9 @@ canvas {
   user-select: none;
 }
 
-#inventoryScreen {
+#inventoryScreen,
+#craftingScreen,
+#craftingTableScreen {
   position: fixed;
   inset: 0;
   z-index: 10000;
@@ -66,6 +68,11 @@ canvas {
   align-items: center;
   justify-content: center;
   color: white;
+}
+
+#craftingScreen,
+#craftingTableScreen {
+  z-index: 10001;
 }
 
 #inventoryPanel {
@@ -115,86 +122,65 @@ canvas {
   font-size: 13px;
 }
 
-/* ========================= */
-/* Furnace Crafting Menu */
-/* ========================= */
-
-#craftingScreen {
-  position: fixed;
-  inset: 0;
-  z-index: 10001;
-  background: rgba(0, 0, 0, 0.82);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  color: white;
-}
+/* Furnace Menu */
 
 #craftingPanel {
-  width: 360px;
+  width: min(720px, 94vw);
   background: rgba(12, 8, 5, 0.96);
   border: 3px solid white;
   padding: 18px;
   box-sizing: border-box;
-  text-align: center;
+  color: white;
 }
 
-#craftCopperBars {
-  width: 100%;
-  padding: 14px;
-  background: #aa6633;
+#furnaceLayout {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 18px;
+}
+
+#furnaceRecipeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 120px);
+  gap: 12px;
+  align-content: start;
+}
+
+.furnaceRecipeSlot {
+  width: 120px;
+  height: 120px;
+  background: rgba(55, 20, 12, 0.95);
   color: white;
-  border: 2px solid white;
+  border: 2px solid #777777;
   font-family: monospace;
-  font-size: 16px;
   cursor: pointer;
 }
 
-#craftCopperBars:hover {
-  background: #cc8844;
+.furnaceRecipeSlot:hover,
+.furnaceRecipeSlot.selected {
+  border-color: #ffcc66;
+  background: rgba(110, 35, 20, 0.95);
 }
 
-#craftingHint,
-#craftingCloseHint {
-  margin-top: 12px;
-  color: #cccccc;
-  font-size: 13px;
-}
-
-#furnaceQueue {
-  margin-top: 18px;
-  border-top: 1px solid #777777;
-  padding-top: 12px;
-}
-
-#furnaceQueue h3 {
-  margin: 0 0 8px 0;
-  color: #ffcc66;
-}
-
-#furnaceQueueItem {
-  margin-bottom: 8px;
-  color: white;
-}
-
-#furnaceProgressOuter {
-  width: 100%;
-  height: 18px;
-  border: 2px solid white;
-  background: #111111;
-}
-
-#furnaceProgressInner {
-  width: 0%;
-  height: 100%;
-  background: #cc8844;
-}
-
-.recipeCard {
-  border: 1px solid #777777;
-  padding: 12px;
-  margin-bottom: 14px;
+#furnaceRecipeDetails {
+  border: 2px solid #777777;
+  padding: 14px;
   background: rgba(0, 0, 0, 0.35);
+  min-height: 320px;
+}
+
+#selectedFurnaceRecipeName,
+#selectedRecipeName {
+  color: #ffcc66;
+  margin-top: 0;
+}
+
+#selectedFurnaceRecipeDescription,
+#selectedFurnaceRecipeRequirements,
+#selectedRecipeDescription,
+#selectedRecipeRequirements {
+  margin-bottom: 14px;
+  color: #cccccc;
 }
 
 #copperBarAmount {
@@ -240,9 +226,11 @@ canvas {
 }
 
 #craftCopperBars,
-#collectFurnaceOutput {
+#collectFurnaceOutput,
+#closeCraftingMenu {
   width: 100%;
   padding: 12px;
+  margin-top: 12px;
   background: #aa6633;
   color: white;
   border: 2px solid white;
@@ -250,47 +238,10 @@ canvas {
   cursor: pointer;
 }
 
-#craftingTableScreen {
-  position: fixed;
-  inset: 0;
-  z-index: 10001;
-  background: rgba(0, 0, 0, 0.82);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  color: white;
-}
+/* Crafting Table Menu */
 
 #craftingTablePanel {
-  width: 380px;
-  background: rgba(12, 8, 5, 0.96);
-  border: 3px solid white;
-  padding: 18px;
-  box-sizing: border-box;
-  text-align: center;
-}
-
-#craftStonePickaxe,
-#craftFurnace,
-#closeCraftingTable {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  background: #8b5a2b;
-  color: white;
-  border: 2px solid white;
-  font-family: monospace;
-  cursor: pointer;
-}
-
-.recipeCost {
-  color: #cccccc;
-  margin: 6px 0 12px 0;
-  font-size: 13px;
-}
-
-#craftingTablePanel {
-  width: 720px;
+  width: min(720px, 94vw);
   background: rgba(12, 8, 5, 0.96);
   border: 3px solid white;
   padding: 18px;
@@ -308,6 +259,7 @@ canvas {
   display: grid;
   grid-template-columns: repeat(2, 120px);
   gap: 12px;
+  align-content: start;
 }
 
 .craftRecipeSlot {
@@ -333,17 +285,6 @@ canvas {
   min-height: 220px;
 }
 
-#selectedRecipeName {
-  color: #ffcc66;
-  margin-top: 0;
-}
-
-#selectedRecipeDescription,
-#selectedRecipeRequirements {
-  margin-bottom: 14px;
-  color: #cccccc;
-}
-
 #craftSelectedRecipe,
 #closeCraftingTable {
   width: 100%;
@@ -354,4 +295,12 @@ canvas {
   border: 2px solid white;
   font-family: monospace;
   cursor: pointer;
+}
+
+#craftCopperBars:hover,
+#collectFurnaceOutput:hover,
+#closeCraftingMenu:hover,
+#craftSelectedRecipe:hover,
+#closeCraftingTable:hover {
+  filter: brightness(1.2);
 }
