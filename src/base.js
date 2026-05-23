@@ -41,9 +41,7 @@ function placeFurnace(scene) {
   const px = scene.player.x + scene.lastMoveDirection.x;
   const py = scene.player.y + scene.lastMoveDirection.y;
 
-  const tile = scene.map[py]
-    ? scene.map[py][px]
-    : null;
+  const tile = scene.map[py] ? scene.map[py][px] : null;
 
   if (!tile || tile.type !== 'homeFloor') {
     setMessage(scene, 'Furnace can only be placed on home floor.');
@@ -63,6 +61,10 @@ function placeFurnace(scene) {
   redraw(scene);
 }
 
+/* ========================= */
+/* Furnace */
+/* ========================= */
+
 function toggleCraftingMenu(scene) {
   if (scene.craftingOpen) {
     closeCraftingMenu(scene);
@@ -71,10 +73,7 @@ function toggleCraftingMenu(scene) {
 
   const tx = scene.player.x + scene.lastMoveDirection.x;
   const ty = scene.player.y + scene.lastMoveDirection.y;
-
-  const tile = scene.map[ty]
-    ? scene.map[ty][tx]
-    : null;
+  const tile = scene.map[ty] ? scene.map[ty][tx] : null;
 
   if (!tile || tile.type !== 'furnace') {
     setMessage(scene, 'Face the furnace to craft.');
@@ -102,7 +101,6 @@ function craftCopperBars(scene) {
   }
 
   const amount = Number(scene.copperBarAmountSlider.value);
-
   const neededCopperOre = amount * 5;
   const neededCoal = amount;
 
@@ -127,20 +125,13 @@ function craftCopperBars(scene) {
     elapsed: 0
   });
 
-  setMessage(
-    scene,
-    'Started crafting ' + amount + ' Copper Bar(s).'
-  );
-
+  setMessage(scene, 'Started crafting ' + amount + ' Copper Bar(s).');
   updateInventoryUI(scene);
   updateFurnaceMenu(scene);
 }
 
 function updateFurnaceQueue(scene, delta) {
-  if (
-    !scene.furnaceQueue ||
-    scene.furnaceQueue.length === 0
-  ) {
+  if (!scene.furnaceQueue || scene.furnaceQueue.length === 0) {
     return;
   }
 
@@ -163,44 +154,29 @@ function updateFurnaceQueue(scene, delta) {
 }
 
 function updateFurnaceMenu(scene) {
-  const queueItem =
-    document.getElementById('furnaceQueueItem');
-
-  const progressBar =
-    document.getElementById('furnaceProgressInner');
-
-  const outputItem =
-    document.getElementById('furnaceOutputItem');
+  const queueItem = document.getElementById('furnaceQueueItem');
+  const progressBar = document.getElementById('furnaceProgressInner');
+  const outputItem = document.getElementById('furnaceOutputItem');
 
   if (!queueItem || !progressBar || !outputItem) {
     return;
   }
 
-  if (
-    !scene.furnaceQueue ||
-    scene.furnaceQueue.length === 0
-  ) {
+  if (!scene.furnaceQueue || scene.furnaceQueue.length === 0) {
     queueItem.textContent = 'Empty';
     progressBar.style.width = '0%';
   } else {
     const job = scene.furnaceQueue[0];
-    const progress = Math.min(
-      job.elapsed / job.timePerItem,
-      1
-    );
+    const progress = Math.min(job.elapsed / job.timePerItem, 1);
 
-    queueItem.textContent =
-      job.item + ' ' + job.completed + '/' + job.amount;
-
+    queueItem.textContent = job.item + ' ' + job.completed + '/' + job.amount;
     progressBar.style.width = progress * 100 + '%';
   }
 
-  if (scene.furnaceOutput.copperBars > 0) {
-    outputItem.textContent =
-      'Copper Bars x' + scene.furnaceOutput.copperBars;
-  } else {
-    outputItem.textContent = 'Empty';
-  }
+  outputItem.textContent =
+    scene.furnaceOutput.copperBars > 0
+      ? 'Copper Bars x' + scene.furnaceOutput.copperBars
+      : 'Empty';
 }
 
 function collectFurnaceOutput(scene) {
@@ -209,190 +185,17 @@ function collectFurnaceOutput(scene) {
     return;
   }
 
-  scene.inventory.copperBars +=
-    scene.furnaceOutput.copperBars;
+  scene.inventory.copperBars += scene.furnaceOutput.copperBars;
 
   setMessage(
     scene,
-    'Collected ' +
-      scene.furnaceOutput.copperBars +
-      ' Copper Bar(s).'
+    'Collected ' + scene.furnaceOutput.copperBars + ' Copper Bar(s).'
   );
 
   scene.furnaceOutput.copperBars = 0;
 
   updateInventoryUI(scene);
   updateFurnaceMenu(scene);
-}
-
-function toggleCraftingTableMenu(scene) {
-  if (scene.craftingTableOpen) {
-    closeCraftingTableMenu(scene);
-    return;
-  }
-
-  const tx = scene.player.x + scene.lastMoveDirection.x;
-  const ty = scene.player.y + scene.lastMoveDirection.y;
-
-  const tile = scene.map[ty]
-    ? scene.map[ty][tx]
-    : null;
-
-  if (!tile || tile.type !== 'craftingTable') {
-    setMessage(scene, 'Face the crafting table.');
-    return;
-  }
-
-  scene.craftingTableOpen = true;
-  scene.craftingTableScreen.style.display = 'flex';
-
-  resetCraftingTableDetails(scene);
-}
-
-function closeCraftingTableMenu(scene) {
-  scene.craftingTableOpen = false;
-
-  if (scene.craftingTableScreen) {
-    scene.craftingTableScreen.style.display = 'none';
-  }
-}
-
-function resetCraftingTableDetails(scene) {
-  scene.selectedCraftingTableRecipe = null;
-
-  const name =
-    document.getElementById('selectedRecipeName');
-
-  const description =
-    document.getElementById('selectedRecipeDescription');
-
-  const requirements =
-    document.getElementById('selectedRecipeRequirements');
-
-  if (name) {
-    name.textContent = 'Select a Recipe';
-  }
-
-  if (description) {
-    description.textContent =
-      'Choose a recipe from the grid.';
-  }
-
-  if (requirements) {
-    requirements.textContent = '';
-  }
-
-  document.querySelectorAll('.craftRecipeSlot').forEach(button => {
-    button.classList.remove('selected');
-  });
-}
-
-function craftStonePickaxeAtTable(scene) {
-  if (scene.pickaxeTier >= 2) {
-    setMessage(scene, 'Stone Pickaxe already crafted.');
-    return;
-  }
-
-  if (scene.inventory.stone < 15) {
-    setMessage(scene, 'Need 15 Stone.');
-    return;
-  }
-
-  scene.inventory.stone -= 15;
-
-  scene.pickaxeTier = 2;
-  scene.pickaxeDamage = 2;
-
-  setMessage(scene, 'Crafted Stone Pickaxe.');
-  updateInventoryUI(scene);
-}
-
-function craftFurnaceAtTable(scene) {
-  if (scene.hasFurnace) {
-    setMessage(scene, 'Furnace already crafted.');
-    return;
-  }
-
-  if (scene.inventory.stone < 20) {
-    setMessage(scene, 'Need 20 Stone.');
-    return;
-  }
-
-  scene.inventory.stone -= 20;
-  scene.hasFurnace = true;
-
-  setMessage(scene, 'Crafted Furnace.');
-  updateInventoryUI(scene);
-}
-
-const craftingTableRecipes = {
-  stonePickaxe: {
-    name: 'Stone Pickaxe',
-    description:
-      'A stronger pickaxe that can break copper blocks.',
-    requirements: '15 Stone',
-    craft: craftStonePickaxeAtTable
-  },
-
-  furnace: {
-    name: 'Furnace',
-    description:
-      'A placeable workstation used to smelt ores into bars.',
-    requirements: '20 Stone',
-    craft: craftFurnaceAtTable
-  }
-};
-
-function selectCraftingTableRecipe(scene, recipeId) {
-  const recipe = craftingTableRecipes[recipeId];
-
-  if (!recipe) {
-    setMessage(scene, 'Unknown recipe.');
-    return;
-  }
-
-  scene.selectedCraftingTableRecipe = recipeId;
-
-  const name =
-    document.getElementById('selectedRecipeName');
-
-  const description =
-    document.getElementById('selectedRecipeDescription');
-
-  const requirements =
-    document.getElementById('selectedRecipeRequirements');
-
-  if (name) {
-    name.textContent = recipe.name;
-  }
-
-  if (description) {
-    description.textContent = recipe.description;
-  }
-
-  if (requirements) {
-    requirements.textContent =
-      'Requires: ' + recipe.requirements;
-  }
-
-  document.querySelectorAll('.craftRecipeSlot').forEach(button => {
-    button.classList.remove('selected');
-
-    if (button.dataset.recipe === recipeId) {
-      button.classList.add('selected');
-    }
-  });
-}
-
-function craftSelectedCraftingTableRecipe(scene) {
-  const recipeId = scene.selectedCraftingTableRecipe;
-
-  if (!recipeId) {
-    setMessage(scene, 'Select a recipe first.');
-    return;
-  }
-
-  startCraftingTableRecipe(scene);
 }
 
 function setupFurnaceRecipeSelection(scene) {
@@ -407,9 +210,82 @@ function setupFurnaceRecipeSelection(scene) {
       });
 
       button.classList.add('selected');
-
       setMessage(scene, 'Selected Copper Bar recipe.');
     });
+  });
+}
+
+/* ========================= */
+/* Crafting Table */
+/* ========================= */
+
+const craftingTableRecipes = {
+  stonePickaxe: {
+    name: 'Stone Pickaxe',
+    description: 'A stronger pickaxe that can break copper blocks.',
+    requirements: '15 Stone',
+    timePerItem: 10000
+  },
+
+  furnace: {
+    name: 'Furnace',
+    description: 'A placeable workstation used to smelt ores into bars.',
+    requirements: '20 Stone',
+    timePerItem: 15000
+  }
+};
+
+function toggleCraftingTableMenu(scene) {
+  if (scene.craftingTableOpen) {
+    closeCraftingTableMenu(scene);
+    return;
+  }
+
+  const tx = scene.player.x + scene.lastMoveDirection.x;
+  const ty = scene.player.y + scene.lastMoveDirection.y;
+  const tile = scene.map[ty] ? scene.map[ty][tx] : null;
+
+  if (!tile || tile.type !== 'craftingTable') {
+    setMessage(scene, 'Face the crafting table.');
+    return;
+  }
+
+  scene.craftingTableOpen = true;
+  scene.craftingTableScreen.style.display = 'flex';
+
+  updateCraftingTableUI(scene);
+}
+
+function closeCraftingTableMenu(scene) {
+  scene.craftingTableOpen = false;
+
+  if (scene.craftingTableScreen) {
+    scene.craftingTableScreen.style.display = 'none';
+  }
+}
+
+function selectCraftingTableRecipe(scene, recipeId) {
+  const recipe = craftingTableRecipes[recipeId];
+
+  if (!recipe) {
+    setMessage(scene, 'Unknown recipe.');
+    return;
+  }
+
+  scene.selectedCraftingTableRecipe = recipeId;
+
+  document.getElementById('selectedRecipeName').textContent = recipe.name;
+  document.getElementById('selectedRecipeDescription').textContent =
+    recipe.description;
+  document.getElementById('selectedRecipeRequirements').textContent =
+    'Requires: ' + recipe.requirements;
+
+  document.querySelectorAll('.craftRecipeSlot').forEach(button => {
+    button.classList.remove('selected');
+
+    if (button.dataset.recipe === recipeId) {
+      button.classList.add('selected');
+    }
   });
 }
 
@@ -426,46 +302,52 @@ function startCraftingTableRecipe(scene) {
     return;
   }
 
+  const recipe = craftingTableRecipes[recipeId];
+
   if (recipeId === 'stonePickaxe') {
+    if (scene.pickaxeTier >= 2) {
+      setMessage(scene, 'Stone Pickaxe already crafted.');
+      return;
+    }
+
     if (scene.inventory.stone < 15) {
       setMessage(scene, 'Need 15 Stone.');
       return;
     }
 
     scene.inventory.stone -= 15;
-
-    scene.tableQueue.push({
-      item: 'Stone Pickaxe',
-      recipeId: 'stonePickaxe',
-      amount: 1,
-      completed: 0,
-      timePerItem: 10000,
-      elapsed: 0
-    });
   }
 
   if (recipeId === 'furnace') {
+    if (scene.hasFurnace) {
+      setMessage(scene, 'Furnace already crafted.');
+      return;
+    }
+
     if (scene.inventory.stone < 20) {
       setMessage(scene, 'Need 20 Stone.');
       return;
     }
 
     scene.inventory.stone -= 20;
-
-    scene.tableQueue.push({
-      item: 'Furnace',
-      recipeId: 'furnace',
-      amount: 1,
-      completed: 0,
-      timePerItem: 15000,
-      elapsed: 0
-    });
   }
 
-  updateInventoryUI(scene);
-  updateCraftingTableUI(scene);
+  scene.tableQueue.push({
+    item: recipe.name,
+    recipeId: recipeId,
+    amount: 1,
+    completed: 0,
+    timePerItem: recipe.timePerItem,
+    elapsed: 0
+  });
 
   setMessage(scene, 'Crafting started.');
+  updateInventoryUI(scene);
+  updateCraftingTableUI(scene);
+}
+
+function craftSelectedCraftingTableRecipe(scene) {
+  startCraftingTableRecipe(scene);
 }
 
 function updateCraftingTableQueue(scene, delta) {
@@ -479,11 +361,9 @@ function updateCraftingTableQueue(scene, delta) {
 
   if (job.elapsed >= job.timePerItem) {
     job.elapsed -= job.timePerItem;
-
     job.completed += 1;
 
     scene.tableOutput[job.recipeId] += 1;
-
     scene.tableQueue.shift();
 
     setMessage(scene, 'Craft complete.');
@@ -493,14 +373,9 @@ function updateCraftingTableQueue(scene, delta) {
 }
 
 function updateCraftingTableUI(scene) {
-  const queueItem =
-    document.getElementById('tableQueueItem');
-
-  const progressBar =
-    document.getElementById('tableProgressInner');
-
-  const outputItem =
-    document.getElementById('tableOutputItem');
+  const queueItem = document.getElementById('tableQueueItem');
+  const progressBar = document.getElementById('tableProgressInner');
+  const outputItem = document.getElementById('tableOutputItem');
 
   if (!queueItem || !progressBar || !outputItem) {
     return;
@@ -511,35 +386,23 @@ function updateCraftingTableUI(scene) {
     progressBar.style.width = '0%';
   } else {
     const job = scene.tableQueue[0];
-
-    const progress = Math.min(
-      job.elapsed / job.timePerItem,
-      1
-    );
+    const progress = Math.min(job.elapsed / job.timePerItem, 1);
 
     queueItem.textContent = job.item;
-
-    progressBar.style.width =
-      progress * 100 + '%';
+    progressBar.style.width = progress * 100 + '%';
   }
 
   let outputText = '';
 
   if (scene.tableOutput.stonePickaxe > 0) {
-    outputText +=
-      'Stone Pickaxe x' +
-      scene.tableOutput.stonePickaxe +
-      ' ';
+    outputText += 'Stone Pickaxe x' + scene.tableOutput.stonePickaxe + ' ';
   }
 
   if (scene.tableOutput.furnace > 0) {
-    outputText +=
-      'Furnace x' +
-      scene.tableOutput.furnace;
+    outputText += 'Furnace x' + scene.tableOutput.furnace;
   }
 
-  outputItem.textContent =
-    outputText || 'Empty';
+  outputItem.textContent = outputText || 'Empty';
 }
 
 function collectCraftingTableOutput(scene) {
@@ -566,7 +429,4 @@ function collectCraftingTableOutput(scene) {
   updateCraftingTableUI(scene);
 
   setMessage(scene, 'Items collected.');
-}
-
-  recipe.craft(scene);
 }
