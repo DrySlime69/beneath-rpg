@@ -288,3 +288,70 @@ canvas {
   margin: 6px 0 12px 0;
   font-size: 13px;
 }
+
+#craftingTablePanel {
+  width: 720px;
+  background: rgba(12, 8, 5, 0.96);
+  border: 3px solid white;
+  padding: 18px;
+  box-sizing: border-box;
+  color: white;
+}
+
+#craftingTableLayout {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 18px;
+}
+
+#craftingRecipeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 120px);
+  gap: 12px;
+}
+
+.craftRecipeSlot {
+  width: 120px;
+  height: 120px;
+  background: rgba(40, 28, 18, 0.95);
+  color: white;
+  border: 2px solid #777777;
+  font-family: monospace;
+  cursor: pointer;
+}
+
+.craftRecipeSlot:hover,
+.craftRecipeSlot.selected {
+  border-color: #ffcc66;
+  background: rgba(80, 52, 28, 0.95);
+}
+
+#craftingRecipeDetails {
+  border: 2px solid #777777;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  min-height: 220px;
+}
+
+#selectedRecipeName {
+  color: #ffcc66;
+  margin-top: 0;
+}
+
+#selectedRecipeDescription,
+#selectedRecipeRequirements {
+  margin-bottom: 14px;
+  color: #cccccc;
+}
+
+#craftSelectedRecipe,
+#closeCraftingTable {
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  background: #8b5a2b;
+  color: white;
+  border: 2px solid white;
+  font-family: monospace;
+  cursor: pointer;
+}
