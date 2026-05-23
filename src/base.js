@@ -38,15 +38,24 @@ function placeFurnace(scene) {
     return;
   }
 
-  const px = scene.player.x + scene.lastMoveDirection.x;
-  const py = scene.player.y + scene.lastMoveDirection.y;
+  const px =
+    scene.player.x +
+    scene.lastMoveDirection.x;
+
+  const py =
+    scene.player.y +
+    scene.lastMoveDirection.y;
 
   const tile = scene.map[py]
     ? scene.map[py][px]
     : null;
 
   if (!tile || tile.type !== 'homeFloor') {
-    setMessage(scene, 'Furnace can only be placed on home floor.');
+    setMessage(
+      scene,
+      'Furnace can only be placed on home floor.'
+    );
+
     return;
   }
 
@@ -56,11 +65,13 @@ function placeFurnace(scene) {
   };
 
   scene.hotbarItems[furnaceSlot] = null;
+
   scene.hasFurnace = false;
 
   setMessage(scene, 'Placed Furnace.');
 
   updateInventoryUI(scene);
+
   redraw(scene);
 }
 
@@ -71,23 +82,30 @@ function toggleCraftingMenu(scene) {
   }
 
   const tx =
-    scene.player.x + scene.lastMoveDirection.x;
+    scene.player.x +
+    scene.lastMoveDirection.x;
 
   const ty =
-    scene.player.y + scene.lastMoveDirection.y;
+    scene.player.y +
+    scene.lastMoveDirection.y;
 
   const tile = scene.map[ty]
     ? scene.map[ty][tx]
     : null;
 
   if (!tile || tile.type !== 'furnace') {
-    setMessage(scene, 'Face the furnace to craft.');
+    setMessage(
+      scene,
+      'Face the furnace to craft.'
+    );
+
     return;
   }
 
   scene.craftingOpen = true;
 
-  scene.craftingScreen.style.display = 'flex';
+  scene.craftingScreen.style.display =
+    'flex';
 
   updateFurnaceMenu(scene);
 }
@@ -96,27 +114,38 @@ function closeCraftingMenu(scene) {
   scene.craftingOpen = false;
 
   if (scene.craftingScreen) {
-    scene.craftingScreen.style.display = 'none';
+    scene.craftingScreen.style.display =
+      'none';
   }
 }
 
 function craftCopperBars(scene) {
   if (scene.furnaceQueue.length > 0) {
-    setMessage(scene, 'Furnace already working.');
+    setMessage(
+      scene,
+      'Furnace already working.'
+    );
+
     return;
   }
 
-  const amount =
-    Number(scene.copperBarAmountSlider.value);
+  const amount = Number(
+    scene.copperBarAmountSlider.value
+  );
 
   const neededCopperOre = amount * 5;
+
   const neededCoal = amount * 1;
 
   if (
     scene.inventory.copperOre <
     neededCopperOre
   ) {
-    setMessage(scene, 'Not enough Copper Ore.');
+    setMessage(
+      scene,
+      'Not enough Copper Ore.'
+    );
+
     return;
   }
 
@@ -125,10 +154,13 @@ function craftCopperBars(scene) {
     neededCoal
   ) {
     setMessage(scene, 'Not enough Coal.');
+
     return;
   }
 
-  scene.inventory.copperOre -= neededCopperOre;
+  scene.inventory.copperOre -=
+    neededCopperOre;
+
   scene.inventory.coal -= neededCoal;
 
   scene.furnaceQueue.push({
@@ -147,10 +179,14 @@ function craftCopperBars(scene) {
   );
 
   updateInventoryUI(scene);
+
   updateFurnaceMenu(scene);
 }
 
-function updateFurnaceQueue(scene, delta) {
+function updateFurnaceQueue(
+  scene,
+  delta
+) {
   if (
     !scene.furnaceQueue ||
     scene.furnaceQueue.length === 0
@@ -168,14 +204,6 @@ function updateFurnaceQueue(scene, delta) {
     job.completed += 1;
 
     scene.furnaceOutput.copperBars += 1;
-
-    setMessage(
-      scene,
-      'Finished Copper Bar ' +
-        job.completed +
-        '/' +
-        job.amount
-    );
 
     if (job.completed >= job.amount) {
       scene.furnaceQueue.shift();
@@ -224,11 +252,10 @@ function updateFurnaceMenu(scene) {
   } else {
     const job = scene.furnaceQueue[0];
 
-    const progress =
-      Math.min(
-        job.elapsed / job.timePerItem,
-        1
-      );
+    const progress = Math.min(
+      job.elapsed / job.timePerItem,
+      1
+    );
 
     queueItem.textContent =
       job.item +
@@ -277,6 +304,7 @@ function collectFurnaceOutput(scene) {
   scene.furnaceOutput.copperBars = 0;
 
   updateInventoryUI(scene);
+
   updateFurnaceMenu(scene);
 }
 
@@ -286,31 +314,52 @@ function toggleCraftingTableMenu(scene) {
     return;
   }
 
-  const tx = scene.player.x + scene.lastMoveDirection.x;
-  const ty = scene.player.y + scene.lastMoveDirection.y;
+  const tx =
+    scene.player.x +
+    scene.lastMoveDirection.x;
 
-  const tile = scene.map[ty] ? scene.map[ty][tx] : null;
+  const ty =
+    scene.player.y +
+    scene.lastMoveDirection.y;
 
-  if (!tile || tile.type !== 'craftingTable') {
-    setMessage(scene, 'Face the crafting table.');
+  const tile = scene.map[ty]
+    ? scene.map[ty][tx]
+    : null;
+
+  if (
+    !tile ||
+    tile.type !== 'craftingTable'
+  ) {
+    setMessage(
+      scene,
+      'Face the crafting table.'
+    );
+
     return;
   }
 
   scene.craftingTableOpen = true;
-  scene.craftingTableScreen.style.display = 'flex';
+
+  scene.craftingTableScreen.style.display =
+    'flex';
 }
 
 function closeCraftingTableMenu(scene) {
   scene.craftingTableOpen = false;
 
   if (scene.craftingTableScreen) {
-    scene.craftingTableScreen.style.display = 'none';
+    scene.craftingTableScreen.style.display =
+      'none';
   }
 }
 
 function craftStonePickaxeAtTable(scene) {
   if (scene.pickaxeTier >= 2) {
-    setMessage(scene, 'Stone Pickaxe already crafted.');
+    setMessage(
+      scene,
+      'Stone Pickaxe already crafted.'
+    );
+
     return;
   }
 
@@ -320,16 +369,25 @@ function craftStonePickaxeAtTable(scene) {
   }
 
   scene.inventory.stone -= 15;
+
   scene.pickaxeTier = 2;
   scene.pickaxeDamage = 2;
 
-  setMessage(scene, 'Crafted Stone Pickaxe.');
+  setMessage(
+    scene,
+    'Crafted Stone Pickaxe.'
+  );
+
   updateInventoryUI(scene);
 }
 
 function craftFurnaceAtTable(scene) {
   if (scene.hasFurnace) {
-    setMessage(scene, 'Furnace already crafted.');
+    setMessage(
+      scene,
+      'Furnace already crafted.'
+    );
+
     return;
   }
 
@@ -339,8 +397,13 @@ function craftFurnaceAtTable(scene) {
   }
 
   scene.inventory.stone -= 20;
+
   scene.hasFurnace = true;
 
-  setMessage(scene, 'Crafted Furnace. Move it to hotbar to place.');
+  setMessage(
+    scene,
+    'Crafted Furnace.'
+  );
+
   updateInventoryUI(scene);
 }
