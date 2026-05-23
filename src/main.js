@@ -311,14 +311,6 @@ class GameScene extends Phaser.Scene {
       mineAdjacentTile(this);
     }
 
-    if (
-      Phaser.Input.Keyboard.JustDown(
-        this.craftKey
-      )
-    ) {
-      tryCraft(this);
-    }
-
     this.followTarget.x =
       this.player.x * this.tileSize +
       this.tileSize / 2;
