@@ -405,5 +405,56 @@ function craftFurnaceAtTable(scene) {
     'Crafted Furnace.'
   );
 
+  const craftingTableRecipes = {
+  stonePickaxe: {
+    name: 'Stone Pickaxe',
+    description: 'A stronger pickaxe that can break copper blocks.',
+    requirements: '15 Stone',
+    craft: craftStonePickaxeAtTable
+  },
+
+  furnace: {
+    name: 'Furnace',
+    description: 'A placeable workstation used to smelt ores into bars.',
+    requirements: '20 Stone',
+    craft: craftFurnaceAtTable
+  }
+};
+
+function selectCraftingTableRecipe(scene, recipeId) {
+  scene.selectedCraftingTableRecipe = recipeId;
+
+  const recipe = craftingTableRecipes[recipeId];
+
+  document.getElementById('selectedRecipeName').textContent =
+    recipe.name;
+
+  document.getElementById('selectedRecipeDescription').textContent =
+    recipe.description;
+
+  document.getElementById('selectedRecipeRequirements').textContent =
+    'Requires: ' + recipe.requirements;
+
+  document.querySelectorAll('.craftRecipeSlot').forEach(button => {
+    button.classList.remove('selected');
+
+    if (button.dataset.recipe === recipeId) {
+      button.classList.add('selected');
+    }
+  });
+}
+
+function craftSelectedCraftingTableRecipe(scene) {
+  const recipeId = scene.selectedCraftingTableRecipe;
+
+  if (!recipeId) {
+    setMessage(scene, 'Select a recipe first.');
+    return;
+  }
+
+  const recipe = craftingTableRecipes[recipeId];
+
+  recipe.craft(scene);
+}
   updateInventoryUI(scene);
 }
