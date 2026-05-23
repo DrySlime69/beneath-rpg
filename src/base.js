@@ -83,7 +83,9 @@ function toggleCraftingMenu(scene) {
   scene.craftingOpen = true;
   scene.craftingScreen.style.display = 'flex';
 
-  updateFurnaceMenu(scene);
+  if (scene.craftingOpen) {
+    updateFurnaceMenu(scene);
+  }
 }
 
 function closeCraftingMenu(scene) {
@@ -150,13 +152,15 @@ function updateFurnaceQueue(scene, delta) {
     }
   }
 
-  updateFurnaceMenu(scene);
+  if (scene.craftingOpen) {
+    updateFurnaceMenu(scene);
+  }
 }
 
 function updateFurnaceMenu(scene) {
-  const queueItem = document.getElementById('furnaceQueueItem');
-  const progressBar = document.getElementById('furnaceProgressInner');
-  const outputItem = document.getElementById('furnaceOutputItem');
+  const queueItem = scene.furnaceQueueItem || document.getElementById('furnaceQueueItem');
+  const progressBar = scene.furnaceProgressInner || document.getElementById('furnaceProgressInner');
+  const outputItem = scene.furnaceOutputItem || document.getElementById('furnaceOutputItem');
 
   if (!queueItem || !progressBar || !outputItem) {
     return;
@@ -369,13 +373,15 @@ function updateCraftingTableQueue(scene, delta) {
     setMessage(scene, 'Craft complete.');
   }
 
-  updateCraftingTableUI(scene);
+  if (scene.craftingTableOpen) {
+    updateCraftingTableUI(scene);
+  }
 }
 
 function updateCraftingTableUI(scene) {
-  const queueItem = document.getElementById('tableQueueItem');
-  const progressBar = document.getElementById('tableProgressInner');
-  const outputItem = document.getElementById('tableOutputItem');
+  const queueItem = scene.tableQueueItem || document.getElementById('tableQueueItem');
+  const progressBar = scene.tableProgressInner || document.getElementById('tableProgressInner');
+  const outputItem = scene.tableOutputItem || document.getElementById('tableOutputItem');
 
   if (!queueItem || !progressBar || !outputItem) {
     return;

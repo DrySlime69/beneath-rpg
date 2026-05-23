@@ -188,7 +188,6 @@ function drawMiner(scene) {
 
 function redraw(scene) {
   scene.worldLayer.clear();
-  scene.objectLayer.clear();
   scene.playerLayer.clear();
 
   scene.worldLayer.fillStyle(0x020202);

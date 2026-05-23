@@ -12,8 +12,8 @@ function handleMovement(scene) {
   if (dx !== 0 || dy !== 0) {
     scene.lastMoveDirection = { x: dx, y: dy };
 
-    redraw(scene);
     tryMove(scene, dx, dy);
+    redraw(scene);
 
     scene.moveCooldown = true;
 
@@ -31,21 +31,7 @@ function tryMove(scene, dx, dy) {
     ? scene.map[ny][nx]
     : null;
 
-  if (!tile) return;
-
-  const placedObjects =
-    scene.currentMapName === 'home'
-      ? scene.homePlacedObjects
-      : scene.minePlacedObjects;
-
-  const objectAtTarget = placedObjects.some(object => {
-    return object.x === nx && object.y === ny;
-  });
-
-  if (objectAtTarget) {
-    setMessage(scene, 'Blocked.');
-    return;
-  }
+  if (!tile) return false;
 
   if (
     tile.type === 'floor' ||
@@ -55,8 +41,7 @@ function tryMove(scene, dx, dy) {
     scene.player.x = nx;
     scene.player.y = ny;
 
-    redraw(scene);
-    return;
+    return true;
   }
 
   if (tile.type === 'exit') {
@@ -66,6 +51,8 @@ function tryMove(scene, dx, dy) {
       setMessage(scene, 'Craft a Stone Pickaxe first.');
     }
   }
+
+  return false;
 }
 
 function mineAdjacentTile(scene) {

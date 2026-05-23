@@ -55,9 +55,6 @@ class GameScene extends Phaser.Scene {
       y: 8
     };
 
-    this.minePlacedObjects = [];
-    this.homePlacedObjects = [];
-
     this.messageBox =
       document.getElementById('message');
 
@@ -103,6 +100,27 @@ class GameScene extends Phaser.Scene {
 
     this.closeCraftingTableButton =
       document.getElementById('closeCraftingTable');
+
+    this.collectTableOutputButton =
+      document.getElementById('collectTableOutput');
+
+    this.furnaceQueueItem =
+      document.getElementById('furnaceQueueItem');
+
+    this.furnaceProgressInner =
+      document.getElementById('furnaceProgressInner');
+
+    this.furnaceOutputItem =
+      document.getElementById('furnaceOutputItem');
+
+    this.tableQueueItem =
+      document.getElementById('tableQueueItem');
+
+    this.tableProgressInner =
+      document.getElementById('tableProgressInner');
+
+    this.tableOutputItem =
+      document.getElementById('tableOutputItem');
 
     if (this.craftCopperBarsButton) {
       this.craftCopperBarsButton.addEventListener(
@@ -207,6 +225,15 @@ class GameScene extends Phaser.Scene {
       );
     }
 
+    if (this.collectTableOutputButton) {
+      this.collectTableOutputButton.addEventListener(
+        'click',
+        () => {
+          collectCraftingTableOutput(this);
+        }
+      );
+    }
+
     this.craftingRecipeButtons = Array.from(
   document.querySelectorAll('.craftRecipeSlot')
 );
@@ -292,14 +319,10 @@ if (this.craftSelectedRecipeButton) {
     this.worldLayer =
       this.add.graphics();
 
-    this.objectLayer =
-      this.add.graphics();
-
     this.playerLayer =
       this.add.graphics();
 
     this.worldLayer.setDepth(1);
-    this.objectLayer.setDepth(4);
     this.playerLayer.setDepth(5);
 
     this.followTarget = this.add.zone(
@@ -342,31 +365,8 @@ if (this.craftSelectedRecipeButton) {
   }
 
   update(time, delta) {
-    if (
-      typeof updateFurnaceQueue ===
-      'function'
-    ) {
-      updateFurnaceQueue(this, delta);
-
-      if (
-  typeof updateCraftingTableQueue ===
-  'function'
-) {
-  updateCraftingTableQueue(this, delta);
-}
-    }
-
-    this.collectTableOutputButton =
-  document.getElementById('collectTableOutput');
-
-if (this.collectTableOutputButton) {
-  this.collectTableOutputButton.addEventListener(
-    'click',
-    () => {
-      collectCraftingTableOutput(this);
-    }
-  );
-}
+    updateFurnaceQueue(this, delta);
+    updateCraftingTableQueue(this, delta);
 
     if (
       Phaser.Input.Keyboard.JustDown(
