@@ -151,6 +151,13 @@ class GameScene extends Phaser.Scene {
       );
     }
 
+    if (
+  typeof setupFurnaceRecipeSelection ===
+  'function'
+) {
+  setupFurnaceRecipeSelection(this);
+}
+
     if (this.craftStonePickaxeButton) {
       this.craftStonePickaxeButton.addEventListener(
         'click',
