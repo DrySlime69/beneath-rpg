@@ -308,15 +308,22 @@ this.closeCraftingTableButton =
         this.interactKey
       )
     ) {
-      toggleCraftingMenu(this);
+      const tx = this.player.x + this.lastMoveDirection.x;
+const ty = this.player.y + this.lastMoveDirection.y;
+const tile = this.map[ty] ? this.map[ty][tx] : null;
+
+if (tile && tile.type === 'furnace') {
+  toggleCraftingMenu(this);
+} else if (tile && tile.type === 'craftingTable') {
+  toggleCraftingTableMenu(this);
+} else {
+  setMessage(this, 'Nothing to interact with.');
+}
     }
 
-    if (
-      this.inventoryOpen ||
-      this.craftingOpen
-    ) {
-      return;
-    }
+if (this.inventoryOpen || this.craftingOpen || this.craftingTableOpen) {
+  return;
+}
 
     if (
       Phaser.Input.Keyboard.JustDown(
