@@ -4,6 +4,21 @@ class GameScene extends Phaser.Scene {
   }
 
   create() {
+
+    this.craftingTableOpen = false;
+
+this.craftingTableScreen =
+  document.getElementById('craftingTableScreen');
+
+this.craftStonePickaxeButton =
+  document.getElementById('craftStonePickaxe');
+
+this.craftFurnaceButton =
+  document.getElementById('craftFurnace');
+
+this.closeCraftingTableButton =
+  document.getElementById('closeCraftingTable');
+    
     this.tileSize = 26;
     this.mineWidth = 25;
     this.mapWidth = 44;
