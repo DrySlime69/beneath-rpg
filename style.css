@@ -297,6 +297,38 @@ canvas {
   cursor: pointer;
 }
 
+#tableCraftQueue,
+#tableCraftOutput {
+  margin-top: 18px;
+  border-top: 1px solid #777777;
+  padding-top: 12px;
+}
+
+#tableCraftQueue h3,
+#tableCraftOutput h3 {
+  margin: 0 0 8px 0;
+  color: #ffcc66;
+}
+
+#tableQueueItem,
+#tableOutputItem {
+  margin-bottom: 8px;
+  color: white;
+}
+
+#tableProgressOuter {
+  width: 100%;
+  height: 18px;
+  border: 2px solid white;
+  background: #111111;
+}
+
+#tableProgressInner {
+  width: 0%;
+  height: 100%;
+  background: #66aa88;
+}
+
 #craftCopperBars:hover,
 #collectFurnaceOutput:hover,
 #closeCraftingMenu:hover,
