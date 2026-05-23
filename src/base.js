@@ -279,3 +279,68 @@ function collectFurnaceOutput(scene) {
   updateInventoryUI(scene);
   updateFurnaceMenu(scene);
 }
+
+function toggleCraftingTableMenu(scene) {
+  if (scene.craftingTableOpen) {
+    closeCraftingTableMenu(scene);
+    return;
+  }
+
+  const tx = scene.player.x + scene.lastMoveDirection.x;
+  const ty = scene.player.y + scene.lastMoveDirection.y;
+
+  const tile = scene.map[ty] ? scene.map[ty][tx] : null;
+
+  if (!tile || tile.type !== 'craftingTable') {
+    setMessage(scene, 'Face the crafting table.');
+    return;
+  }
+
+  scene.craftingTableOpen = true;
+  scene.craftingTableScreen.style.display = 'flex';
+}
+
+function closeCraftingTableMenu(scene) {
+  scene.craftingTableOpen = false;
+
+  if (scene.craftingTableScreen) {
+    scene.craftingTableScreen.style.display = 'none';
+  }
+}
+
+function craftStonePickaxeAtTable(scene) {
+  if (scene.pickaxeTier >= 2) {
+    setMessage(scene, 'Stone Pickaxe already crafted.');
+    return;
+  }
+
+  if (scene.inventory.stone < 15) {
+    setMessage(scene, 'Need 15 Stone.');
+    return;
+  }
+
+  scene.inventory.stone -= 15;
+  scene.pickaxeTier = 2;
+  scene.pickaxeDamage = 2;
+
+  setMessage(scene, 'Crafted Stone Pickaxe.');
+  updateInventoryUI(scene);
+}
+
+function craftFurnaceAtTable(scene) {
+  if (scene.hasFurnace) {
+    setMessage(scene, 'Furnace already crafted.');
+    return;
+  }
+
+  if (scene.inventory.stone < 20) {
+    setMessage(scene, 'Need 20 Stone.');
+    return;
+  }
+
+  scene.inventory.stone -= 20;
+  scene.hasFurnace = true;
+
+  setMessage(scene, 'Crafted Furnace. Move it to hotbar to place.');
+  updateInventoryUI(scene);
+}
