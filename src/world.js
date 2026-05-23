@@ -111,6 +111,10 @@ function getTileBaseColor(tile) {
   return 0x000000;
 }
 
+if (tile.type === 'craftingTable') {
+  return 0x8b5a2b;
+}
+
 function redraw(scene) {
   scene.worldLayer.clear();
   scene.objectLayer.clear();
