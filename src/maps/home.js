@@ -19,6 +19,18 @@ function createHomeMap(scene) {
   map[12][29] = makeTile('caveWall');
   map[12][37] = makeTile('caveWall');
 
+  // Cozy string lights along the upper wall. These are decorative and do not block placement/walking.
+  [29, 31, 33, 35, 37].forEach((x, index) => {
+    if (map[6] && map[6][x] && map[6][x].type === 'homeFloor') {
+      map[6][x] = makeTile('homeFloor', { decor: 'stringLight', lightIndex: index });
+    }
+  });
+  [30, 34, 38].forEach((x, index) => {
+    if (map[10] && map[10][x] && map[10][x].type === 'homeFloor') {
+      map[10][x] = makeTile('homeFloor', { decor: 'stringLight', lightIndex: index + 5 });
+    }
+  });
+
   map[7][33] = makeTile('craftingTable');
   map[8][33] = makeTile('teleportPad');
 

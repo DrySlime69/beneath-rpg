@@ -1,6 +1,8 @@
 const TORCH_LIGHT_RADIUS = 5.7;
 const PLAYER_LIGHT_RADIUS = 8.4;
-const HOME_PLAYER_LIGHT_RADIUS = 11.2;
+const HOME_PLAYER_LIGHT_RADIUS = 12.8;
+const HOME_STRING_LIGHT_RADIUS = 4.8;
+const HOME_FURNACE_LIGHT_RADIUS = 5.2;
 
 function setupVisualEffects(scene) {
   scene.visualTime = 0;
@@ -105,6 +107,59 @@ function rebuildTorchLights(scene) {
   }
 }
 
+
+function getHomeWarmLightAt(scene, tileX, tileY) {
+  if (scene.currentMapName !== 'home' || !scene.map) return 0;
+  let light = 0;
+  const t = (scene.visualTime || scene.time?.now || 0) * 0.004;
+
+  for (let y = 0; y < scene.mapHeight; y++) {
+    for (let x = 0; x < scene.mapWidth; x++) {
+      const tile = scene.map[y]?.[x];
+      if (!tile) continue;
+
+      if (tile.decor === 'stringLight') {
+        const dist = Phaser.Math.Distance.Between(tileX + 0.5, tileY + 0.5, x + 0.5, y + 0.5);
+        if (dist <= HOME_STRING_LIGHT_RADIUS) {
+          const flicker = 0.90 + Math.sin(t + x * 1.3 + y * 0.7) * 0.06 + Math.sin(t * 2.1 + x) * 0.03;
+          const strength = Phaser.Math.Clamp(1 - dist / HOME_STRING_LIGHT_RADIUS, 0, 1);
+          light = Math.max(light, strength * strength * flicker * 0.72);
+        }
+      }
+
+      if (tile.type === 'furnace') {
+        const dist = Phaser.Math.Distance.Between(tileX + 0.5, tileY + 0.5, x + 0.5, y + 0.5);
+        if (dist <= HOME_FURNACE_LIGHT_RADIUS) {
+          const working = scene.furnaceQueue && scene.furnaceQueue.length > 0;
+          const flicker = (working ? 0.95 : 0.78) + Math.sin(t * 1.8 + x) * 0.08;
+          const strength = Phaser.Math.Clamp(1 - dist / HOME_FURNACE_LIGHT_RADIUS, 0, 1);
+          light = Math.max(light, strength * strength * flicker * 0.55);
+        }
+      }
+    }
+  }
+
+  return light;
+}
+
+function drawHomeStringLight(scene, x, y, brightness) {
+  const px = x * scene.tileSize;
+  const py = y * scene.tileSize;
+  const s = scene.tileSize;
+  const t = (scene.visualTime || 0) * 0.004;
+  const glow = 0.82 + Math.sin(t + x * 1.7 + y) * 0.14;
+
+  scene.worldLayer.lineStyle(1, darkenColor(0x3a2412, brightness), 0.85);
+  scene.worldLayer.lineBetween(px + 1, py + 4, px + s - 1, py + 5);
+
+  scene.worldLayer.fillStyle(darkenColor(0xffc85a, Math.min(1, brightness + 0.25)), 0.16 * glow);
+  scene.worldLayer.fillCircle(px + s / 2, py + 10, 13);
+  scene.worldLayer.fillStyle(darkenColor(0xffe27a, Math.min(1, brightness + 0.35)), 0.92);
+  scene.worldLayer.fillCircle(px + s / 2, py + 8, 3);
+  scene.worldLayer.fillStyle(darkenColor(0xffffff, Math.min(1, brightness + 0.45)), 0.65);
+  scene.worldLayer.fillCircle(px + s / 2 - 1, py + 7, 1);
+}
+
 function drawTorch(scene, x, y, brightness) {
   const px = x * scene.tileSize;
   const py = y * scene.tileSize;
@@ -121,10 +176,21 @@ function drawTorch(scene, x, y, brightness) {
 function drawAmbientEffects(scene) {
   if (!scene.visualLayer) return;
   scene.visualLayer.clear();
-  if (scene.currentMapName !== 'mine') return;
 
   const cam = scene.cameras?.main;
   if (!cam) return;
+
+  if (scene.currentMapName === 'home') {
+    for (const mote of scene.ambientMotes || []) {
+      if (mote.x < cam.worldView.x - 20 || mote.x > cam.worldView.right + 20 || mote.y < cam.worldView.y - 20 || mote.y > cam.worldView.bottom + 20) continue;
+      scene.visualLayer.fillStyle(0xffd38a, Math.min(0.22, mote.alpha * 0.55));
+      scene.visualLayer.fillRect(mote.x, mote.y, mote.size, mote.size);
+    }
+
+    scene.visualLayer.fillStyle(0xffb45c, 0.035);
+    scene.visualLayer.fillRect(cam.worldView.x - 20, cam.worldView.y - 20, cam.worldView.width + 40, cam.worldView.height + 40);
+    return;
+  }
 
   // Soft drifting dust/spores, drawn in screen-visible world space only.
   for (const mote of scene.ambientMotes || []) {

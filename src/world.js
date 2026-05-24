@@ -96,7 +96,7 @@ function seededNoise(x, y, seed = 0) {
 function getTileBaseColor(tile) {
   const biome = getBiomeById(tile?.biome || 'dirtCaves');
   if (tile.type === 'floor' || tile.type === 'torch') return tile.variation % 2 ? tintColor(biome.floor, 8) : biome.floor;
-  if (tile.type === 'homeFloor') return tile.variation % 2 ? 0x211911 : 0x18120d;
+  if (tile.type === 'homeFloor') return tile.variation % 2 ? 0x3a2617 : 0x2a1c12;
   if (tile.type === 'teleportPad') return 0x3344aa;
   if (tile.type === 'furnace') return 0xff4422;
   if (tile.type === 'craftingTable') return 0x8b5a2b;
@@ -198,7 +198,7 @@ function drawFloorDetails(scene, tile, x, y, brightness) {
   const s = scene.tileSize;
   const seed = tile.detailSeed || tile.variation || 0;
   const biome = getBiomeById(tile?.biome || 'dirtCaves');
-  const floorColor = tile.type === 'homeFloor' ? 0x3a2a19 : biome.floor;
+  const floorColor = tile.type === 'homeFloor' ? 0x4a321f : biome.floor;
   const pebbleColor = darkenColor(floorColor, brightness * 0.85);
   const lightPebble = darkenColor(tintColor(floorColor, 25), brightness * 0.8);
 
@@ -233,6 +233,10 @@ function drawTileDetails(scene, tile, x, y, brightness) {
 
   drawFloorDetails(scene, tile, x, y, brightness);
   drawAutotiledWall(scene, tile, x, y, brightness);
+
+  if (scene.currentMapName === 'home' && tile.decor === 'stringLight') {
+    drawHomeStringLight(scene, x, y, brightness);
+  }
 
   if (tile.type === 'caveWall') {
     scene.worldLayer.fillStyle(darkenColor(0x56321e, brightness), 0.55);
@@ -430,10 +434,11 @@ function redraw(scene) {
       const tile = scene.map[y][x];
       const distance = Phaser.Math.Distance.Between(x + 0.5, y + 0.5, playerTileX, playerTileY);
       const lightRadius = scene.currentMapName === 'home' ? HOME_PLAYER_LIGHT_RADIUS : PLAYER_LIGHT_RADIUS;
-      const minBrightness = scene.currentMapName === 'home' ? 0.30 : getCurrentBiome(scene).darkness;
+      const minBrightness = scene.currentMapName === 'home' ? 0.58 : getCurrentBiome(scene).darkness;
       const playerLightStrength = Phaser.Math.Clamp(1 - distance / lightRadius, 0, 1);
       const torchLightStrength = getTorchLightAt(scene, x, y);
-      const combinedLight = Math.max(playerLightStrength * playerLightStrength, torchLightStrength);
+      const homeWarmLightStrength = getHomeWarmLightAt(scene, x, y);
+      const combinedLight = Math.max(playerLightStrength * playerLightStrength, torchLightStrength, homeWarmLightStrength);
       const brightness = minBrightness + combinedLight * (1 - minBrightness);
       const color = darkenColor(getTileBaseColor(tile), brightness);
 
