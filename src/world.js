@@ -434,7 +434,7 @@ function redraw(scene) {
       const tile = scene.map[y][x];
       const distance = Phaser.Math.Distance.Between(x + 0.5, y + 0.5, playerTileX, playerTileY);
       const lightRadius = scene.currentMapName === 'home' ? HOME_PLAYER_LIGHT_RADIUS : PLAYER_LIGHT_RADIUS;
-      const minBrightness = scene.currentMapName === 'home' ? 0.58 : getCurrentBiome(scene).darkness;
+      const minBrightness = scene.currentMapName === 'home' ? 0.68 : getCurrentBiome(scene).darkness;
       const playerLightStrength = Phaser.Math.Clamp(1 - distance / lightRadius, 0, 1);
       const torchLightStrength = getTorchLightAt(scene, x, y);
       const homeWarmLightStrength = getHomeWarmLightAt(scene, x, y);
@@ -446,6 +446,10 @@ function redraw(scene) {
       scene.worldLayer.fillRect(x * scene.tileSize, y * scene.tileSize, scene.tileSize, scene.tileSize);
       drawTileDetails(scene, tile, x, y, brightness);
     }
+  }
+
+  if (scene.currentMapName === 'home' && typeof drawHomeStringLightStrands === 'function') {
+    drawHomeStringLightStrands(scene);
   }
 
   const target = getTargetTile(scene, 1);

@@ -4,6 +4,11 @@ const HOME_PLAYER_LIGHT_RADIUS = 12.8;
 const HOME_STRING_LIGHT_RADIUS = 4.8;
 const HOME_FURNACE_LIGHT_RADIUS = 5.2;
 
+const HOME_STRING_LIGHTS = [
+  { x1: 28.6, y1: 5.55, x2: 38.4, y2: 5.55, bulbs: [29.3, 31.1, 33.0, 34.9, 36.8, 38.1] },
+  { x1: 29.3, y1: 9.55, x2: 37.7, y2: 9.55, bulbs: [30.0, 32.0, 34.0, 36.0, 37.3] }
+];
+
 function setupVisualEffects(scene) {
   scene.visualTime = 0;
   scene.walkBob = 0;
@@ -113,19 +118,21 @@ function getHomeWarmLightAt(scene, tileX, tileY) {
   let light = 0;
   const t = (scene.visualTime || scene.time?.now || 0) * 0.004;
 
+  for (const strand of HOME_STRING_LIGHTS) {
+    for (const bulbX of strand.bulbs) {
+      const dist = Phaser.Math.Distance.Between(tileX + 0.5, tileY + 0.5, bulbX, strand.y1 + 0.55);
+      if (dist <= HOME_STRING_LIGHT_RADIUS) {
+        const flicker = 0.92 + Math.sin(t + bulbX * 1.3 + strand.y1 * 0.7) * 0.07 + Math.sin(t * 2.1 + bulbX) * 0.04;
+        const strength = Phaser.Math.Clamp(1 - dist / HOME_STRING_LIGHT_RADIUS, 0, 1);
+        light = Math.max(light, strength * strength * flicker * 0.95);
+      }
+    }
+  }
+
   for (let y = 0; y < scene.mapHeight; y++) {
     for (let x = 0; x < scene.mapWidth; x++) {
       const tile = scene.map[y]?.[x];
       if (!tile) continue;
-
-      if (tile.decor === 'stringLight') {
-        const dist = Phaser.Math.Distance.Between(tileX + 0.5, tileY + 0.5, x + 0.5, y + 0.5);
-        if (dist <= HOME_STRING_LIGHT_RADIUS) {
-          const flicker = 0.90 + Math.sin(t + x * 1.3 + y * 0.7) * 0.06 + Math.sin(t * 2.1 + x) * 0.03;
-          const strength = Phaser.Math.Clamp(1 - dist / HOME_STRING_LIGHT_RADIUS, 0, 1);
-          light = Math.max(light, strength * strength * flicker * 0.72);
-        }
-      }
 
       if (tile.type === 'furnace') {
         const dist = Phaser.Math.Distance.Between(tileX + 0.5, tileY + 0.5, x + 0.5, y + 0.5);
@@ -147,17 +154,47 @@ function drawHomeStringLight(scene, x, y, brightness) {
   const py = y * scene.tileSize;
   const s = scene.tileSize;
   const t = (scene.visualTime || 0) * 0.004;
-  const glow = 0.82 + Math.sin(t + x * 1.7 + y) * 0.14;
+  const glow = 0.88 + Math.sin(t + x * 1.7 + y) * 0.12;
 
-  scene.worldLayer.lineStyle(1, darkenColor(0x3a2412, brightness), 0.85);
+  scene.worldLayer.lineStyle(2, darkenColor(0x1b1008, Math.max(0.7, brightness)), 0.95);
   scene.worldLayer.lineBetween(px + 1, py + 4, px + s - 1, py + 5);
 
-  scene.worldLayer.fillStyle(darkenColor(0xffc85a, Math.min(1, brightness + 0.25)), 0.16 * glow);
-  scene.worldLayer.fillCircle(px + s / 2, py + 10, 13);
-  scene.worldLayer.fillStyle(darkenColor(0xffe27a, Math.min(1, brightness + 0.35)), 0.92);
-  scene.worldLayer.fillCircle(px + s / 2, py + 8, 3);
-  scene.worldLayer.fillStyle(darkenColor(0xffffff, Math.min(1, brightness + 0.45)), 0.65);
-  scene.worldLayer.fillCircle(px + s / 2 - 1, py + 7, 1);
+  scene.worldLayer.fillStyle(0xffb02e, 0.22 * glow);
+  scene.worldLayer.fillCircle(px + s / 2, py + 12, 18);
+  scene.worldLayer.fillStyle(0xffd36a, 0.96);
+  scene.worldLayer.fillCircle(px + s / 2, py + 10, 4);
+  scene.worldLayer.fillStyle(0xffffd0, 0.85);
+  scene.worldLayer.fillCircle(px + s / 2 - 1, py + 9, 2);
+}
+
+function drawHomeStringLightStrands(scene) {
+  if (scene.currentMapName !== 'home' || !scene.worldLayer) return;
+  const s = scene.tileSize;
+  const t = (scene.visualTime || 0) * 0.004;
+
+  for (const strand of HOME_STRING_LIGHTS) {
+    const y = strand.y1 * s;
+    scene.worldLayer.lineStyle(3, 0x140a04, 0.95);
+    scene.worldLayer.beginPath();
+    scene.worldLayer.moveTo(strand.x1 * s, y);
+    scene.worldLayer.lineTo(strand.x2 * s, y);
+    scene.worldLayer.strokePath();
+
+    for (const bulbX of strand.bulbs) {
+      const bx = bulbX * s;
+      const flicker = 0.86 + Math.sin(t + bulbX * 2.3) * 0.12 + Math.sin(t * 1.7 + bulbX) * 0.05;
+      scene.worldLayer.lineStyle(1, 0x201006, 1);
+      scene.worldLayer.lineBetween(bx, y, bx, y + 7);
+      scene.worldLayer.fillStyle(0xffa12a, 0.32 * flicker);
+      scene.worldLayer.fillCircle(bx, y + 10, 24);
+      scene.worldLayer.fillStyle(0xffc64a, 0.55 * flicker);
+      scene.worldLayer.fillCircle(bx, y + 10, 13);
+      scene.worldLayer.fillStyle(0xffe27a, 1);
+      scene.worldLayer.fillCircle(bx, y + 10, 5);
+      scene.worldLayer.fillStyle(0xffffdb, 0.9);
+      scene.worldLayer.fillCircle(bx - 1, y + 8, 2);
+    }
+  }
 }
 
 function drawTorch(scene, x, y, brightness) {
