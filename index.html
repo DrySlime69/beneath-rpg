@@ -38,6 +38,8 @@
     <div id="inventoryPanel">
       <h2>Inventory</h2>
 
+      <button id="openDevItemsButton" class="devItemsOpenButton">Testing Item Catalog</button>
+
       <div class="inventoryLabel">
         Hotbar
       </div>
@@ -52,6 +54,35 @@
 
       <div id="inventoryHint">
         I = close inventory. T = teleport. P = place selected home object. X = pick up faced home object.
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Developer Testing Item Catalog -->
+  <div id="devItemScreen">
+    <div id="devItemPanel">
+      <div id="devItemHeader">
+        <h2>Testing Item Catalog</h2>
+        <button id="closeDevItemsButton">Close</button>
+      </div>
+
+      <div id="devItemLayout">
+        <div id="devCategoryTabs"></div>
+        <div id="devItemList"></div>
+
+        <div id="devItemDetails">
+          <h3 id="devItemName">Select an item</h3>
+          <div id="devItemInfo">Choose a category and item to inspect it.</div>
+          <div id="devItemStats"></div>
+          <div id="devItemRecipe"></div>
+
+          <label for="devItemAmount">Amount</label>
+          <input id="devItemAmount" type="range" min="1" max="99" value="1" />
+          <div id="devItemAmountLabel">1</div>
+
+          <button id="addDevItemButton">Add to Inventory</button>
+        </div>
       </div>
     </div>
   </div>
@@ -291,6 +322,7 @@
   </div>
 
   <!-- Scripts -->
+  <script src="src/items.js"></script>
   <script src="src/ui.js"></script>
   <script src="src/inventory.js"></script>
 
@@ -304,6 +336,7 @@
   <script src="src/weapons.js"></script>
   <script src="src/combat.js"></script>
   <script src="src/save.js"></script>
+  <script src="src/dev_inventory.js"></script>
   <script src="src/main.js"></script>
 </body>
 </html>

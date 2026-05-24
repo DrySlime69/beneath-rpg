@@ -1,34 +1,14 @@
-const WEAPONS = {
-  stoneSword: {
-    id: 'stoneSword',
-    name: 'Stone Sword',
-    type: 'sword',
-    damage: 3,
-    speed: 1.0,
-    effects: [],
-    durabilityMax: 80
-  },
-  copperSword: {
-    id: 'copperSword',
-    name: 'Copper Sword',
-    type: 'sword',
-    damage: 5,
-    speed: 1.0,
-    effects: [],
-    durabilityMax: 120
-  }
-};
-
 function getWeaponStats(item) {
-  if (!item || !WEAPONS[item.id]) return null;
-  return WEAPONS[item.id];
+  if (!item) return null;
+  const def = getItemDef(item.id);
+  if (!def || def.category !== 'weapons') return null;
+  return def;
 }
 
 function getSelectedWeapon(scene) {
   const item = scene.hotbarItems?.[scene.selectedHotbarIndex || 0];
   return getWeaponStats(item);
 }
-
 
 function isPickaxeItem(item) {
   return !!item && item.id === 'pickaxe';
@@ -56,7 +36,7 @@ function useSelectedHotbarItem(scene, time) {
   }
 
   if (item && (item.id === 'furnace' || item.id === 'craftingTable')) {
-    setMessage(scene, 'Press P to place the selected ' + (item.id === 'furnace' ? 'Furnace' : 'Workbench') + ' at home.');
+    setMessage(scene, 'Press P to place the selected ' + getItemName(item.id) + ' at home.');
     return;
   }
 
@@ -80,21 +60,17 @@ function getPlayerAttackStats(scene) {
   };
 }
 
-
-const PICKAXE_DURABILITY = {
-  0: 0,
-  1: 70,
-  2: 120,
-  3: 180
-};
+function getPickaxeDefByTier(tier) {
+  return Object.values(ITEMS).find(item => item.toolType === 'pickaxe' && item.tier === tier) || null;
+}
 
 function getPickaxeDurabilityMax(tier) {
-  return PICKAXE_DURABILITY[tier || 0] || 0;
+  return getPickaxeDefByTier(tier)?.durabilityMax || 0;
 }
 
 function getPickaxeMiningDamage(scene) {
   if ((scene.pickaxeTier || 0) <= 0 || (scene.pickaxeDurability || 0) <= 0) return 0.25;
-  return Math.max(1, scene.pickaxeDamage || 1);
+  return getPickaxeDefByTier(scene.pickaxeTier)?.miningDamage || Math.max(1, scene.pickaxeDamage || 1);
 }
 
 function damagePickaxeDurability(scene, amount = 1) {
@@ -109,13 +85,11 @@ function damagePickaxeDurability(scene, amount = 1) {
 }
 
 function createWeaponItem(id) {
-  const stats = WEAPONS[id];
-  if (!stats) return { id };
-  return { id, durability: stats.durabilityMax, durabilityMax: stats.durabilityMax };
+  return createItemInstance(id);
 }
 
 function getWeaponDurabilityMax(id) {
-  return WEAPONS[id]?.durabilityMax || 0;
+  return getItemDef(id)?.durabilityMax || 0;
 }
 
 function damageSelectedWeaponDurability(scene, amount = 1) {

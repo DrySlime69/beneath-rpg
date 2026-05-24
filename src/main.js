@@ -50,7 +50,7 @@ class GameScene extends Phaser.Scene {
     this.furnaceQueue = [];
     this.furnaceOutput = { copperBars: 0 };
     this.tableQueue = [];
-    this.tableOutput = { stonePickaxe: 0, copperPickaxe: 0, stoneSword: 0, copperSword: 0, furnace: 0 };
+    this.tableOutput = createEmptyCraftingTableOutput();
     this.selectedCraftingTableRecipe = null;
 
     cacheDom(this);
@@ -81,6 +81,7 @@ class GameScene extends Phaser.Scene {
 
     setupInventoryScreen(this);
     setupSaveMenuEvents(this);
+    setupDevInventory(this);
     generateMaps(this);
 
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -129,7 +130,7 @@ class GameScene extends Phaser.Scene {
       togglePauseMenu(this);
     }
 
-    if (this.pauseMenuOpen || this.saveMenuOpen || this.loadMenuOpen || this.overwriteMenuOpen || this.loadConfirmOpen) {
+    if (this.pauseMenuOpen || this.saveMenuOpen || this.loadMenuOpen || this.overwriteMenuOpen || this.loadConfirmOpen || this.devItemOpen) {
       redraw(this);
       return;
     }
@@ -199,6 +200,17 @@ function cacheDom(scene) {
   scene.tableQueueItem = document.getElementById('tableQueueItem');
   scene.tableProgressInner = document.getElementById('tableProgressInner');
   scene.tableOutputItem = document.getElementById('tableOutputItem');
+  scene.craftingRecipeGrid = document.getElementById('craftingRecipeGrid');
+  if (scene.craftingRecipeGrid) {
+    scene.craftingRecipeGrid.innerHTML = '';
+    Object.values(craftingTableRecipes).forEach(recipe => {
+      const button = document.createElement('button');
+      button.className = 'craftRecipeSlot';
+      button.dataset.recipe = recipe.id;
+      button.textContent = recipe.name;
+      scene.craftingRecipeGrid.appendChild(button);
+    });
+  }
   scene.craftingRecipeButtons = Array.from(document.querySelectorAll('.craftRecipeSlot'));
 }
 

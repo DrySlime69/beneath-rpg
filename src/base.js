@@ -293,38 +293,7 @@ function collectFurnaceOutput(scene) {
   updateFurnaceMenu(scene);
 }
 
-const craftingTableRecipes = {
-  stonePickaxe: {
-    name: 'Stone Pickaxe',
-    description: 'A stronger pickaxe that can break copper ore blocks.',
-    requirements: '10 Stone + 2 Wood',
-    timePerItem: 10000
-  },
-  copperPickaxe: {
-    name: 'Copper Pickaxe',
-    description: 'Breaks copper walls and unlocks Mine Level 6.',
-    requirements: '5 Copper Bars + 2 Wood',
-    timePerItem: 15000
-  },
-  stoneSword: {
-    name: 'Stone Sword',
-    description: 'A balanced early melee weapon. Damage 3, Speed 1.0, Effects none.',
-    requirements: '10 Stone',
-    timePerItem: 5000
-  },
-  copperSword: {
-    name: 'Copper Sword',
-    description: 'A stronger balanced melee weapon. Damage 5, Speed 1.0, Effects none.',
-    requirements: '5 Copper Bars',
-    timePerItem: 7000
-  },
-  furnace: {
-    name: 'Furnace',
-    description: 'A placeable workstation used to smelt ores into bars.',
-    requirements: '20 Stone',
-    timePerItem: 15000
-  }
-};
+const craftingTableRecipes = getCraftingTableRecipes();
 
 function toggleCraftingTableMenu(scene) {
   if (scene.craftingTableOpen) {
@@ -377,51 +346,22 @@ function startCraftingTableRecipe(scene) {
   }
 
   const recipe = craftingTableRecipes[recipeId];
+  if (!recipe) return;
 
-  if (recipeId === 'stonePickaxe') {
-    if (scene.inventory.stone < 10 || (scene.inventory.wood || 0) < 2) {
-      setMessage(scene, 'Need 10 Stone and 2 Wood.');
-      return;
-    }
-    scene.inventory.stone -= 10;
-    scene.inventory.wood -= 2;
+  if (recipeId === 'furnace' && (scene.hasFurnace || hasPlacedHomeObject(scene, 'furnace'))) {
+    setMessage(scene, 'You already have a Furnace.');
+    return;
   }
 
-  if (recipeId === 'copperPickaxe') {
-    if (scene.inventory.copperBars < 5 || (scene.inventory.wood || 0) < 2) {
-      setMessage(scene, 'Need 5 Copper Bars and 2 Wood.');
+  for (const [itemId, amount] of Object.entries(recipe.costs || {})) {
+    if ((scene.inventory[itemId] || 0) < amount) {
+      setMessage(scene, 'Need ' + formatCosts(recipe.costs) + '.');
       return;
     }
-    scene.inventory.copperBars -= 5;
-    scene.inventory.wood -= 2;
   }
 
-  if (recipeId === 'stoneSword') {
-    if (scene.inventory.stone < 10) {
-      setMessage(scene, 'Need 10 Stone.');
-      return;
-    }
-    scene.inventory.stone -= 10;
-  }
-
-  if (recipeId === 'copperSword') {
-    if (scene.inventory.copperBars < 5) {
-      setMessage(scene, 'Need 5 Copper Bars.');
-      return;
-    }
-    scene.inventory.copperBars -= 5;
-  }
-
-  if (recipeId === 'furnace') {
-    if (scene.hasFurnace || hasPlacedHomeObject(scene, 'furnace')) {
-      setMessage(scene, 'You already have a Furnace.');
-      return;
-    }
-    if (scene.inventory.stone < 20) {
-      setMessage(scene, 'Need 20 Stone.');
-      return;
-    }
-    scene.inventory.stone -= 20;
+  for (const [itemId, amount] of Object.entries(recipe.costs || {})) {
+    scene.inventory[itemId] = (scene.inventory[itemId] || 0) - amount;
   }
 
   scene.tableQueue.push({
@@ -445,7 +385,7 @@ function updateCraftingTableQueue(scene, delta) {
   job.elapsed += delta;
 
   if (job.elapsed >= job.timePerItem) {
-    scene.tableOutput[job.recipeId] += 1;
+    scene.tableOutput[job.recipeId] = (scene.tableOutput[job.recipeId] || 0) + 1;
     scene.tableQueue.shift();
     setMessage(scene, 'Craft complete.');
   }
@@ -466,73 +406,66 @@ function updateCraftingTableUI(scene) {
   }
 
   const output = [];
-  if (scene.tableOutput.stonePickaxe > 0) output.push('Stone Pickaxe x' + scene.tableOutput.stonePickaxe);
-  if (scene.tableOutput.copperPickaxe > 0) output.push('Copper Pickaxe x' + scene.tableOutput.copperPickaxe);
-  if (scene.tableOutput.stoneSword > 0) output.push('Stone Sword x' + scene.tableOutput.stoneSword);
-  if (scene.tableOutput.copperSword > 0) output.push('Copper Sword x' + scene.tableOutput.copperSword);
-  if (scene.tableOutput.furnace > 0) output.push('Furnace x' + scene.tableOutput.furnace);
+  Object.entries(scene.tableOutput || {}).forEach(([id, amount]) => {
+    if (amount > 0) output.push(getItemName(id) + ' x' + amount);
+  });
   scene.tableOutputItem.textContent = output.join(' ') || 'Empty';
 }
 
 function collectCraftingTableOutput(scene) {
-  if (scene.tableOutput.stonePickaxe <= 0 && scene.tableOutput.copperPickaxe <= 0 && scene.tableOutput.stoneSword <= 0 && scene.tableOutput.copperSword <= 0 && scene.tableOutput.furnace <= 0) {
+  const outputs = Object.entries(scene.tableOutput || {}).filter(([, amount]) => amount > 0);
+  if (outputs.length === 0) {
     setMessage(scene, 'No completed items.');
     return;
   }
 
-  if (scene.tableOutput.stonePickaxe > 0) {
-    scene.pickaxeTier = Math.max(scene.pickaxeTier || 0, 2);
-    scene.pickaxeDamage = Math.max(scene.pickaxeDamage || 0, 2);
-    scene.pickaxeDurabilityMax = getPickaxeDurabilityMax(scene.pickaxeTier);
-    scene.pickaxeDurability = scene.pickaxeDurabilityMax;
-    scene.tableOutput.stonePickaxe = 0;
-  }
+  for (const [itemId, amount] of outputs) {
+    const def = getItemDef(itemId);
 
-  if (scene.tableOutput.copperPickaxe > 0) {
-    scene.pickaxeTier = Math.max(scene.pickaxeTier || 0, 3);
-    scene.pickaxeDamage = Math.max(scene.pickaxeDamage || 0, 3);
-    scene.pickaxeDurabilityMax = getPickaxeDurabilityMax(scene.pickaxeTier);
-    scene.pickaxeDurability = scene.pickaxeDurabilityMax;
-    scene.maxUnlockedMineLevel = Math.max(scene.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS, FIRST_LOCKED_MINE_LEVEL);
-    if (!scene.mineMaps[FIRST_LOCKED_MINE_LEVEL]) scene.mineMaps[FIRST_LOCKED_MINE_LEVEL] = createMineMap(scene, FIRST_LOCKED_MINE_LEVEL);
-    scene.tableOutput.copperPickaxe = 0;
-  }
-
-  if (scene.tableOutput.stoneSword > 0) {
-    const added = addItemToFirstOpenSlot(scene, createWeaponItem('stoneSword'));
-    if (!added) {
-      setMessage(scene, 'No inventory space for Stone Sword.');
-      updateInventoryUI(scene);
-      updateCraftingTableUI(scene);
-      return;
+    if (def?.toolType === 'pickaxe') {
+      scene.pickaxeTier = Math.max(scene.pickaxeTier || 0, def.tier);
+      scene.pickaxeDamage = Math.max(scene.pickaxeDamage || 0, def.miningDamage);
+      scene.pickaxeDurabilityMax = getPickaxeDurabilityMax(scene.pickaxeTier);
+      scene.pickaxeDurability = scene.pickaxeDurabilityMax;
+      ensureHotbarItem(scene, 'pickaxe');
+      if (def.tier >= 3) {
+        scene.maxUnlockedMineLevel = Math.max(scene.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS, FIRST_LOCKED_MINE_LEVEL);
+        if (!scene.mineMaps[FIRST_LOCKED_MINE_LEVEL]) scene.mineMaps[FIRST_LOCKED_MINE_LEVEL] = createMineMap(scene, FIRST_LOCKED_MINE_LEVEL);
+      }
+      scene.tableOutput[itemId] = 0;
+      continue;
     }
-    scene.tableOutput.stoneSword -= 1;
-  }
 
-  if (scene.tableOutput.copperSword > 0) {
-    const added = addItemToFirstOpenSlot(scene, createWeaponItem('copperSword'));
-    if (!added) {
-      setMessage(scene, 'No inventory space for Copper Sword.');
-      updateInventoryUI(scene);
-      updateCraftingTableUI(scene);
-      return;
+    if (def?.category === 'weapons') {
+      for (let i = 0; i < amount; i++) {
+        const added = addItemToFirstOpenSlot(scene, createItemInstance(itemId));
+        if (!added) {
+          setMessage(scene, 'No inventory space for ' + def.name + '.');
+          updateInventoryUI(scene);
+          updateCraftingTableUI(scene);
+          return;
+        }
+        scene.tableOutput[itemId] -= 1;
+      }
+      continue;
     }
-    scene.tableOutput.copperSword -= 1;
-  }
 
-  if (scene.tableOutput.furnace > 0) {
-    const added = addItemToFirstOpenSlot(scene, { id: 'furnace' });
-    if (!added) {
-      setMessage(scene, 'No inventory space for Furnace.');
-      updateInventoryUI(scene);
-      updateCraftingTableUI(scene);
-      return;
+    if (def?.placeable) {
+      const added = addItemToFirstOpenSlot(scene, { id: itemId });
+      if (!added) {
+        setMessage(scene, 'No inventory space for ' + def.name + '.');
+        updateInventoryUI(scene);
+        updateCraftingTableUI(scene);
+        return;
+      }
+      if (itemId === 'furnace') scene.hasFurnace = true;
+      if (itemId === 'craftingTable') scene.hasCraftingTable = true;
+      scene.tableOutput[itemId] = 0;
     }
-    scene.hasFurnace = true;
-    scene.tableOutput.furnace = 0;
   }
 
   updateInventoryUI(scene);
   updateCraftingTableUI(scene);
   setMessage(scene, 'Items collected.');
 }
+

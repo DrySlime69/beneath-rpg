@@ -1,5 +1,22 @@
 function setMessage(scene,text){scene.messageBox.textContent=text}
-function getItemLabel(scene,item){if(!item)return'';if(item.id==='pickaxe'){const name=scene.pickaxeTier<=0?'Hands':scene.pickaxeTier===1?'Rusty\nPickaxe':scene.pickaxeTier===2?'Stone\nPickaxe':'Copper\nPickaxe';const dur=scene.pickaxeTier<=0?'Slow':(scene.pickaxeDurability??getPickaxeDurabilityMax(scene.pickaxeTier))+'/'+getPickaxeDurabilityMax(scene.pickaxeTier);return name+'\nDMG '+getPickaxeMiningDamage(scene)+'\nDUR '+dur}if(item.id==='stoneSword'){const dur=(item.durability??getWeaponDurabilityMax('stoneSword'))+'/'+getWeaponDurabilityMax('stoneSword');return'Stone\nSword\nDMG 3\nDUR '+dur}if(item.id==='copperSword'){const dur=(item.durability??getWeaponDurabilityMax('copperSword'))+'/'+getWeaponDurabilityMax('copperSword');return'Copper\nSword\nDMG 5\nDUR '+dur}if(item.id==='teleportStone')return'Teleport\nStone';if(item.id==='stone')return'Stone\n'+scene.inventory.stone;if(item.id==='coal')return'Coal\n'+scene.inventory.coal;if(item.id==='copperOre')return'Copper\nOre\n'+scene.inventory.copperOre;if(item.id==='copperBars')return'Copper\nBars\n'+scene.inventory.copperBars;if(item.id==='wood')return'Wood\n'+(scene.inventory.wood||0);if(item.id==='furnace')return'Furnace\nReady';if(item.id==='craftingTable')return'Workbench\nReady';return''}
+function getItemLabel(scene,item){
+  if(!item)return'';
+  const def=getItemDef(item.id);
+  if(item.id==='pickaxe'){
+    const pickDef=getPickaxeDefByTier(scene.pickaxeTier||0);
+    const name=scene.pickaxeTier<=0?'Hands':pickDef?.name||'Pickaxe';
+    const dur=scene.pickaxeTier<=0?'Slow':(scene.pickaxeDurability??getPickaxeDurabilityMax(scene.pickaxeTier))+'/'+getPickaxeDurabilityMax(scene.pickaxeTier);
+    return name.replace(' ','\n')+'\nDMG '+getPickaxeMiningDamage(scene)+'\nDUR '+dur;
+  }
+  if(def?.category==='weapons'){
+    const dur=(item.durability??def.durabilityMax)+'/'+def.durabilityMax;
+    return def.name.replace(' ','\n')+'\nDMG '+def.damage+'\nDUR '+dur;
+  }
+  if(def?.stackable)return def.name.replace(' ','\n')+'\n'+(scene.inventory[item.id]||0);
+  if(item.id==='furnace')return'Furnace\nReady';
+  if(item.id==='craftingTable')return'Workbench\nReady';
+  return (def?.name||'').replace(' ','\n');
+}
 function selectHotbarSlot(scene,index){scene.selectedHotbarIndex=Math.max(0,Math.min(7,index));updateInventoryUI(scene)}
 function handleHotbarNumberKeys(scene){for(let i=0;i<8;i++){const key=scene.keys['hotbar'+(i+1)];if(key&&Phaser.Input.Keyboard.JustDown(key)){selectHotbarSlot(scene,i);setMessage(scene,'Selected hotbar slot '+(i+1)+'.');return}}}
 function decorateHotbarSlot(scene,slot,index,item){slot.textContent=(index+1)+'\n'+getItemLabel(scene,item);slot.classList.toggle('selectedHotbar',index===(scene.selectedHotbarIndex||0))}

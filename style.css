@@ -427,3 +427,129 @@ canvas {
   color: #cccccc;
   font-size: 12px;
 }
+
+/* Developer Testing Item Catalog */
+.devItemsOpenButton {
+  width: 100%;
+  padding: 10px;
+  margin: 0 0 12px 0;
+  background: #225577;
+  color: white;
+  border: 2px solid white;
+  font-family: monospace;
+  cursor: pointer;
+}
+
+#devItemScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 10003;
+  background: rgba(0, 0, 0, 0.86);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+#devItemPanel {
+  width: min(980px, 96vw);
+  max-height: 92vh;
+  background: rgba(10, 8, 6, 0.98);
+  border: 3px solid white;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+#devItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+#devItemHeader h2 {
+  margin: 0;
+  color: #ffcc66;
+}
+
+#closeDevItemsButton,
+#addDevItemButton,
+.devCategoryButton,
+.devItemButton {
+  font-family: monospace;
+  color: white;
+  border: 2px solid white;
+  cursor: pointer;
+}
+
+#closeDevItemsButton {
+  background: #663333;
+  padding: 8px 14px;
+}
+
+#devItemLayout {
+  display: grid;
+  grid-template-columns: 150px 250px 1fr;
+  gap: 14px;
+  min-height: 420px;
+}
+
+#devCategoryTabs,
+#devItemList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 70vh;
+}
+
+.devCategoryButton,
+.devItemButton {
+  min-height: 42px;
+  padding: 8px;
+  background: rgba(25, 25, 25, 0.95);
+  text-align: left;
+}
+
+.devCategoryButton.selected,
+.devItemButton.selected {
+  border-color: #ffd866;
+  background: rgba(95, 64, 24, 0.95);
+}
+
+#devItemDetails {
+  border: 2px solid #777777;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 14px;
+  overflow-y: auto;
+}
+
+#devItemName {
+  color: #ffcc66;
+  margin-top: 0;
+}
+
+#devItemInfo,
+#devItemStats,
+#devItemRecipe {
+  margin-bottom: 14px;
+  color: #dddddd;
+  white-space: pre-line;
+}
+
+#devItemAmount {
+  width: 100%;
+  margin: 8px 0;
+}
+
+#devItemAmountLabel {
+  color: #ffcc66;
+  margin-bottom: 10px;
+}
+
+#addDevItemButton {
+  width: 100%;
+  padding: 12px;
+  background: #336633;
+}
