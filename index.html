@@ -211,6 +211,45 @@
     </div>
   </div>
 
+
+
+  <!-- ESC Main Menu -->
+  <div id="pauseMenuScreen" class="menuOverlay">
+    <div class="menuPanel">
+      <h2>Beneath</h2>
+      <button id="openSaveMenu">Save</button>
+      <button class="blankMenuButton">---</button>
+      <button class="blankMenuButton">---</button>
+      <button class="blankMenuButton">---</button>
+      <button class="blankMenuButton">---</button>
+      <button id="exitPauseMenu" class="bottomMenuButton">Exit</button>
+    </div>
+  </div>
+
+  <!-- Save Slots Menu -->
+  <div id="saveMenuScreen" class="menuOverlay">
+    <div class="menuPanel">
+      <h2>Save Game</h2>
+      <div id="saveSlotGrid">
+        <button class="saveSlotButton" data-slot="1">Save Slot 1<br><span>Empty</span></button>
+        <button class="saveSlotButton" data-slot="2">Save Slot 2<br><span>Empty</span></button>
+        <button class="saveSlotButton" data-slot="3">Save Slot 3<br><span>Empty</span></button>
+      </div>
+      <button id="exitSaveMenu" class="bottomMenuButton">Exit</button>
+    </div>
+  </div>
+
+  <!-- Overwrite Confirmation -->
+  <div id="overwriteConfirmScreen" class="menuOverlay">
+    <div class="menuPanel smallMenuPanel">
+      <h2>Overwrite save file?</h2>
+      <p id="overwriteSlotLabel">Save Slot</p>
+      <button id="confirmOverwriteYes">Yes</button>
+      <button id="confirmOverwriteNo">No</button>
+      <button id="exitOverwriteMenu" class="bottomMenuButton">Exit</button>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="src/ui.js"></script>
   <script src="src/inventory.js"></script>
@@ -222,6 +261,7 @@
   <script src="src/player.js"></script>
   <script src="src/crafting.js"></script>
   <script src="src/base.js"></script>
+  <script src="src/save.js"></script>
   <script src="src/main.js"></script>
 </body>
 </html>

@@ -348,3 +348,69 @@ canvas {
 #closeCraftingTable:hover {
   filter: brightness(1.2);
 }
+
+/* ESC / Save Menu */
+.menuOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 11000;
+  background: rgba(0, 0, 0, 0.82);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.menuPanel {
+  width: min(420px, 90vw);
+  background: rgba(12, 8, 5, 0.97);
+  border: 3px solid white;
+  padding: 22px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.smallMenuPanel {
+  width: min(360px, 88vw);
+}
+
+.menuPanel h2 {
+  color: #ffcc66;
+  margin-top: 0;
+}
+
+.menuPanel button {
+  width: 100%;
+  padding: 13px;
+  margin-top: 10px;
+  background: #8b5a2b;
+  color: white;
+  border: 2px solid white;
+  font-family: monospace;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.menuPanel button:hover {
+  filter: brightness(1.18);
+}
+
+.blankMenuButton {
+  opacity: 0.45;
+  cursor: default !important;
+}
+
+.bottomMenuButton {
+  margin-top: 24px !important;
+  background: #442211 !important;
+}
+
+#saveSlotGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.saveSlotButton span {
+  color: #cccccc;
+  font-size: 12px;
+}
