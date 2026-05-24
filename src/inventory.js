@@ -24,9 +24,18 @@ function createInventorySlot(scene,area,index){
     slot.classList.add('dragging');
     e.dataTransfer.setData('text/plain',area+':'+index)
   });
-  slot.addEventListener('dragend',()=>{
+  slot.addEventListener('dragend',e=>{
     slot.classList.remove('dragging');
     document.querySelectorAll('.invSlot').forEach(s=>s.classList.remove('dropTarget'));
+
+    // Some browsers do not reliably fire a drop event on the delete zone
+    // when dragging from custom inventory slots, so dragend also checks
+    // whether the mouse was released over the visible red X.
+    if(scene.dragData && isPointerOverDeleteZone(scene,e)){
+      queueInventoryItemDelete(scene);
+      return;
+    }
+
     scene.deleteItemDropZone?.classList.remove('dragOverDelete');
     if(!scene.pendingDeleteItem)scene.dragData=null;
   });
@@ -72,20 +81,33 @@ function setupInventoryDeleteZone(scene){
 
   zone.addEventListener('drop',e=>{
     e.preventDefault();
-    zone.classList.remove('dragOverDelete');
-    if(!scene.dragData)return;
-
-    const arr=getItemArray(scene,scene.dragData.area);
-    const item=arr?.[scene.dragData.index];
-    if(!item){scene.dragData=null;return;}
-
-    scene.pendingDeleteItem={area:scene.dragData.area,index:scene.dragData.index,item};
-    scene.dragData=null;
-    openDeleteItemConfirm(scene,item);
+    queueInventoryItemDelete(scene);
   });
 
   scene.confirmDeleteItemYes?.addEventListener('click',()=>confirmDeleteInventoryItem(scene));
   scene.confirmDeleteItemNo?.addEventListener('click',()=>cancelDeleteInventoryItem(scene));
+}
+
+function isPointerOverDeleteZone(scene,e){
+  const zone=scene.deleteItemDropZone;
+  if(!zone||!e)return false;
+  const rect=zone.getBoundingClientRect();
+  const x=e.clientX;
+  const y=e.clientY;
+  return x>=rect.left&&x<=rect.right&&y>=rect.top&&y<=rect.bottom;
+}
+
+function queueInventoryItemDelete(scene){
+  scene.deleteItemDropZone?.classList.remove('dragOverDelete');
+  if(!scene.dragData)return;
+
+  const arr=getItemArray(scene,scene.dragData.area);
+  const item=arr?.[scene.dragData.index];
+  if(!item){scene.dragData=null;return;}
+
+  scene.pendingDeleteItem={area:scene.dragData.area,index:scene.dragData.index,item};
+  scene.dragData=null;
+  openDeleteItemConfirm(scene,item);
 }
 
 function openDeleteItemConfirm(scene,item){
