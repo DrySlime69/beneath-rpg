@@ -190,6 +190,7 @@ function playerAttack(scene, time) {
     const dist = Phaser.Math.Distance.Between(ax, ay, enemy.x, enemy.y);
     if (dist <= PLAYER_ATTACK_RANGE) {
       damageEnemy(scene, enemy, attackStats.damage * 6, dir);
+      spawnFloatingDamage(scene, enemy.x, enemy.y - enemy.radius - 8, attackStats.damage * 6);
       hit = true;
       break;
     }
@@ -203,6 +204,7 @@ function damageEnemy(scene, enemy, amount, dir) {
   enemy.knockbackX += dir.x * 180;
   enemy.knockbackY += dir.y * 180;
   scene.cameras.main.shake(45, 0.0012);
+  enemy.hitFlashUntil = (scene.time?.now || 0) + 140;
   spawnHitParticles(scene, enemy.x, enemy.y, enemy.type === 'bat' ? 0x8844ff : 0x44dd66);
 
   if (enemy.hp <= 0) {
@@ -273,31 +275,53 @@ function dropEnemyLoot(scene, enemy) {
 }
 
 function spawnAttackArc(scene, x, y) {
-  const marker = scene.add.rectangle(x, y, 28, 10, 0xffdd88, 0.45);
+  const marker = scene.add.ellipse(x, y, 34, 13, 0xffdd88, 0.40);
   marker.setDepth(30);
   marker.rotation = Math.atan2(scene.lastMoveDirection.y, scene.lastMoveDirection.x);
   scene.tweens.add({
     targets: marker,
     alpha: 0,
-    scaleX: 1.6,
-    duration: 180,
+    scaleX: 1.9,
+    scaleY: 0.35,
+    duration: 160,
     onComplete: () => marker.destroy()
   });
 }
 
 function spawnHitParticles(scene, x, y, color) {
-  for (let i = 0; i < 7; i++) {
-    const particle = scene.add.rectangle(x, y, 4, 4, color);
+  for (let i = 0; i < 12; i++) {
+    const particle = scene.add.rectangle(x, y, Phaser.Math.Between(2, 5), Phaser.Math.Between(2, 5), color);
     particle.setDepth(30);
     scene.tweens.add({
       targets: particle,
       x: x + Phaser.Math.Between(-18, 18),
       y: y + Phaser.Math.Between(-18, 18),
       alpha: 0,
-      duration: 350,
+      scaleX: 0.2,
+      scaleY: 0.2,
+      duration: Phaser.Math.Between(260, 460),
       onComplete: () => particle.destroy()
     });
   }
+}
+
+function spawnFloatingDamage(scene, x, y, amount) {
+  const text = scene.add.text(x, y, '-' + Math.round(amount), {
+    fontFamily: 'monospace',
+    fontSize: '12px',
+    color: '#ffdd88',
+    stroke: '#000000',
+    strokeThickness: 3
+  });
+  text.setOrigin(0.5);
+  text.setDepth(35);
+  scene.tweens.add({
+    targets: text,
+    y: y - 18,
+    alpha: 0,
+    duration: 520,
+    onComplete: () => text.destroy()
+  });
 }
 
 function drawEnemies(scene) {
@@ -305,36 +329,46 @@ function drawEnemies(scene) {
   scene.enemyLayer.clear();
   if (scene.currentMapName !== 'mine' || !scene.enemies) return;
 
+  const time = scene.visualTime || scene.time?.now || 0;
+
   for (const enemy of scene.enemies) {
     if (enemy.dead) continue;
+
+    const flash = time < (enemy.hitFlashUntil || 0);
+    const bob = enemy.type === 'bat'
+      ? Math.sin(time * 0.012 + enemy.x * 0.04) * 4
+      : Math.abs(Math.sin(time * 0.006 + enemy.x * 0.02)) * 2;
+    const drawY = enemy.y + (enemy.type === 'bat' ? bob : -bob);
+    const squash = enemy.type === 'slime' ? 1 + Math.sin(time * 0.006 + enemy.x) * 0.08 : 1;
 
     scene.enemyLayer.fillStyle(0x000000, 0.35);
     scene.enemyLayer.fillEllipse(enemy.x, enemy.y + enemy.radius + 3, enemy.radius * 2.1, 6);
 
     if (enemy.type === 'bat') {
-      scene.enemyLayer.fillStyle(0x5b3baa);
-      scene.enemyLayer.fillEllipse(enemy.x, enemy.y, 16, 11);
-      scene.enemyLayer.fillStyle(0x7c5cff);
-      scene.enemyLayer.fillTriangle(enemy.x - 7, enemy.y, enemy.x - 18, enemy.y - 6, enemy.x - 18, enemy.y + 6);
-      scene.enemyLayer.fillTriangle(enemy.x + 7, enemy.y, enemy.x + 18, enemy.y - 6, enemy.x + 18, enemy.y + 6);
+      const wingFlap = Math.sin(time * 0.018 + enemy.x) * 5;
+      scene.enemyLayer.fillStyle(flash ? 0xffffff : 0x5b3baa);
+      scene.enemyLayer.fillEllipse(enemy.x, drawY, 16, 11);
+      scene.enemyLayer.fillStyle(flash ? 0xffe8ff : 0x7c5cff);
+      scene.enemyLayer.fillTriangle(enemy.x - 7, drawY, enemy.x - 18, drawY - 6 - wingFlap, enemy.x - 18, drawY + 6 + wingFlap);
+      scene.enemyLayer.fillTriangle(enemy.x + 7, drawY, enemy.x + 18, drawY - 6 - wingFlap, enemy.x + 18, drawY + 6 + wingFlap);
       scene.enemyLayer.fillStyle(0xffffff);
-      scene.enemyLayer.fillRect(enemy.x - 4, enemy.y - 2, 2, 2);
-      scene.enemyLayer.fillRect(enemy.x + 3, enemy.y - 2, 2, 2);
+      scene.enemyLayer.fillRect(enemy.x - 4, drawY - 2, 2, 2);
+      scene.enemyLayer.fillRect(enemy.x + 3, drawY - 2, 2, 2);
     } else {
-      scene.enemyLayer.fillStyle(0x2f9b45);
-      scene.enemyLayer.fillEllipse(enemy.x, enemy.y + 2, 21, 17);
-      scene.enemyLayer.fillStyle(0x65e47a);
-      scene.enemyLayer.fillEllipse(enemy.x - 3, enemy.y - 2, 11, 8);
+      scene.enemyLayer.fillStyle(flash ? 0xffffff : 0x2f9b45);
+      scene.enemyLayer.fillEllipse(enemy.x, drawY + 2, 21 * squash, 17 / squash);
+      scene.enemyLayer.fillStyle(flash ? 0xdffff0 : 0x65e47a);
+      scene.enemyLayer.fillEllipse(enemy.x - 3, drawY - 2, 11 * squash, 8 / squash);
       scene.enemyLayer.fillStyle(0x101010);
-      scene.enemyLayer.fillRect(enemy.x - 5, enemy.y, 2, 2);
-      scene.enemyLayer.fillRect(enemy.x + 4, enemy.y, 2, 2);
+      scene.enemyLayer.fillRect(enemy.x - 5, drawY, 2, 2);
+      scene.enemyLayer.fillRect(enemy.x + 4, drawY, 2, 2);
     }
 
     const barWidth = 22;
     const hpPct = Phaser.Math.Clamp(enemy.hp / enemy.maxHp, 0, 1);
     scene.enemyLayer.fillStyle(0x220000, 0.9);
-    scene.enemyLayer.fillRect(enemy.x - barWidth / 2, enemy.y - enemy.radius - 9, barWidth, 4);
+    scene.enemyLayer.fillRect(enemy.x - barWidth / 2, drawY - enemy.radius - 9, barWidth, 4);
     scene.enemyLayer.fillStyle(0xff4444, 0.95);
-    scene.enemyLayer.fillRect(enemy.x - barWidth / 2, enemy.y - enemy.radius - 9, barWidth * hpPct, 4);
+    scene.enemyLayer.fillRect(enemy.x - barWidth / 2, drawY - enemy.radius - 9, barWidth * hpPct, 4);
   }
 }

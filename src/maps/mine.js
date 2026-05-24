@@ -67,6 +67,11 @@ function createMineMap(scene, level = 1) {
     placeResourcePocketsOnMap(scene, map, 'copperWall', 5, 7);
   }
 
+  addCaveTorches(scene, map, level, [
+    { x: startX + 2, y: startY },
+    { x: downX - 2, y: downY }
+  ]);
+
   map[startY][startX] = makeTile('exitUp', { targetLevel: level - 1 });
 
   if (level < FIRST_LOCKED_MINE_LEVEL) {
@@ -103,4 +108,41 @@ function placeResourcePocketsOnMap(scene, map, type, pocketCount, maxTiles) {
       if (dir === 3 && y < scene.mapHeight - 3) y++;
     }
   }
+}
+
+
+function addCaveTorches(scene, map, level, forcedSpots = []) {
+  const spots = [...forcedSpots];
+  const torchCount = Phaser.Math.Clamp(3 + Math.floor(level / 2), 3, 8);
+
+  for (let i = 0; i < torchCount; i++) {
+    spots.push({
+      x: Phaser.Math.Between(4, scene.mapWidth - 6),
+      y: Phaser.Math.Between(4, scene.mapHeight - 5)
+    });
+  }
+
+  for (const spot of spots) {
+    let placed = false;
+    for (let r = 0; r < 4 && !placed; r++) {
+      for (let yy = spot.y - r; yy <= spot.y + r && !placed; yy++) {
+        for (let xx = spot.x - r; xx <= spot.x + r && !placed; xx++) {
+          if (!map[yy] || !map[yy][xx] || map[yy][xx].type !== 'floor') continue;
+          if (!touchesWallForTorch(map, xx, yy)) continue;
+          map[yy][xx] = makeTile('torch');
+          placed = true;
+        }
+      }
+    }
+  }
+}
+
+function touchesWallForTorch(map, x, y) {
+  const neighbors = [
+    map[y - 1]?.[x],
+    map[y + 1]?.[x],
+    map[y]?.[x - 1],
+    map[y]?.[x + 1]
+  ];
+  return neighbors.some(tile => tile && ['caveWall', 'stone', 'coal', 'copper', 'copperWall', 'wood'].includes(tile.type));
 }

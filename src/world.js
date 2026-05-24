@@ -25,6 +25,7 @@ function makeTile(type, extra = {}) {
   if (type === 'copper') Object.assign(tile, { hardness: 2, hp: 10, maxHp: 10 });
   if (type === 'copperWall') Object.assign(tile, { hardness: 3, hp: 14, maxHp: 14 });
   if (type === 'furnace' || type === 'craftingTable' || type === 'woodChest' || type === 'copperChest') tile.hardness = 999;
+  if (type === 'torch') Object.assign(tile, { hardness: 0, hp: 1, maxHp: 1, variation: extra.variation ?? (Phaser.Math ? Phaser.Math.Between(0, 3) : 0) });
   if (type === 'exit' || type === 'exitUp' || type === 'exitDown') tile.hardness = 999;
   return tile;
 }
@@ -41,6 +42,7 @@ function generateMaps(scene) {
   scene.homeMap = createHomeMap(scene);
   scene.currentMapName = 'mine';
   scene.map = scene.mineMaps[scene.mineLevel];
+  rebuildTorchLights(scene);
 }
 
 function getMineMap(scene, level) {
@@ -52,12 +54,14 @@ function switchToMine(scene, level = scene.mineLevel || 1) {
   scene.mineLevel = Phaser.Math.Clamp(level, 1, 99);
   scene.map = getMineMap(scene, scene.mineLevel);
   scene.currentMapName = 'mine';
+  rebuildTorchLights(scene);
   setCameraBounds(scene);
 }
 
 function switchToHome(scene) {
   scene.map = scene.homeMap;
   scene.currentMapName = 'home';
+  rebuildTorchLights(scene);
   setCameraBounds(scene);
 }
 
@@ -88,9 +92,10 @@ function seededNoise(x, y, seed = 0) {
 }
 
 function getTileBaseColor(tile) {
-  if (tile.type === 'floor') return tile.variation % 2 ? 0x151515 : 0x101010;
+  if (tile.type === 'floor' || tile.type === 'torch') return tile.variation % 2 ? 0x151515 : 0x101010;
   if (tile.type === 'homeFloor') return tile.variation % 2 ? 0x211911 : 0x18120d;
   if (tile.type === 'teleportPad') return 0x3344aa;
+  if (tile.type === 'torch') return tile.variation % 2 ? 0x171717 : 0x121212;
   if (tile.type === 'furnace') return 0xff4422;
   if (tile.type === 'craftingTable') return 0x8b5a2b;
   if (tile.type === 'woodChest') return 0x9a642e;
@@ -111,7 +116,7 @@ function isWallLike(tile) {
 }
 
 function isWalkableTile(tile) {
-  return tile && ['floor', 'homeFloor', 'teleportPad', 'exit', 'exitUp', 'exitDown'].includes(tile.type);
+  return tile && ['floor', 'homeFloor', 'teleportPad', 'exit', 'exitUp', 'exitDown', 'torch'].includes(tile.type);
 }
 
 function getWallMask(scene, x, y) {
@@ -195,6 +200,11 @@ function drawFloorDetails(scene, tile, x, y, brightness) {
   if (seededNoise(x + 11, y + 4, seed) > 0.5) scene.worldLayer.fillRect(px + 17, py + 15, 3, 1);
   scene.worldLayer.fillStyle(lightPebble, 0.35);
   if (seededNoise(x - 8, y + 13, seed) > 0.62) scene.worldLayer.fillRect(px + 10, py + 20, 2, 2);
+  if (scene.currentMapName === 'mine') {
+    scene.worldLayer.lineStyle(1, darkenColor(0x3a3a3a, brightness), 0.26);
+    if (seededNoise(x + 29, y - 4, seed) > 0.72) scene.worldLayer.lineBetween(px + 4, py + 12, px + 13, py + 10);
+    if (seededNoise(x - 14, y + 21, seed) > 0.78) scene.worldLayer.lineBetween(px + 13, py + 21, px + 22, py + 17);
+  }
 
   // Ambient occlusion beside nearby walls makes caves feel naturally carved.
   const top = isWallLike(getTile(scene, x, y - 1));
@@ -279,6 +289,10 @@ function drawTileDetails(scene, tile, x, y, brightness) {
     scene.worldLayer.strokeRect(px + 4, py + 7, size - 8, size - 10);
   }
 
+  if (tile.type === 'torch') {
+    drawTorch(scene, x, y, brightness);
+  }
+
   if (tile.type === 'teleportPad') {
     scene.worldLayer.lineStyle(2, darkenColor(0x88aaff, brightness), 0.9);
     scene.worldLayer.strokeCircle(px + size / 2, py + size / 2, 8);
@@ -294,34 +308,33 @@ function drawTileDetails(scene, tile, x, y, brightness) {
 }
 
 function drawMiner(scene) {
-  const px = scene.player.x - scene.tileSize / 2;
-  const py = scene.player.y - scene.tileSize / 2;
   const size = scene.tileSize;
+  const bob = scene.playerIsMoving ? Math.sin(scene.walkBob || 0) * 1.8 : Math.sin((scene.visualTime || 0) * 0.003) * 0.5;
+  const px = scene.player.x - size / 2;
+  const py = scene.player.y - size / 2 + bob;
+  const legOffset = scene.playerIsMoving ? Math.sign(Math.sin(scene.walkBob || 0)) * 2 : 0;
 
   scene.playerLayer.fillStyle(0x111111, 0.35);
   scene.playerLayer.fillEllipse(scene.player.x, scene.player.y + 10, 20, 7);
 
-  scene.playerLayer.fillStyle(0x3366cc);
+  scene.playerLayer.fillStyle(0x224fbd);
   scene.playerLayer.fillRect(px + 7, py + 11, size - 14, size - 8);
+  scene.playerLayer.fillStyle(0x4779f0, 0.9);
+  scene.playerLayer.fillRect(px + 9, py + 13, size - 18, 4);
   scene.playerLayer.fillStyle(0xffcc88);
   scene.playerLayer.fillRect(px + 8, py + 7, size - 16, 8);
   scene.playerLayer.fillStyle(0xd8b000);
   scene.playerLayer.fillRect(px + 7, py + 4, size - 14, 5);
-  scene.playerLayer.fillStyle(0xffffaa);
+  scene.playerLayer.fillStyle(0xffffaa, 0.95);
   scene.playerLayer.fillRect(px + size / 2 - 2, py + 3, 4, 3);
   scene.playerLayer.fillStyle(0x111111);
-  scene.playerLayer.fillRect(px + 7, py + size - 4, 5, 3);
-  scene.playerLayer.fillRect(px + size - 12, py + size - 4, 5, 3);
+  scene.playerLayer.fillRect(px + 7 + legOffset, py + size - 4, 5, 3);
+  scene.playerLayer.fillRect(px + size - 12 - legOffset, py + size - 4, 5, 3);
 
-  scene.playerLayer.fillStyle(0xffaa00);
-  scene.playerLayer.fillRect(
-    scene.player.x - 2 + scene.lastMoveDirection.x * 11,
-    scene.player.y - 2 + scene.lastMoveDirection.y * 11,
-    4,
-    4
-  );
+  const dir = scene.lastMoveDirection || { x: 1, y: 0 };
+  scene.playerLayer.fillStyle(0xffc94a, 0.85);
+  scene.playerLayer.fillCircle(scene.player.x + dir.x * 11, scene.player.y + dir.y * 11, 3);
 }
-
 function redraw(scene) {
   scene.worldLayer.clear();
   scene.playerLayer.clear();
@@ -339,10 +352,12 @@ function redraw(scene) {
     for (let x = 0; x < scene.mapWidth; x++) {
       const tile = scene.map[y][x];
       const distance = Phaser.Math.Distance.Between(x + 0.5, y + 0.5, playerTileX, playerTileY);
-      const lightRadius = scene.currentMapName === 'home' ? 10.5 : 8.5;
-      const minBrightness = scene.currentMapName === 'home' ? 0.26 : 0.14;
-      const lightStrength = Phaser.Math.Clamp(1 - distance / lightRadius, 0, 1);
-      const brightness = minBrightness + lightStrength * lightStrength * (1 - minBrightness);
+      const lightRadius = scene.currentMapName === 'home' ? HOME_PLAYER_LIGHT_RADIUS : PLAYER_LIGHT_RADIUS;
+      const minBrightness = scene.currentMapName === 'home' ? 0.30 : 0.08;
+      const playerLightStrength = Phaser.Math.Clamp(1 - distance / lightRadius, 0, 1);
+      const torchLightStrength = getTorchLightAt(scene, x, y);
+      const combinedLight = Math.max(playerLightStrength * playerLightStrength, torchLightStrength);
+      const brightness = minBrightness + combinedLight * (1 - minBrightness);
       const color = darkenColor(getTileBaseColor(tile), brightness);
 
       scene.worldLayer.fillStyle(color);
@@ -360,4 +375,5 @@ function redraw(scene) {
 
   drawEnemies(scene);
   drawMiner(scene);
+  drawAmbientEffects(scene);
 }

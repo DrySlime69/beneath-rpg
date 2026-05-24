@@ -111,6 +111,8 @@ class GameScene extends Phaser.Scene {
 
     this.worldLayer = this.add.graphics().setDepth(1);
     this.playerLayer = this.add.graphics().setDepth(5);
+    this.visualLayer = this.add.graphics().setDepth(7);
+    setupVisualEffects(this);
 
     this.followTarget = this.add.zone(this.player.x, this.player.y, 1, 1);
     this.cameras.main.setBounds(0, 0, this.mapWidth * this.tileSize, this.mapHeight * this.tileSize);
@@ -165,6 +167,7 @@ class GameScene extends Phaser.Scene {
     }
 
     handleMovement(this, delta);
+    updateVisualEffects(this, time, delta);
     updateCombat(this, time, delta);
 
     if (Phaser.Input.Keyboard.JustDown(this.keys.attack)) {
@@ -176,6 +179,7 @@ class GameScene extends Phaser.Scene {
     redraw(this);
   }
 }
+
 
 function cacheDom(scene) {
   scene.messageBox = document.getElementById('message');

@@ -8,13 +8,18 @@ function handleMovement(scene, delta) {
   if (scene.cursors.up.isDown || scene.keys.w.isDown) dy -= 1;
   if (scene.cursors.down.isDown || scene.keys.s.isDown) dy += 1;
 
-  if (dx === 0 && dy === 0) return;
+  if (dx === 0 && dy === 0) {
+    notePlayerMovementVisual(scene, false);
+    return;
+  }
 
   const length = Math.hypot(dx, dy) || 1;
   dx /= length;
   dy /= length;
 
   scene.lastMoveDirection = getCardinalDirection(dx, dy);
+  notePlayerMovementVisual(scene, true);
+  spawnFootstepDust(scene);
 
   const distance = scene.player.speed * (delta / 1000);
   moveWithCollision(scene, dx * distance, 0);
@@ -57,7 +62,7 @@ function collidesAt(scene, px, py) {
 }
 
 function isSolidTile(tile) {
-  return !['floor', 'homeFloor', 'teleportPad', 'exit', 'exitUp', 'exitDown'].includes(tile.type);
+  return !['floor', 'homeFloor', 'teleportPad', 'exit', 'exitUp', 'exitDown', 'torch'].includes(tile.type);
 }
 
 function getTileAtPixel(scene, px, py) {
@@ -149,7 +154,7 @@ function mineTargetTile(scene) {
 }
 
 function hitResource(scene, tile, tx, ty, inventoryKey, label, particleColor, successMessage, yieldAmount = 10) {
-  scene.cameras.main.shake(40, 0.0015);
+  scene.cameras.main.shake(55, 0.0022);
   const miningDamage = getPickaxeMiningDamage(scene);
   tile.hp -= miningDamage;
   damagePickaxeDurability(scene, 1);
@@ -157,11 +162,8 @@ function hitResource(scene, tile, tx, ty, inventoryKey, label, particleColor, su
 
   if (tile.hp <= 0) {
     scene.inventory[inventoryKey] = (scene.inventory[inventoryKey] || 0) + yieldAmount;
-    scene.map[ty][tx] = {
-      type: scene.currentMapName === 'home' ? 'homeFloor' : 'floor',
-      hardness: 0,
-      variation: Phaser.Math.Between(0, 3)
-    };
+    scene.map[ty][tx] = makeTile(scene.currentMapName === 'home' ? 'homeFloor' : 'floor');
+    spawnBreakBurst(scene, tx, ty, particleColor);
     setMessage(scene, successMessage);
   } else {
     setMessage(scene, label + ' HP: ' + Math.max(0, Math.ceil(tile.hp)) + '/' + tile.maxHp);
@@ -171,27 +173,8 @@ function hitResource(scene, tile, tx, ty, inventoryKey, label, particleColor, su
 }
 
 function spawnParticles(scene, tx, ty, color) {
-  for (let i = 0; i < 6; i++) {
-    const particle = scene.add.rectangle(
-      tx * scene.tileSize + scene.tileSize / 2,
-      ty * scene.tileSize + scene.tileSize / 2,
-      4,
-      4,
-      color
-    );
-
-    particle.setDepth(20);
-    scene.tweens.add({
-      targets: particle,
-      x: particle.x + Phaser.Math.Between(-14, 14),
-      y: particle.y + Phaser.Math.Between(-14, 14),
-      alpha: 0,
-      duration: 400,
-      onComplete: () => particle.destroy()
-    });
-  }
+  spawnMiningParticles(scene, tx, ty, color, 8);
 }
-
 function tryUseMineExit(scene, tile) {
   if (scene.exitCooldown) return;
   scene.exitCooldown = true;
