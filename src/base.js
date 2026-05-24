@@ -239,6 +239,77 @@ function closeCraftingMenu(scene) {
   if (scene.craftingScreen) scene.craftingScreen.style.display = 'none';
 }
 
+
+function getAllPlacedChests(scene) {
+  const maps = [];
+  if (scene.homeMap) maps.push(scene.homeMap);
+  if (scene.currentMapName === 'home' && scene.map && scene.map !== scene.homeMap) maps.push(scene.map);
+
+  const chests = [];
+  maps.forEach(map => {
+    if (!map) return;
+    map.forEach(row => row.forEach(tile => {
+      if (isChestTile(tile)) {
+        const slots = tile.storageSlots || getItemDef(tile.type)?.storageSlots || 8;
+        if (!tile.storage) tile.storage = Array(slots).fill(null);
+        while (tile.storage.length < slots) tile.storage.push(null);
+        chests.push(tile);
+      }
+    }));
+  });
+  return chests;
+}
+
+function getAvailableCraftingResourceAmount(scene, itemId) {
+  let total = scene.inventory?.[itemId] || 0;
+  getAllPlacedChests(scene).forEach(chest => {
+    (chest.storage || []).forEach(item => {
+      if (item?.id === itemId) total += item.amount || 0;
+    });
+  });
+  return total;
+}
+
+function hasCraftingResources(scene, costs) {
+  return Object.entries(costs || {}).every(([itemId, amount]) => getAvailableCraftingResourceAmount(scene, itemId) >= amount);
+}
+
+function consumeCraftingResources(scene, costs) {
+  if (!hasCraftingResources(scene, costs)) return false;
+
+  for (const [itemId, amountNeeded] of Object.entries(costs || {})) {
+    let remaining = amountNeeded;
+
+    const fromInventory = Math.min(scene.inventory?.[itemId] || 0, remaining);
+    if (fromInventory > 0) {
+      scene.inventory[itemId] -= fromInventory;
+      remaining -= fromInventory;
+    }
+
+    if (remaining <= 0) continue;
+
+    const chests = getAllPlacedChests(scene);
+    for (const chest of chests) {
+      for (let i = 0; i < (chest.storage || []).length; i++) {
+        const item = chest.storage[i];
+        if (!item || item.id !== itemId) continue;
+
+        const take = Math.min(item.amount || 0, remaining);
+        item.amount -= take;
+        remaining -= take;
+
+        if ((item.amount || 0) <= 0) chest.storage[i] = null;
+        if (remaining <= 0) break;
+      }
+      if (remaining <= 0) break;
+    }
+  }
+
+  ensureVisibleStackableItems(scene);
+  if (scene.chestOpen) updateChestSlots(scene);
+  return true;
+}
+
 function craftCopperBars(scene) {
   if (scene.furnaceQueue.length > 0) {
     setMessage(scene, 'Furnace already working.');
@@ -249,18 +320,13 @@ function craftCopperBars(scene) {
   const neededCopperOre = amount * 5;
   const neededCoal = amount;
 
-  if (scene.inventory.copperOre < neededCopperOre) {
-    setMessage(scene, 'Not enough Copper Ore.');
+  const costs = { copperOre: neededCopperOre, coal: neededCoal };
+  if (!hasCraftingResources(scene, costs)) {
+    setMessage(scene, 'Need ' + formatCosts(costs) + '. Inventory and home chests both count.');
     return;
   }
 
-  if (scene.inventory.coal < neededCoal) {
-    setMessage(scene, 'Not enough Coal.');
-    return;
-  }
-
-  scene.inventory.copperOre -= neededCopperOre;
-  scene.inventory.coal -= neededCoal;
+  consumeCraftingResources(scene, costs);
   scene.furnaceQueue.push({
     item: 'Copper Bar',
     amount,
@@ -384,16 +450,12 @@ function startCraftingTableRecipe(scene) {
     return;
   }
 
-  for (const [itemId, amount] of Object.entries(recipe.costs || {})) {
-    if ((scene.inventory[itemId] || 0) < amount) {
-      setMessage(scene, 'Need ' + formatCosts(recipe.costs) + '.');
-      return;
-    }
+  if (!hasCraftingResources(scene, recipe.costs || {})) {
+    setMessage(scene, 'Need ' + formatCosts(recipe.costs) + '. Inventory and home chests both count.');
+    return;
   }
 
-  for (const [itemId, amount] of Object.entries(recipe.costs || {})) {
-    scene.inventory[itemId] = (scene.inventory[itemId] || 0) - amount;
-  }
+  consumeCraftingResources(scene, recipe.costs || {});
 
   scene.tableQueue.push({
     item: recipe.name,
