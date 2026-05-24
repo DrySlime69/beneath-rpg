@@ -30,11 +30,14 @@ class GameScene extends Phaser.Scene {
       stone: 0,
       coal: 0,
       copperOre: 0,
-      copperBars: 0
+      copperBars: 0,
+      wood: 0
     };
 
     this.pickaxeTier = 1;
     this.pickaxeDamage = 1;
+    this.pickaxeDurabilityMax = getPickaxeDurabilityMax(this.pickaxeTier);
+    this.pickaxeDurability = this.pickaxeDurabilityMax;
     this.hasFurnace = false;
     this.hasCraftingTable = false;
     this.selectedHotbarIndex = 0;
@@ -68,7 +71,8 @@ class GameScene extends Phaser.Scene {
       { id: 'stone' },
       { id: 'coal' },
       { id: 'copperOre' },
-      { id: 'copperBars' }
+      { id: 'copperBars' },
+      { id: 'wood' }
     ];
 
     while (this.backpackItems.length < 24) {

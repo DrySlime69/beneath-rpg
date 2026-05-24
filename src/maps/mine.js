@@ -58,6 +58,7 @@ function createMineMap(scene, level = 1) {
 
   placeResourcePocketsOnMap(scene, map, 'stone', 12 + level * 2, 4 + Math.min(level, 3));
   placeResourcePocketsOnMap(scene, map, 'coal', 5 + level, 3 + Math.min(level, 3));
+  placeResourcePocketsOnMap(scene, map, 'wood', 4 + Math.floor(level / 2), 2 + Math.min(level, 3));
 
   if (level <= STARTING_UNLOCKED_MINE_LEVELS) {
     placeResourcePocketsOnMap(scene, map, 'copper', 4 + level, 3 + Math.min(level, 4));

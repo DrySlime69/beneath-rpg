@@ -20,6 +20,7 @@ function makeTile(type, extra = {}) {
   };
 
   if (type === 'stone') Object.assign(tile, { hardness: 1, hp: 4, maxHp: 4 });
+  if (type === 'wood') Object.assign(tile, { hardness: 0, hp: 3, maxHp: 3 });
   if (type === 'coal') Object.assign(tile, { hardness: 1, hp: 3, maxHp: 3 });
   if (type === 'copper') Object.assign(tile, { hardness: 2, hp: 10, maxHp: 10 });
   if (type === 'copperWall') Object.assign(tile, { hardness: 3, hp: 14, maxHp: 14 });
@@ -97,13 +98,14 @@ function getTileBaseColor(tile) {
   if (tile.type === 'exitUp') return 0x2255cc;
   if (tile.type === 'stone') return 0x5a5a5a;
   if (tile.type === 'coal') return 0x333333;
+  if (tile.type === 'wood') return 0x8a5a2b;
   if (tile.type === 'copper') return 0xaa6633;
   if (tile.type === 'copperWall') return 0x7f3f24;
   return 0x000000;
 }
 
 function isWallLike(tile) {
-  return tile && ['caveWall', 'stone', 'coal', 'copper', 'copperWall'].includes(tile.type);
+  return tile && ['caveWall', 'stone', 'coal', 'copper', 'copperWall', 'wood'].includes(tile.type);
 }
 
 function isWalkableTile(tile) {
@@ -121,6 +123,7 @@ function getWallMask(scene, x, y) {
 function getWallVisualColors(tile) {
   if (tile.type === 'stone') return { base: 0x5a5a5a, edge: 0xa8a8a8, shadow: 0x262626, speck: 0xc0c0c0 };
   if (tile.type === 'coal') return { base: 0x303030, edge: 0x686868, shadow: 0x111111, speck: 0x777777 };
+  if (tile.type === 'wood') return { base: 0x7a4a22, edge: 0xd79a55, shadow: 0x2b1407, speck: 0xe2b16d };
   if (tile.type === 'copper') return { base: 0x9b5a2e, edge: 0xffb066, shadow: 0x3a1b12, speck: 0xffaa55 };
   if (tile.type === 'copperWall') return { base: 0x71381f, edge: 0xff8844, shadow: 0x28110b, speck: 0xff9a58 };
   return { base: 0x2b180d, edge: 0x7a5238, shadow: 0x0b0503, speck: 0x56321e };

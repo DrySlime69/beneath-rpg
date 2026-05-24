@@ -245,6 +245,8 @@ function buildSaveData(scene) {
     selectedHotbarIndex: scene.selectedHotbarIndex,
     pickaxeTier: scene.pickaxeTier,
     pickaxeDamage: scene.pickaxeDamage,
+    pickaxeDurability: scene.pickaxeDurability,
+    pickaxeDurabilityMax: scene.pickaxeDurabilityMax,
     hasFurnace: scene.hasFurnace,
     hasCraftingTable: scene.hasCraftingTable,
     furnaceQueue: scene.furnaceQueue,
@@ -319,12 +321,14 @@ function loadGameFromSlot(scene, slot) {
   scene.mineLevel = data.mineLevel || 1;
   scene.maxUnlockedMineLevel = data.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS;
   scene.mineReturnPosition = data.mineReturnPosition || scene.mineReturnPosition;
-  scene.inventory = data.inventory || scene.inventory;
+  scene.inventory = Object.assign({ stone: 0, coal: 0, copperOre: 0, copperBars: 0, wood: 0 }, data.inventory || scene.inventory);
   scene.hotbarItems = data.hotbarItems || scene.hotbarItems;
   scene.backpackItems = data.backpackItems || scene.backpackItems;
   scene.selectedHotbarIndex = data.selectedHotbarIndex || 0;
-  scene.pickaxeTier = data.pickaxeTier || 1;
-  scene.pickaxeDamage = data.pickaxeDamage || 1;
+  scene.pickaxeTier = data.pickaxeTier ?? 1;
+  scene.pickaxeDamage = data.pickaxeDamage ?? (scene.pickaxeTier <= 0 ? 0 : scene.pickaxeTier);
+  scene.pickaxeDurabilityMax = data.pickaxeDurabilityMax ?? getPickaxeDurabilityMax(scene.pickaxeTier);
+  scene.pickaxeDurability = data.pickaxeDurability ?? scene.pickaxeDurabilityMax;
   scene.hasFurnace = !!data.hasFurnace;
   scene.hasCraftingTable = !!data.hasCraftingTable;
   scene.furnaceQueue = data.furnaceQueue || [];

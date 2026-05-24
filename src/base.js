@@ -297,13 +297,13 @@ const craftingTableRecipes = {
   stonePickaxe: {
     name: 'Stone Pickaxe',
     description: 'A stronger pickaxe that can break copper ore blocks.',
-    requirements: '15 Stone',
+    requirements: '10 Stone + 2 Wood',
     timePerItem: 10000
   },
   copperPickaxe: {
     name: 'Copper Pickaxe',
     description: 'Breaks copper walls and unlocks Mine Level 6.',
-    requirements: '10 Copper Bars + 20 Stone',
+    requirements: '5 Copper Bars + 2 Wood',
     timePerItem: 15000
   },
   stoneSword: {
@@ -379,28 +379,21 @@ function startCraftingTableRecipe(scene) {
   const recipe = craftingTableRecipes[recipeId];
 
   if (recipeId === 'stonePickaxe') {
-    if (scene.pickaxeTier >= 2) {
-      setMessage(scene, 'Stone Pickaxe already crafted.');
+    if (scene.inventory.stone < 10 || (scene.inventory.wood || 0) < 2) {
+      setMessage(scene, 'Need 10 Stone and 2 Wood.');
       return;
     }
-    if (scene.inventory.stone < 15) {
-      setMessage(scene, 'Need 15 Stone.');
-      return;
-    }
-    scene.inventory.stone -= 15;
+    scene.inventory.stone -= 10;
+    scene.inventory.wood -= 2;
   }
 
   if (recipeId === 'copperPickaxe') {
-    if (scene.pickaxeTier >= 3) {
-      setMessage(scene, 'Copper Pickaxe already crafted.');
+    if (scene.inventory.copperBars < 5 || (scene.inventory.wood || 0) < 2) {
+      setMessage(scene, 'Need 5 Copper Bars and 2 Wood.');
       return;
     }
-    if (scene.inventory.copperBars < 10 || scene.inventory.stone < 20) {
-      setMessage(scene, 'Need 10 Copper Bars and 20 Stone.');
-      return;
-    }
-    scene.inventory.copperBars -= 10;
-    scene.inventory.stone -= 20;
+    scene.inventory.copperBars -= 5;
+    scene.inventory.wood -= 2;
   }
 
   if (recipeId === 'stoneSword') {
@@ -488,21 +481,25 @@ function collectCraftingTableOutput(scene) {
   }
 
   if (scene.tableOutput.stonePickaxe > 0) {
-    scene.pickaxeTier = Math.max(scene.pickaxeTier, 2);
-    scene.pickaxeDamage = Math.max(scene.pickaxeDamage, 2);
+    scene.pickaxeTier = Math.max(scene.pickaxeTier || 0, 2);
+    scene.pickaxeDamage = Math.max(scene.pickaxeDamage || 0, 2);
+    scene.pickaxeDurabilityMax = getPickaxeDurabilityMax(scene.pickaxeTier);
+    scene.pickaxeDurability = scene.pickaxeDurabilityMax;
     scene.tableOutput.stonePickaxe = 0;
   }
 
   if (scene.tableOutput.copperPickaxe > 0) {
-    scene.pickaxeTier = Math.max(scene.pickaxeTier, 3);
-    scene.pickaxeDamage = Math.max(scene.pickaxeDamage, 3);
+    scene.pickaxeTier = Math.max(scene.pickaxeTier || 0, 3);
+    scene.pickaxeDamage = Math.max(scene.pickaxeDamage || 0, 3);
+    scene.pickaxeDurabilityMax = getPickaxeDurabilityMax(scene.pickaxeTier);
+    scene.pickaxeDurability = scene.pickaxeDurabilityMax;
     scene.maxUnlockedMineLevel = Math.max(scene.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS, FIRST_LOCKED_MINE_LEVEL);
     if (!scene.mineMaps[FIRST_LOCKED_MINE_LEVEL]) scene.mineMaps[FIRST_LOCKED_MINE_LEVEL] = createMineMap(scene, FIRST_LOCKED_MINE_LEVEL);
     scene.tableOutput.copperPickaxe = 0;
   }
 
   if (scene.tableOutput.stoneSword > 0) {
-    const added = addItemToFirstOpenSlot(scene, { id: 'stoneSword' });
+    const added = addItemToFirstOpenSlot(scene, createWeaponItem('stoneSword'));
     if (!added) {
       setMessage(scene, 'No inventory space for Stone Sword.');
       updateInventoryUI(scene);
@@ -513,7 +510,7 @@ function collectCraftingTableOutput(scene) {
   }
 
   if (scene.tableOutput.copperSword > 0) {
-    const added = addItemToFirstOpenSlot(scene, { id: 'copperSword' });
+    const added = addItemToFirstOpenSlot(scene, createWeaponItem('copperSword'));
     if (!added) {
       setMessage(scene, 'No inventory space for Copper Sword.');
       updateInventoryUI(scene);

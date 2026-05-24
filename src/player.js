@@ -92,7 +92,7 @@ function mineTargetTile(scene) {
   if (!tile) return;
 
   scene.mineCooldown = true;
-  scene.time.delayedCall(scene.pickaxeTier === 1 ? 450 : 300, () => {
+  scene.time.delayedCall((scene.pickaxeTier || 0) <= 0 ? 650 : scene.pickaxeTier === 1 ? 450 : 300, () => {
     scene.mineCooldown = false;
   });
 
@@ -101,7 +101,16 @@ function mineTargetTile(scene) {
     return;
   }
 
+  if (tile.type === 'wood') {
+    hitResource(scene, tile, target.x, target.y, 'wood', 'wood', 0xaa7744, '+5 Wood', 5);
+    return;
+  }
+
   if (tile.type === 'coal') {
+    if ((scene.pickaxeTier || 0) <= 0) {
+      setMessage(scene, 'Need a Pickaxe to mine Coal. Mine stone and wood by hand to craft a new one.');
+      return;
+    }
     hitResource(scene, tile, target.x, target.y, 'coal', 'coal', 0x222222, '+10 Coal');
     return;
   }
@@ -132,11 +141,13 @@ function mineTargetTile(scene) {
 
 function hitResource(scene, tile, tx, ty, inventoryKey, label, particleColor, successMessage, yieldAmount = 10) {
   scene.cameras.main.shake(40, 0.0015);
-  tile.hp -= scene.pickaxeDamage;
+  const miningDamage = getPickaxeMiningDamage(scene);
+  tile.hp -= miningDamage;
+  damagePickaxeDurability(scene, 1);
   spawnParticles(scene, tx, ty, particleColor);
 
   if (tile.hp <= 0) {
-    scene.inventory[inventoryKey] += yieldAmount;
+    scene.inventory[inventoryKey] = (scene.inventory[inventoryKey] || 0) + yieldAmount;
     scene.map[ty][tx] = {
       type: scene.currentMapName === 'home' ? 'homeFloor' : 'floor',
       hardness: 0,
@@ -144,7 +155,7 @@ function hitResource(scene, tile, tx, ty, inventoryKey, label, particleColor, su
     };
     setMessage(scene, successMessage);
   } else {
-    setMessage(scene, label + ' HP: ' + tile.hp + '/' + tile.maxHp);
+    setMessage(scene, label + ' HP: ' + Math.max(0, Math.ceil(tile.hp)) + '/' + tile.maxHp);
   }
 
   updateInventoryUI(scene);

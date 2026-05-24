@@ -176,6 +176,7 @@ function playerAttack(scene, time) {
   const ax = scene.player.x + dir.x * 22;
   const ay = scene.player.y + dir.y * 22;
   spawnAttackArc(scene, ax, ay);
+  damageSelectedWeaponDurability(scene, 1);
 
   if (scene.currentMapName !== 'mine') {
     setMessage(scene, 'You swing your ' + attackStats.name + '.');
