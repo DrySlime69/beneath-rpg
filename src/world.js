@@ -42,6 +42,7 @@ function generateMaps(scene) {
   scene.homeMap = createHomeMap(scene);
   scene.currentMapName = 'mine';
   scene.map = scene.mineMaps[scene.mineLevel];
+  scene.currentBiomeId = scene.map.biomeId || getBiomeForLevel(scene.mineLevel).id;
   rebuildTorchLights(scene);
 }
 
@@ -54,6 +55,7 @@ function switchToMine(scene, level = scene.mineLevel || 1) {
   scene.mineLevel = Phaser.Math.Clamp(level, 1, 99);
   scene.map = getMineMap(scene, scene.mineLevel);
   scene.currentMapName = 'mine';
+  scene.currentBiomeId = scene.map.biomeId || getBiomeForLevel(scene.mineLevel).id;
   rebuildTorchLights(scene);
   setCameraBounds(scene);
 }
@@ -92,22 +94,22 @@ function seededNoise(x, y, seed = 0) {
 }
 
 function getTileBaseColor(tile) {
-  if (tile.type === 'floor' || tile.type === 'torch') return tile.variation % 2 ? 0x151515 : 0x101010;
+  const biome = getBiomeById(tile?.biome || 'dirtCaves');
+  if (tile.type === 'floor' || tile.type === 'torch') return tile.variation % 2 ? tintColor(biome.floor, 8) : biome.floor;
   if (tile.type === 'homeFloor') return tile.variation % 2 ? 0x211911 : 0x18120d;
   if (tile.type === 'teleportPad') return 0x3344aa;
-  if (tile.type === 'torch') return tile.variation % 2 ? 0x171717 : 0x121212;
   if (tile.type === 'furnace') return 0xff4422;
   if (tile.type === 'craftingTable') return 0x8b5a2b;
   if (tile.type === 'woodChest') return 0x9a642e;
   if (tile.type === 'copperChest') return 0xb96a35;
-  if (tile.type === 'caveWall') return tile.variation % 2 ? 0x321c10 : 0x25140b;
+  if (tile.type === 'caveWall') return tile.variation % 2 ? tintColor(biome.wall.base, 10) : biome.wall.base;
   if (tile.type === 'exit' || tile.type === 'exitDown') return 0x00aa00;
   if (tile.type === 'exitUp') return 0x2255cc;
-  if (tile.type === 'stone') return 0x5a5a5a;
+  if (tile.type === 'stone') return biome.id === 'crystalDepths' ? 0x4f6f88 : 0x5a5a5a;
   if (tile.type === 'coal') return 0x333333;
-  if (tile.type === 'wood') return 0x8a5a2b;
-  if (tile.type === 'copper') return 0xaa6633;
-  if (tile.type === 'copperWall') return 0x7f3f24;
+  if (tile.type === 'wood') return biome.id === 'mushroomCaverns' ? 0x5b4aa0 : 0x8a5a2b;
+  if (tile.type === 'copper') return biome.id === 'copperRuins' ? 0xc7793f : 0xaa6633;
+  if (tile.type === 'copperWall') return biome.id === 'copperRuins' ? 0x984822 : 0x7f3f24;
   return 0x000000;
 }
 
@@ -128,12 +130,17 @@ function getWallMask(scene, x, y) {
 }
 
 function getWallVisualColors(tile) {
-  if (tile.type === 'stone') return { base: 0x5a5a5a, edge: 0xa8a8a8, shadow: 0x262626, speck: 0xc0c0c0 };
+  const biome = getBiomeById(tile?.biome || 'dirtCaves');
+  if (tile.type === 'stone') return biome.id === 'crystalDepths'
+    ? { base: 0x4f6f88, edge: 0x9be8ff, shadow: 0x172634, speck: 0xbdf4ff }
+    : { base: 0x5a5a5a, edge: 0xa8a8a8, shadow: 0x262626, speck: 0xc0c0c0 };
   if (tile.type === 'coal') return { base: 0x303030, edge: 0x686868, shadow: 0x111111, speck: 0x777777 };
-  if (tile.type === 'wood') return { base: 0x7a4a22, edge: 0xd79a55, shadow: 0x2b1407, speck: 0xe2b16d };
+  if (tile.type === 'wood') return biome.id === 'mushroomCaverns'
+    ? { base: 0x4b3d88, edge: 0xa77cff, shadow: 0x17102a, speck: 0xd0b4ff }
+    : { base: 0x7a4a22, edge: 0xd79a55, shadow: 0x2b1407, speck: 0xe2b16d };
   if (tile.type === 'copper') return { base: 0x9b5a2e, edge: 0xffb066, shadow: 0x3a1b12, speck: 0xffaa55 };
   if (tile.type === 'copperWall') return { base: 0x71381f, edge: 0xff8844, shadow: 0x28110b, speck: 0xff9a58 };
-  return { base: 0x2b180d, edge: 0x7a5238, shadow: 0x0b0503, speck: 0x56321e };
+  return biome.wall;
 }
 
 function drawAutotiledWall(scene, tile, x, y, brightness) {
@@ -190,7 +197,8 @@ function drawFloorDetails(scene, tile, x, y, brightness) {
   const py = y * scene.tileSize;
   const s = scene.tileSize;
   const seed = tile.detailSeed || tile.variation || 0;
-  const floorColor = tile.type === 'homeFloor' ? 0x3a2a19 : 0x222222;
+  const biome = getBiomeById(tile?.biome || 'dirtCaves');
+  const floorColor = tile.type === 'homeFloor' ? 0x3a2a19 : biome.floor;
   const pebbleColor = darkenColor(floorColor, brightness * 0.85);
   const lightPebble = darkenColor(tintColor(floorColor, 25), brightness * 0.8);
 
@@ -289,6 +297,11 @@ function drawTileDetails(scene, tile, x, y, brightness) {
     scene.worldLayer.strokeRect(px + 4, py + 7, size - 8, size - 10);
   }
 
+
+  if (tile.decor) {
+    drawBiomeDecoration(scene, tile, x, y, brightness);
+  }
+
   if (tile.type === 'torch') {
     drawTorch(scene, x, y, brightness);
   }
@@ -304,6 +317,70 @@ function drawTileDetails(scene, tile, x, y, brightness) {
     scene.worldLayer.fillCircle(px + size / 2, py + size / 2, 10);
     scene.worldLayer.lineStyle(2, darkenColor(tile.type === 'exitUp' ? 0x66aaff : 0x44ff77, brightness), 0.8);
     scene.worldLayer.strokeCircle(px + size / 2, py + size / 2, 11);
+  }
+}
+
+
+function drawBiomeDecoration(scene, tile, x, y, brightness) {
+  const px = x * scene.tileSize;
+  const py = y * scene.tileSize;
+  const size = scene.tileSize;
+  const t = scene.visualTime || 0;
+
+  if (tile.decor === 'glowMushroom') {
+    const pulse = 0.75 + Math.sin(t * 0.004 + x) * 0.2;
+    scene.worldLayer.fillStyle(darkenColor(0x3d2476, brightness));
+    scene.worldLayer.fillRect(px + 11, py + 13, 3, 8);
+    scene.worldLayer.fillStyle(darkenColor(0xb281ff, Math.min(1, brightness * pulse + 0.15)), 0.92);
+    scene.worldLayer.fillEllipse(px + 13, py + 11, 13, 8);
+    scene.worldLayer.fillStyle(darkenColor(0xe8d6ff, Math.min(1, brightness * pulse + 0.25)), 0.75);
+    scene.worldLayer.fillCircle(px + 10, py + 9, 2);
+    scene.worldLayer.fillCircle(px + 16, py + 10, 2);
+  }
+
+  if (tile.decor === 'fungusPatch') {
+    scene.worldLayer.fillStyle(darkenColor(0x6b4fb4, brightness), 0.72);
+    scene.worldLayer.fillCircle(px + 7, py + 19, 3);
+    scene.worldLayer.fillCircle(px + 14, py + 17, 4);
+    scene.worldLayer.fillCircle(px + 21, py + 20, 2);
+  }
+
+  if (tile.decor === 'copperScrap') {
+    scene.worldLayer.fillStyle(darkenColor(0xff8a3a, brightness), 0.8);
+    scene.worldLayer.fillRect(px + 5, py + 17, 7, 3);
+    scene.worldLayer.fillRect(px + 17, py + 8, 4, 8);
+    scene.worldLayer.lineStyle(1, darkenColor(0x3a1a0c, brightness), 0.8);
+    scene.worldLayer.lineBetween(px + 6, py + 18, px + 22, py + 10);
+  }
+
+  if (tile.decor === 'ruinSupport') {
+    scene.worldLayer.fillStyle(darkenColor(0x6b3b20, brightness));
+    scene.worldLayer.fillRect(px + 5, py + 5, 4, size - 9);
+    scene.worldLayer.fillRect(px + size - 9, py + 5, 4, size - 9);
+    scene.worldLayer.fillRect(px + 5, py + 6, size - 10, 4);
+    scene.worldLayer.fillStyle(darkenColor(0xc06c35, brightness), 0.7);
+    scene.worldLayer.fillRect(px + 4, py + 5, size - 8, 1);
+  }
+
+  if (tile.decor === 'blueCrystal') {
+    const pulse = 0.8 + Math.sin(t * 0.005 + x * 0.5 + y) * 0.25;
+    scene.worldLayer.fillStyle(darkenColor(0x55dfff, Math.min(1, brightness * pulse + 0.18)), 0.92);
+    scene.worldLayer.fillTriangle(px + 13, py + 4, px + 7, py + 21, px + 18, py + 21);
+    scene.worldLayer.fillStyle(darkenColor(0xd6fbff, Math.min(1, brightness * pulse + 0.28)), 0.65);
+    scene.worldLayer.fillTriangle(px + 13, py + 6, px + 11, py + 18, px + 15, py + 18);
+  }
+
+  if (tile.decor === 'crystalShard') {
+    scene.worldLayer.fillStyle(darkenColor(0x7de8ff, brightness), 0.75);
+    scene.worldLayer.fillTriangle(px + 6, py + 17, px + 9, py + 9, px + 12, py + 18);
+    scene.worldLayer.fillTriangle(px + 17, py + 19, px + 20, py + 11, px + 23, py + 20);
+  }
+
+  if (tile.decor === 'pebbles') {
+    scene.worldLayer.fillStyle(darkenColor(0x8a725a, brightness), 0.4);
+    scene.worldLayer.fillRect(px + 6, py + 18, 3, 2);
+    scene.worldLayer.fillRect(px + 15, py + 10, 2, 2);
+    scene.worldLayer.fillRect(px + 21, py + 20, 2, 1);
   }
 }
 
@@ -353,7 +430,7 @@ function redraw(scene) {
       const tile = scene.map[y][x];
       const distance = Phaser.Math.Distance.Between(x + 0.5, y + 0.5, playerTileX, playerTileY);
       const lightRadius = scene.currentMapName === 'home' ? HOME_PLAYER_LIGHT_RADIUS : PLAYER_LIGHT_RADIUS;
-      const minBrightness = scene.currentMapName === 'home' ? 0.30 : 0.08;
+      const minBrightness = scene.currentMapName === 'home' ? 0.30 : getCurrentBiome(scene).darkness;
       const playerLightStrength = Phaser.Math.Clamp(1 - distance / lightRadius, 0, 1);
       const torchLightStrength = getTorchLightAt(scene, x, y);
       const combinedLight = Math.max(playerLightStrength * playerLightStrength, torchLightStrength);

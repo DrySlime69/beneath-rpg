@@ -256,7 +256,8 @@ function buildSaveData(scene) {
     tableOutput: scene.tableOutput,
     mineMaps: serializeMapCollection(scene.mineMaps),
     homeMap: serializeMap(scene.homeMap),
-    mineEnemies: serializeEnemyCollection(scene.mineEnemies)
+    mineEnemies: serializeEnemyCollection(scene.mineEnemies),
+    currentBiomeId: scene.currentBiomeId
   };
 }
 
@@ -269,7 +270,7 @@ function serializeMapCollection(maps) {
 }
 
 function serializeMap(map) {
-  return map.map(row => row.map(tile => ({
+  const rows = map.map(row => row.map(tile => ({
     type: tile.type,
     hardness: tile.hardness,
     hp: tile.hp,
@@ -279,8 +280,13 @@ function serializeMap(map) {
     targetLevel: tile.targetLevel,
     requiredPickaxeTier: tile.requiredPickaxeTier,
     storageSlots: tile.storageSlots,
-    storage: tile.storage
+    storage: tile.storage,
+    biome: tile.biome,
+    decor: tile.decor
   })));
+  rows.biomeId = map.biomeId;
+  rows.biomeName = map.biomeName;
+  return rows;
 }
 
 function serializeEnemyCollection(collection) {
@@ -362,6 +368,7 @@ function loadGameFromSlot(scene, slot) {
   scene.tableQueue = data.tableQueue || [];
   scene.tableOutput = Object.assign(createEmptyCraftingTableOutput(), data.tableOutput || {});
   scene.mineMaps = deserializeMapCollection(data.mineMaps || {});
+  ensureBiomeDataOnLoadedMaps(scene);
   scene.homeMap = deserializeMap(data.homeMap || scene.homeMap);
   scene.mineEnemies = deserializeEnemyCollection(data.mineEnemies || {});
 
@@ -385,8 +392,21 @@ function deserializeMapCollection(maps) {
 }
 
 function deserializeMap(map) {
-  return map.map(row => row.map(data => makeTile(data.type, data)));
+  const rows = map.map(row => row.map(data => makeTile(data.type, data)));
+  rows.biomeId = map.biomeId;
+  rows.biomeName = map.biomeName;
+  return rows;
 }
+
+function ensureBiomeDataOnLoadedMaps(scene) {
+  Object.keys(scene.mineMaps || {}).forEach(levelKey => {
+    const level = Number(levelKey);
+    const map = scene.mineMaps[levelKey];
+    const biome = getBiomeById(map.biomeId) || getBiomeForLevel(level);
+    applyBiomeToMap(map, biome);
+  });
+}
+
 
 
 function deserializeEnemyCollection(collection) {

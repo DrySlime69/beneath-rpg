@@ -3,7 +3,9 @@ const FIRST_LOCKED_MINE_LEVEL = 6;
 const STARTING_UNLOCKED_MINE_LEVELS = 5;
 
 function createMineMap(scene, level = 1) {
+  const biome = getBiomeForLevel(level);
   const map = createEmptyMap(scene, scene.mapWidth, scene.mapHeight);
+  applyBiomeToMap(map, biome);
   const startX = 3;
   const startY = 3;
   const downX = scene.mapWidth - 5;
@@ -60,12 +62,24 @@ function createMineMap(scene, level = 1) {
   placeResourcePocketsOnMap(scene, map, 'coal', 5 + level, 3 + Math.min(level, 3));
   placeResourcePocketsOnMap(scene, map, 'wood', 4 + Math.floor(level / 2), 2 + Math.min(level, 3));
 
+  if (biome.id === 'mushroomCaverns') {
+    placeResourcePocketsOnMap(scene, map, 'coal', 3 + level, 2);
+  } else if (biome.id === 'copperRuins') {
+    placeResourcePocketsOnMap(scene, map, 'copper', 4 + level, 4);
+    placeResourcePocketsOnMap(scene, map, 'copperWall', 2 + Math.floor(level / 2), 5);
+  } else if (biome.id === 'crystalDepths') {
+    placeResourcePocketsOnMap(scene, map, 'stone', 6 + level, 5);
+    placeResourcePocketsOnMap(scene, map, 'coal', 3 + Math.floor(level / 2), 4);
+  }
+
   if (level <= STARTING_UNLOCKED_MINE_LEVELS) {
     placeResourcePocketsOnMap(scene, map, 'copper', 4 + level, 3 + Math.min(level, 4));
   } else {
     placeResourcePocketsOnMap(scene, map, 'copper', 9 + level, 5);
     placeResourcePocketsOnMap(scene, map, 'copperWall', 5, 7);
   }
+
+  addBiomeDecorations(scene, map, biome, level);
 
   addCaveTorches(scene, map, level, [
     { x: startX + 2, y: startY },
@@ -80,6 +94,7 @@ function createMineMap(scene, level = 1) {
     map[downY][downX] = makeTile('copperWall');
   }
 
+  applyBiomeToMap(map, biome);
   return map;
 }
 

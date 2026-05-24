@@ -35,8 +35,8 @@ function generateEnemiesForLevel(scene, level) {
   for (let i = 0; i < count; i++) {
     const spot = findEnemySpawnTile(scene);
     if (!spot) break;
-    const isBat = level >= 3 && i % 3 === 2;
-    enemies.push(makeEnemy(isBat ? 'bat' : 'slime', spot.x * scene.tileSize + scene.tileSize / 2, spot.y * scene.tileSize + scene.tileSize / 2, level));
+    const enemyType = getBiomeEnemyType(level, i);
+    enemies.push(makeEnemy(enemyType, spot.x * scene.tileSize + scene.tileSize / 2, spot.y * scene.tileSize + scene.tileSize / 2, level));
   }
 
   return enemies;
@@ -58,20 +58,29 @@ function findEnemySpawnTile(scene) {
 }
 
 function makeEnemy(type, x, y, level) {
-  const bat = type === 'bat';
-  const hp = bat ? 16 + level * 3 : 22 + level * 4;
+  const isBatLike = type === 'bat' || type === 'crystalBat';
+  const isDrone = type === 'copperDrone';
+  const isSpore = type === 'sporeSlime';
+  const hp = isDrone
+    ? 30 + level * 5
+    : isBatLike
+      ? 16 + level * 3
+      : isSpore
+        ? 24 + level * 4
+        : 22 + level * 4;
+
   return {
     id: 'enemy_' + Date.now() + '_' + Math.floor(Math.random() * 999999),
     type,
     x,
     y,
-    radius: bat ? 7 : 9,
+    radius: isBatLike ? 7 : isDrone ? 8 : 9,
     maxHp: hp,
     hp,
-    damage: bat ? 7 + Math.floor(level / 2) : 9 + Math.floor(level / 2),
-    speed: bat ? 74 + level * 2 : 46 + level * 2,
-    aggroRange: bat ? 210 : 165,
-    attackRange: bat ? 18 : 20,
+    damage: isDrone ? 11 + Math.floor(level / 2) : isSpore ? 8 + Math.floor(level / 2) : isBatLike ? 7 + Math.floor(level / 2) : 9 + Math.floor(level / 2),
+    speed: isDrone ? 56 + level * 2 : isBatLike ? 74 + level * 2 : 46 + level * 2,
+    aggroRange: isBatLike ? 220 : isDrone ? 185 : 165,
+    attackRange: isBatLike ? 18 : 20,
     hitCooldownUntil: 0,
     wanderAngle: Math.random() * Math.PI * 2,
     wanderTimer: Phaser.Math.Between(400, 1400),
@@ -205,14 +214,14 @@ function damageEnemy(scene, enemy, amount, dir) {
   enemy.knockbackY += dir.y * 180;
   scene.cameras.main.shake(45, 0.0012);
   enemy.hitFlashUntil = (scene.time?.now || 0) + 140;
-  spawnHitParticles(scene, enemy.x, enemy.y, enemy.type === 'bat' ? 0x8844ff : 0x44dd66);
+  spawnHitParticles(scene, enemy.x, enemy.y, getEnemyHitColor(enemy.type));
 
   if (enemy.hp <= 0) {
     enemy.dead = true;
     dropEnemyLoot(scene, enemy);
-    setMessage(scene, enemy.type === 'bat' ? 'Bat defeated.' : 'Slime defeated.');
+    setMessage(scene, getEnemyDisplayName(enemy.type) + ' defeated.');
   } else {
-    setMessage(scene, (enemy.type === 'bat' ? 'Bat' : 'Slime') + ' HP: ' + Math.max(0, enemy.hp) + '/' + enemy.maxHp);
+    setMessage(scene, getEnemyDisplayName(enemy.type) + ' HP: ' + Math.max(0, enemy.hp) + '/' + enemy.maxHp);
   }
 }
 
@@ -263,15 +272,34 @@ function updateHealthUI(scene) {
 }
 
 function dropEnemyLoot(scene, enemy) {
-  if (enemy.type === 'bat') {
-    scene.inventory.coal += 2;
-    setMessage(scene, '+2 Coal');
+  if (enemy.type === 'bat' || enemy.type === 'crystalBat') {
+    scene.inventory.coal += enemy.type === 'crystalBat' ? 3 : 2;
+    if (enemy.type === 'crystalBat') scene.inventory.stone += 2;
+    setMessage(scene, enemy.type === 'crystalBat' ? '+3 Coal, +2 Stone' : '+2 Coal');
+  } else if (enemy.type === 'copperDrone') {
+    scene.inventory.copperOre += 3;
+    scene.inventory.coal += 1;
+    setMessage(scene, '+3 Copper Ore, +1 Coal');
+  } else if (enemy.type === 'sporeSlime') {
+    scene.inventory.wood += 2;
+    scene.inventory.stone += 2;
+    setMessage(scene, '+2 Wood, +2 Stone');
   } else {
     scene.inventory.stone += 3;
     if (Phaser.Math.Between(1, 100) <= 25) scene.inventory.coal += 1;
     setMessage(scene, '+3 Stone');
   }
   updateInventoryUI(scene);
+}
+
+function getEnemyHitColor(type) {
+  return {
+    bat: 0x8844ff,
+    slime: 0x44dd66,
+    sporeSlime: 0xb281ff,
+    copperDrone: 0xff8844,
+    crystalBat: 0x55dfff
+  }[type] || 0xffffff;
 }
 
 function spawnAttackArc(scene, x, y) {
@@ -335,30 +363,37 @@ function drawEnemies(scene) {
     if (enemy.dead) continue;
 
     const flash = time < (enemy.hitFlashUntil || 0);
-    const bob = enemy.type === 'bat'
+    const isBatLike = enemy.type === 'bat' || enemy.type === 'crystalBat';
+    const bob = isBatLike
       ? Math.sin(time * 0.012 + enemy.x * 0.04) * 4
       : Math.abs(Math.sin(time * 0.006 + enemy.x * 0.02)) * 2;
-    const drawY = enemy.y + (enemy.type === 'bat' ? bob : -bob);
+    const drawY = enemy.y + (isBatLike ? bob : -bob);
     const squash = enemy.type === 'slime' ? 1 + Math.sin(time * 0.006 + enemy.x) * 0.08 : 1;
 
     scene.enemyLayer.fillStyle(0x000000, 0.35);
     scene.enemyLayer.fillEllipse(enemy.x, enemy.y + enemy.radius + 3, enemy.radius * 2.1, 6);
 
-    if (enemy.type === 'bat') {
+    if (isBatLike) {
       const wingFlap = Math.sin(time * 0.018 + enemy.x) * 5;
-      scene.enemyLayer.fillStyle(flash ? 0xffffff : 0x5b3baa);
+      const batBody = enemy.type === 'crystalBat' ? 0x2aaad8 : 0x5b3baa;
+      const batWing = enemy.type === 'crystalBat' ? 0x7de8ff : 0x7c5cff;
+      scene.enemyLayer.fillStyle(flash ? 0xffffff : batBody);
       scene.enemyLayer.fillEllipse(enemy.x, drawY, 16, 11);
-      scene.enemyLayer.fillStyle(flash ? 0xffe8ff : 0x7c5cff);
+      scene.enemyLayer.fillStyle(flash ? 0xffe8ff : batWing);
       scene.enemyLayer.fillTriangle(enemy.x - 7, drawY, enemy.x - 18, drawY - 6 - wingFlap, enemy.x - 18, drawY + 6 + wingFlap);
       scene.enemyLayer.fillTriangle(enemy.x + 7, drawY, enemy.x + 18, drawY - 6 - wingFlap, enemy.x + 18, drawY + 6 + wingFlap);
       scene.enemyLayer.fillStyle(0xffffff);
       scene.enemyLayer.fillRect(enemy.x - 4, drawY - 2, 2, 2);
       scene.enemyLayer.fillRect(enemy.x + 3, drawY - 2, 2, 2);
     } else {
-      scene.enemyLayer.fillStyle(flash ? 0xffffff : 0x2f9b45);
-      scene.enemyLayer.fillEllipse(enemy.x, drawY + 2, 21 * squash, 17 / squash);
-      scene.enemyLayer.fillStyle(flash ? 0xdffff0 : 0x65e47a);
-      scene.enemyLayer.fillEllipse(enemy.x - 3, drawY - 2, 11 * squash, 8 / squash);
+      const bodyColor = enemy.type === 'copperDrone' ? 0xb96a35 : enemy.type === 'sporeSlime' ? 0x784fc4 : 0x2f9b45;
+      const shineColor = enemy.type === 'copperDrone' ? 0xffb066 : enemy.type === 'sporeSlime' ? 0xb281ff : 0x65e47a;
+      scene.enemyLayer.fillStyle(flash ? 0xffffff : bodyColor);
+      if (enemy.type === 'copperDrone') scene.enemyLayer.fillRect(enemy.x - 10, drawY - 7, 20, 16);
+      else scene.enemyLayer.fillEllipse(enemy.x, drawY + 2, 21 * squash, 17 / squash);
+      scene.enemyLayer.fillStyle(flash ? 0xdffff0 : shineColor);
+      if (enemy.type === 'copperDrone') scene.enemyLayer.fillRect(enemy.x - 5, drawY - 3, 10, 5);
+      else scene.enemyLayer.fillEllipse(enemy.x - 3, drawY - 2, 11 * squash, 8 / squash);
       scene.enemyLayer.fillStyle(0x101010);
       scene.enemyLayer.fillRect(enemy.x - 5, drawY, 2, 2);
       scene.enemyLayer.fillRect(enemy.x + 4, drawY, 2, 2);

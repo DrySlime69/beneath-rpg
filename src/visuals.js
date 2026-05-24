@@ -112,7 +112,7 @@ function drawTorch(scene, x, y, brightness) {
   const flicker = getTorchFlicker(scene, x, y);
   scene.worldLayer.fillStyle(darkenColor(0x2a1b10, brightness));
   scene.worldLayer.fillRect(px + s / 2 - 2, py + 10, 4, 11);
-  scene.worldLayer.fillStyle(darkenColor(0xff9b2d, Math.min(1, brightness * flicker + 0.2)), 0.95);
+  scene.worldLayer.fillStyle(darkenColor(getCurrentBiome(scene).torch, Math.min(1, brightness * flicker + 0.2)), 0.95);
   scene.worldLayer.fillCircle(px + s / 2, py + 8, 4 + Math.round((flicker - 0.8) * 4));
   scene.worldLayer.fillStyle(darkenColor(0xffff88, Math.min(1, brightness * flicker + 0.3)), 0.8);
   scene.worldLayer.fillCircle(px + s / 2, py + 7, 2);
@@ -129,12 +129,12 @@ function drawAmbientEffects(scene) {
   // Soft drifting dust/spores, drawn in screen-visible world space only.
   for (const mote of scene.ambientMotes || []) {
     if (mote.x < cam.worldView.x - 20 || mote.x > cam.worldView.right + 20 || mote.y < cam.worldView.y - 20 || mote.y > cam.worldView.bottom + 20) continue;
-    scene.visualLayer.fillStyle(0xd8c59a, mote.alpha);
+    scene.visualLayer.fillStyle(getCurrentBiome(scene).ambientMote, mote.alpha);
     scene.visualLayer.fillRect(mote.x, mote.y, mote.size, mote.size);
   }
 
   // Subtle vignette in world coordinates around the camera to deepen caves.
-  scene.visualLayer.fillStyle(0x000000, 0.16);
+  scene.visualLayer.fillStyle(0x000000, getCurrentBiome(scene).id === 'crystalDepths' ? 0.10 : 0.16);
   scene.visualLayer.fillRect(cam.worldView.x - 20, cam.worldView.y - 20, cam.worldView.width + 40, 18);
   scene.visualLayer.fillRect(cam.worldView.x - 20, cam.worldView.bottom + 2, cam.worldView.width + 40, 20);
   scene.visualLayer.fillRect(cam.worldView.x - 20, cam.worldView.y - 20, 18, cam.worldView.height + 40);
