@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
+
+  <title>Beneath - Mining RPG Prototype</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <!-- UI -->
+  <div id="ui">
+    <div id="message"></div>
+
+    <div id="inventory">
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+    </div>
+  </div>
+
+  <!-- Inventory -->
+  <div id="inventoryScreen">
+    <div id="inventoryPanel">
+      <h2>Inventory</h2>
+
+      <div class="inventoryLabel">
+        Hotbar
+      </div>
+
+      <div id="hotbarGrid"></div>
+
+      <div class="inventoryLabel">
+        Backpack
+      </div>
+
+      <div id="backpackGrid"></div>
+
+      <div id="inventoryHint">
+        I = close inventory. T = teleport. P = place selected home object. X = pick up faced home object.
+      </div>
+    </div>
+  </div>
+
+  <!-- Furnace -->
+  <div id="craftingScreen">
+    <div id="craftingPanel">
+      <h2>Furnace</h2>
+
+      <div id="furnaceLayout">
+        <div id="furnaceRecipeGrid">
+          <button
+            class="furnaceRecipeSlot selected"
+            data-recipe="copperBar"
+          >
+            Copper Bar
+          </button>
+        </div>
+
+        <div id="furnaceRecipeDetails">
+          <h3 id="selectedFurnaceRecipeName">
+            Copper Bar
+          </h3>
+
+          <div id="selectedFurnaceRecipeDescription">
+            Smelt copper ore into a usable copper bar.
+          </div>
+
+          <div id="selectedFurnaceRecipeRequirements">
+            Requires: 5 Copper Ore + 1 Coal
+          </div>
+
+          <label for="copperBarAmount">
+            Amount:
+          </label>
+
+          <input
+            id="copperBarAmount"
+            type="range"
+            min="1"
+            max="10"
+            value="1"
+          />
+
+          <div id="copperBarAmountLabel">
+            1
+          </div>
+
+          <button id="craftCopperBars">
+            Start Crafting
+          </button>
+
+          <div id="furnaceQueue">
+            <h3>In Progress</h3>
+
+            <div id="furnaceQueueItem">
+              Empty
+            </div>
+
+            <div id="furnaceProgressOuter">
+              <div id="furnaceProgressInner"></div>
+            </div>
+          </div>
+
+          <div id="furnaceOutput">
+            <h3>Completed</h3>
+
+            <div id="furnaceOutputItem">
+              Empty
+            </div>
+
+            <button id="collectFurnaceOutput">
+              Collect
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <button id="closeCraftingMenu">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <!-- Crafting Table -->
+  <div id="craftingTableScreen">
+    <div id="craftingTablePanel">
+      <h2>Crafting Table</h2>
+
+      <div id="craftingTableLayout">
+        <div id="craftingRecipeGrid">
+          <button
+            class="craftRecipeSlot"
+            data-recipe="stonePickaxe"
+          >
+            Stone Pickaxe
+          </button>
+
+          <button
+            class="craftRecipeSlot"
+            data-recipe="copperPickaxe"
+          >
+            Copper Pickaxe
+          </button>
+
+          <button
+            class="craftRecipeSlot"
+            data-recipe="furnace"
+          >
+            Furnace
+          </button>
+        </div>
+
+        <div id="craftingRecipeDetails">
+          <h3 id="selectedRecipeName">
+            Select a Recipe
+          </h3>
+
+          <div id="selectedRecipeDescription">
+            Choose a recipe from the grid.
+          </div>
+
+          <div id="selectedRecipeRequirements"></div>
+
+         <button id="craftSelectedRecipe">
+  Start Crafting
+</button>
+
+<div id="tableCraftQueue">
+  <h3>In Progress</h3>
+
+  <div id="tableQueueItem">
+    Empty
+  </div>
+
+  <div id="tableProgressOuter">
+    <div id="tableProgressInner"></div>
+  </div>
+</div>
+
+<div id="tableCraftOutput">
+  <h3>Completed</h3>
+
+  <div id="tableOutputItem">
+    Empty
+  </div>
+
+  <button id="collectTableOutput">
+    Collect
+  </button>
+</div>
+        </div>
+      </div>
+
+      <button id="closeCraftingTable">
+        Close
+      </button>
+    </div>
+  </div>
+
+
+
+  <!-- ESC Main Menu -->
+  <div id="pauseMenuScreen" class="menuOverlay">
+    <div class="menuPanel">
+      <h2>Beneath</h2>
+      <button id="openSaveMenu">Save</button>
+      <button class="blankMenuButton">---</button>
+      <button class="blankMenuButton">---</button>
+      <button class="blankMenuButton">---</button>
+      <button class="blankMenuButton">---</button>
+      <button id="exitPauseMenu" class="bottomMenuButton">Exit</button>
+    </div>
+  </div>
+
+  <!-- Save Slots Menu -->
+  <div id="saveMenuScreen" class="menuOverlay">
+    <div class="menuPanel">
+      <h2>Save Game</h2>
+      <div id="saveSlotGrid">
+        <button class="saveSlotButton" data-slot="1">Save Slot 1<br><span>Empty</span></button>
+        <button class="saveSlotButton" data-slot="2">Save Slot 2<br><span>Empty</span></button>
+        <button class="saveSlotButton" data-slot="3">Save Slot 3<br><span>Empty</span></button>
+      </div>
+      <button id="exitSaveMenu" class="bottomMenuButton">Exit</button>
+    </div>
+  </div>
+
+  <!-- Overwrite Confirmation -->
+  <div id="overwriteConfirmScreen" class="menuOverlay">
+    <div class="menuPanel smallMenuPanel">
+      <h2>Overwrite save file?</h2>
+      <p id="overwriteSlotLabel">Save Slot</p>
+      <button id="confirmOverwriteYes">Yes</button>
+      <button id="confirmOverwriteNo">No</button>
+      <button id="exitOverwriteMenu" class="bottomMenuButton">Exit</button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="src/ui.js"></script>
+  <script src="src/inventory.js"></script>
+
+  <script src="src/maps/home.js"></script>
+  <script src="src/maps/mine.js"></script>
+
+  <script src="src/world.js"></script>
+  <script src="src/player.js"></script>
+  <script src="src/crafting.js"></script>
+  <script src="src/base.js"></script>
+  <script src="src/save.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>
