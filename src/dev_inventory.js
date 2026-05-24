@@ -109,15 +109,20 @@ function addSelectedDevItem(scene) {
   }
 
   if (item.toolType === 'pickaxe') {
-    scene.pickaxeTier = item.tier;
-    scene.pickaxeDamage = item.miningDamage;
-    scene.pickaxeDurabilityMax = item.durabilityMax;
+    let addedCount = 0;
+    for (let i = 0; i < amount; i++) {
+      const added = addItemToFirstOpenSlot(scene, createItemInstance(item.id));
+      if (!added) break;
+      addedCount++;
+    }
+    scene.pickaxeTier = Math.max(scene.pickaxeTier || 0, item.tier || 0);
+    scene.pickaxeDamage = Math.max(scene.pickaxeDamage || 0, item.miningDamage || 0);
+    scene.pickaxeDurabilityMax = getPickaxeDurabilityMax(scene.pickaxeTier);
     scene.pickaxeDurability = scene.pickaxeDurabilityMax;
-    ensureHotbarItem(scene, 'pickaxe');
     if (item.tier >= 3) {
       scene.maxUnlockedMineLevel = Math.max(scene.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS, FIRST_LOCKED_MINE_LEVEL);
     }
-    setMessage(scene, 'Added ' + item.name + '.');
+    setMessage(scene, addedCount > 0 ? 'Added ' + addedCount + ' ' + item.name + '(s).' : 'No inventory space for ' + item.name + '.');
     updateInventoryUI(scene);
     return;
   }

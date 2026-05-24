@@ -57,7 +57,7 @@ class GameScene extends Phaser.Scene {
     setupUiEvents(this);
 
     this.hotbarItems = [
-      { id: 'pickaxe' },
+      createItemInstance('rustyPickaxe'),
       { id: 'teleportStone' },
       null,
       null,

@@ -11,7 +11,18 @@ function getSelectedWeapon(scene) {
 }
 
 function isPickaxeItem(item) {
-  return !!item && item.id === 'pickaxe';
+  const def = getItemDef(item?.id);
+  return !!def && def.toolType === 'pickaxe';
+}
+
+function getSelectedPickaxeItem(scene) {
+  const item = getSelectedHotbarItem(scene);
+  return isPickaxeItem(item) ? item : null;
+}
+
+function getSelectedPickaxeDef(scene) {
+  const item = getSelectedPickaxeItem(scene);
+  return item ? getItemDef(item.id) : null;
 }
 
 function isSwordItem(item) {
@@ -69,18 +80,40 @@ function getPickaxeDurabilityMax(tier) {
 }
 
 function getPickaxeMiningDamage(scene) {
-  if ((scene.pickaxeTier || 0) <= 0 || (scene.pickaxeDurability || 0) <= 0) return 0.25;
-  return getPickaxeDefByTier(scene.pickaxeTier)?.miningDamage || Math.max(1, scene.pickaxeDamage || 1);
+  const item = getSelectedPickaxeItem(scene);
+  const def = item ? getItemDef(item.id) : null;
+  if (!def) return 0;
+  if ((item.durability ?? def.durabilityMax) <= 0) return 0.25;
+  return def.miningDamage || 1;
+}
+
+function getSelectedPickaxeTier(scene) {
+  const item = getSelectedPickaxeItem(scene);
+  const def = item ? getItemDef(item.id) : null;
+  if (!def) return 0;
+  if ((item.durability ?? def.durabilityMax) <= 0) return 0;
+  return def.tier || 0;
+}
+
+function getSelectedPickaxeDelay(scene) {
+  const item = getSelectedPickaxeItem(scene);
+  const def = item ? getItemDef(item.id) : null;
+  if (!def) return 650;
+  if ((item.durability ?? def.durabilityMax) <= 0) return 650;
+  if ((def.tier || 0) <= 1) return 450;
+  if ((def.tier || 0) === 2) return 350;
+  return 260;
 }
 
 function damagePickaxeDurability(scene, amount = 1) {
-  if ((scene.pickaxeTier || 0) <= 0) return;
-  scene.pickaxeDurability = Math.max(0, (scene.pickaxeDurability ?? getPickaxeDurabilityMax(scene.pickaxeTier)) - amount);
-  if (scene.pickaxeDurability <= 0) {
-    scene.pickaxeTier = 0;
-    scene.pickaxeDamage = 0;
-    scene.pickaxeDurabilityMax = 0;
-    setMessage(scene, 'Your pickaxe broke. You can still mine stone by hand, but it is much slower.');
+  const item = getSelectedPickaxeItem(scene);
+  const def = item ? getItemDef(item.id) : null;
+  if (!item || !def) return;
+  item.durabilityMax = item.durabilityMax || def.durabilityMax;
+  item.durability = Math.max(0, (item.durability ?? def.durabilityMax) - amount);
+  if (item.durability <= 0) {
+    item.durability = 0;
+    setMessage(scene, def.name + ' broke. Keep it selected to mine stone/wood slowly by hand, then craft a replacement.');
   }
 }
 

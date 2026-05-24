@@ -92,7 +92,7 @@ function mineTargetTile(scene) {
   if (!tile) return;
 
   scene.mineCooldown = true;
-  scene.time.delayedCall((scene.pickaxeTier || 0) <= 0 ? 650 : scene.pickaxeTier === 1 ? 450 : 300, () => {
+  scene.time.delayedCall(getSelectedPickaxeDelay(scene), () => {
     scene.mineCooldown = false;
   });
 
@@ -107,8 +107,8 @@ function mineTargetTile(scene) {
   }
 
   if (tile.type === 'coal') {
-    if ((scene.pickaxeTier || 0) <= 0) {
-      setMessage(scene, 'Need a Pickaxe to mine Coal. Mine stone and wood by hand to craft a new one.');
+    if (getSelectedPickaxeTier(scene) <= 0) {
+      setMessage(scene, 'Need a working Pickaxe to mine Coal. Mine stone and wood by hand to craft a new one.');
       return;
     }
     hitResource(scene, tile, target.x, target.y, 'coal', 'coal', 0x222222, '+10 Coal');
@@ -116,8 +116,8 @@ function mineTargetTile(scene) {
   }
 
   if (tile.type === 'copper') {
-    if (scene.pickaxeTier < 2) {
-      setMessage(scene, 'Need Stone Pickaxe to mine Copper.');
+    if (getSelectedPickaxeTier(scene) < 2) {
+      setMessage(scene, 'Select a working Stone Pickaxe or better to mine Copper.');
       return;
     }
 
@@ -126,8 +126,8 @@ function mineTargetTile(scene) {
   }
 
   if (tile.type === 'copperWall') {
-    if (scene.pickaxeTier < 3) {
-      setMessage(scene, 'Need Copper Pickaxe to break Copper Wall.');
+    if (getSelectedPickaxeTier(scene) < 3) {
+      setMessage(scene, 'Select a working Copper Pickaxe to break Copper Wall.');
       return;
     }
 

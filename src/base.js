@@ -423,16 +423,24 @@ function collectCraftingTableOutput(scene) {
     const def = getItemDef(itemId);
 
     if (def?.toolType === 'pickaxe') {
+      for (let i = 0; i < amount; i++) {
+        const added = addItemToFirstOpenSlot(scene, createItemInstance(itemId));
+        if (!added) {
+          setMessage(scene, 'No inventory space for ' + def.name + '.');
+          updateInventoryUI(scene);
+          updateCraftingTableUI(scene);
+          return;
+        }
+        scene.tableOutput[itemId] -= 1;
+      }
       scene.pickaxeTier = Math.max(scene.pickaxeTier || 0, def.tier);
       scene.pickaxeDamage = Math.max(scene.pickaxeDamage || 0, def.miningDamage);
       scene.pickaxeDurabilityMax = getPickaxeDurabilityMax(scene.pickaxeTier);
       scene.pickaxeDurability = scene.pickaxeDurabilityMax;
-      ensureHotbarItem(scene, 'pickaxe');
       if (def.tier >= 3) {
         scene.maxUnlockedMineLevel = Math.max(scene.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS, FIRST_LOCKED_MINE_LEVEL);
         if (!scene.mineMaps[FIRST_LOCKED_MINE_LEVEL]) scene.mineMaps[FIRST_LOCKED_MINE_LEVEL] = createMineMap(scene, FIRST_LOCKED_MINE_LEVEL);
       }
-      scene.tableOutput[itemId] = 0;
       continue;
     }
 
