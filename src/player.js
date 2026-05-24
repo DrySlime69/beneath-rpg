@@ -91,24 +91,33 @@ function mineTargetTile(scene) {
   const tile = getTile(scene, target.x, target.y);
   if (!tile) return;
 
+  const selectedItem = getSelectedHotbarItem(scene);
+  const usingHands = !selectedItem;
+  const selectedPickaxe = getSelectedPickaxeItem(scene);
+
+  if (selectedItem && !selectedPickaxe) {
+    setMessage(scene, 'Select a pickaxe or empty hotbar slot to mine.');
+    return;
+  }
+
   scene.mineCooldown = true;
   scene.time.delayedCall(getSelectedPickaxeDelay(scene), () => {
     scene.mineCooldown = false;
   });
 
   if (tile.type === 'stone') {
-    hitResource(scene, tile, target.x, target.y, 'stone', 'stone', 0x888888, '+10 Stone');
+    hitResource(scene, tile, target.x, target.y, 'stone', usingHands ? 'stone by hand' : 'stone', 0x888888, '+10 Stone');
     return;
   }
 
   if (tile.type === 'wood') {
-    hitResource(scene, tile, target.x, target.y, 'wood', 'wood', 0xaa7744, '+5 Wood', 5);
+    hitResource(scene, tile, target.x, target.y, 'wood', usingHands ? 'wood by hand' : 'wood', 0xaa7744, '+5 Wood', 5);
     return;
   }
 
   if (tile.type === 'coal') {
-    if (getSelectedPickaxeTier(scene) <= 0) {
-      setMessage(scene, 'Need a working Pickaxe to mine Coal. Mine stone and wood by hand to craft a new one.');
+    if (usingHands || getSelectedPickaxeTier(scene) <= 0) {
+      setMessage(scene, 'Need a Pickaxe to mine Coal. Empty hands can only mine stone and wood.');
       return;
     }
     hitResource(scene, tile, target.x, target.y, 'coal', 'coal', 0x222222, '+10 Coal');
@@ -116,8 +125,8 @@ function mineTargetTile(scene) {
   }
 
   if (tile.type === 'copper') {
-    if (getSelectedPickaxeTier(scene) < 2) {
-      setMessage(scene, 'Select a working Stone Pickaxe or better to mine Copper.');
+    if (usingHands || getSelectedPickaxeTier(scene) < 2) {
+      setMessage(scene, 'Select a Stone Pickaxe or better to mine Copper.');
       return;
     }
 
@@ -126,8 +135,8 @@ function mineTargetTile(scene) {
   }
 
   if (tile.type === 'copperWall') {
-    if (getSelectedPickaxeTier(scene) < 3) {
-      setMessage(scene, 'Select a working Copper Pickaxe to break Copper Wall.');
+    if (usingHands || getSelectedPickaxeTier(scene) < 3) {
+      setMessage(scene, 'Select a Copper Pickaxe to break Copper Wall.');
       return;
     }
 

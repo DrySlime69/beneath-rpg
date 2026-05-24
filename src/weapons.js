@@ -36,6 +36,14 @@ function getSelectedHotbarItem(scene) {
 function useSelectedHotbarItem(scene, time) {
   const item = getSelectedHotbarItem(scene);
 
+  // Empty selected hotbar slot = hands. Hands are not an inventory item;
+  // they are only a fallback action so the player can recover from having
+  // no pickaxe by slowly mining stone and wood.
+  if (!item) {
+    mineTargetTile(scene);
+    return;
+  }
+
   if (isPickaxeItem(item)) {
     mineTargetTile(scene);
     return;
@@ -56,7 +64,7 @@ function useSelectedHotbarItem(scene, time) {
     return;
   }
 
-  setMessage(scene, 'Select a pickaxe to mine or a sword to attack.');
+  setMessage(scene, 'Select a usable item. Empty hotbar slots use Hands for stone and wood.');
 }
 
 function getPlayerAttackStats(scene) {
@@ -82,8 +90,12 @@ function getPickaxeDurabilityMax(tier) {
 function getPickaxeMiningDamage(scene) {
   const item = getSelectedPickaxeItem(scene);
   const def = item ? getItemDef(item.id) : null;
-  if (!def) return 0;
-  if ((item.durability ?? def.durabilityMax) <= 0) return 0.25;
+
+  // Hands mining: empty selected hotbar slot. 0.25 damage means stone/wood
+  // take 4x as many hits compared with a 1-damage starter pickaxe.
+  if (!item || !def) return 0.25;
+
+  if ((item.durability ?? def.durabilityMax) <= 0) return 0;
   return def.miningDamage || 1;
 }
 
@@ -98,7 +110,7 @@ function getSelectedPickaxeTier(scene) {
 function getSelectedPickaxeDelay(scene) {
   const item = getSelectedPickaxeItem(scene);
   const def = item ? getItemDef(item.id) : null;
-  if (!def) return 650;
+  if (!item || !def) return 650; // hands
   if ((item.durability ?? def.durabilityMax) <= 0) return 650;
   if ((def.tier || 0) <= 1) return 450;
   if ((def.tier || 0) === 2) return 350;
@@ -106,14 +118,19 @@ function getSelectedPickaxeDelay(scene) {
 }
 
 function damagePickaxeDurability(scene, amount = 1) {
-  const item = getSelectedPickaxeItem(scene);
+  const index = scene.selectedHotbarIndex || 0;
+  const item = scene.hotbarItems?.[index];
   const def = item ? getItemDef(item.id) : null;
-  if (!item || !def) return;
+  if (!item || !def || def.toolType !== 'pickaxe') return;
   item.durabilityMax = item.durabilityMax || def.durabilityMax;
   item.durability = Math.max(0, (item.durability ?? def.durabilityMax) - amount);
   if (item.durability <= 0) {
-    item.durability = 0;
-    setMessage(scene, def.name + ' broke. Keep it selected to mine stone/wood slowly by hand, then craft a replacement.');
+    scene.hotbarItems[index] = null;
+    if (scene.selectedInventoryItem && scene.selectedInventoryItem.area === 'hotbar' && scene.selectedInventoryItem.index === index) {
+      scene.selectedInventoryItem = null;
+    }
+    setMessage(scene, def.name + ' broke. Empty hotbar slots use Hands to mine stone and wood slowly.');
+    updateInventoryUI(scene);
   }
 }
 
