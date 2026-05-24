@@ -34,12 +34,7 @@ const ITEMS = {
     source: 'Found by mining wood blocks in the mine.'
   },
 
-  rustyPickaxe: {
-    id: 'rustyPickaxe', name: 'Rusty Pickaxe', category: 'tools', toolType: 'pickaxe', tier: 1,
-    miningDamage: 1, durabilityMax: 70, maxAmount: 1,
-    info: 'Starter pickaxe. Can mine basic stone and coal.',
-    source: 'Starter item.'
-  },
+
   stonePickaxe: {
     id: 'stonePickaxe', name: 'Stone Pickaxe', category: 'tools', toolType: 'pickaxe', tier: 2,
     miningDamage: 2, durabilityMax: 120, maxAmount: 1,
@@ -95,7 +90,6 @@ const ITEMS = {
 
 function getItemDef(id) {
   if (!id) return null;
-  if (id === 'pickaxe') return getItemDef('rustyPickaxe');
   return ITEMS[id] || null;
 }
 

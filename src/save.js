@@ -309,6 +309,29 @@ function serializeEnemyCollection(collection) {
   return output;
 }
 
+
+function sanitizeRemovedItems(items) {
+  if (!Array.isArray(items)) return items;
+  return items.map(item => {
+    if (!item) return null;
+    // Rusty Pickaxe was removed from the game. Old saves should not keep it.
+    if (item.id === 'rustyPickaxe' || item.id === 'pickaxe') return null;
+    return item;
+  });
+}
+
+function recomputeBestPickaxeTier(scene) {
+  const allItems = [...(scene.hotbarItems || []), ...(scene.backpackItems || [])];
+  let best = 0;
+  for (const item of allItems) {
+    const def = getItemDef(item?.id);
+    if (def?.toolType === 'pickaxe' && (item.durability ?? def.durabilityMax) > 0) {
+      best = Math.max(best, def.tier || 0);
+    }
+  }
+  return best;
+}
+
 function loadGameFromSlot(scene, slot) {
   const data = readSaveSlot(slot);
   if (!data) {
@@ -325,13 +348,13 @@ function loadGameFromSlot(scene, slot) {
   scene.maxUnlockedMineLevel = data.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS;
   scene.mineReturnPosition = data.mineReturnPosition || scene.mineReturnPosition;
   scene.inventory = Object.assign({ stone: 0, coal: 0, copperOre: 0, copperBars: 0, wood: 0 }, data.inventory || scene.inventory);
-  scene.hotbarItems = data.hotbarItems || scene.hotbarItems;
-  scene.backpackItems = data.backpackItems || scene.backpackItems;
+  scene.hotbarItems = sanitizeRemovedItems(data.hotbarItems || scene.hotbarItems);
+  scene.backpackItems = sanitizeRemovedItems(data.backpackItems || scene.backpackItems);
   scene.selectedHotbarIndex = data.selectedHotbarIndex || 0;
-  scene.pickaxeTier = data.pickaxeTier ?? 1;
-  scene.pickaxeDamage = data.pickaxeDamage ?? (scene.pickaxeTier <= 0 ? 0 : scene.pickaxeTier);
-  scene.pickaxeDurabilityMax = data.pickaxeDurabilityMax ?? getPickaxeDurabilityMax(scene.pickaxeTier);
-  scene.pickaxeDurability = data.pickaxeDurability ?? scene.pickaxeDurabilityMax;
+  scene.pickaxeTier = recomputeBestPickaxeTier(scene) || 0;
+  scene.pickaxeDamage = getPickaxeDefByTier(scene.pickaxeTier)?.miningDamage || 0;
+  scene.pickaxeDurabilityMax = getPickaxeDurabilityMax(scene.pickaxeTier);
+  scene.pickaxeDurability = scene.pickaxeDurabilityMax;
   scene.hasFurnace = !!data.hasFurnace;
   scene.hasCraftingTable = !!data.hasCraftingTable;
   scene.furnaceQueue = data.furnaceQueue || [];

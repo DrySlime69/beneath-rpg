@@ -34,10 +34,10 @@ class GameScene extends Phaser.Scene {
       wood: 0
     };
 
-    this.pickaxeTier = 1;
-    this.pickaxeDamage = 1;
-    this.pickaxeDurabilityMax = getPickaxeDurabilityMax(this.pickaxeTier);
-    this.pickaxeDurability = this.pickaxeDurabilityMax;
+    this.pickaxeTier = 0;
+    this.pickaxeDamage = 0;
+    this.pickaxeDurabilityMax = 0;
+    this.pickaxeDurability = 0;
     this.hasFurnace = false;
     this.hasCraftingTable = false;
     this.selectedHotbarIndex = 0;
@@ -58,7 +58,7 @@ class GameScene extends Phaser.Scene {
     setupUiEvents(this);
 
     this.hotbarItems = [
-      createItemInstance('rustyPickaxe'),
+      null,
       { id: 'teleportStone' },
       null,
       null,
@@ -119,7 +119,7 @@ class GameScene extends Phaser.Scene {
     this.cameras.main.setZoom(1.5);
 
     setupCombat(this);
-    setMessage(this, 'Mine Level 1. Select a tool or weapon, then press F to use it. Levels 1-5 are open.');
+    setMessage(this, 'Mine Level 1. Empty hotbar slots use Hands. Mine stone and wood, then craft a Stone Pickaxe.');
     updateInventoryUI(this);
     redraw(this);
   }
