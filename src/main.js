@@ -47,7 +47,7 @@ class GameScene extends Phaser.Scene {
     this.furnaceQueue = [];
     this.furnaceOutput = { copperBars: 0 };
     this.tableQueue = [];
-    this.tableOutput = { stonePickaxe: 0, copperPickaxe: 0, furnace: 0 };
+    this.tableOutput = { stonePickaxe: 0, copperPickaxe: 0, stoneSword: 0, copperSword: 0, furnace: 0 };
     this.selectedCraftingTableRecipe = null;
 
     cacheDom(this);

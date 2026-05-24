@@ -330,7 +330,7 @@ function loadGameFromSlot(scene, slot) {
   scene.furnaceQueue = data.furnaceQueue || [];
   scene.furnaceOutput = data.furnaceOutput || { copperBars: 0 };
   scene.tableQueue = data.tableQueue || [];
-  scene.tableOutput = data.tableOutput || { stonePickaxe: 0, copperPickaxe: 0, furnace: 0 };
+  scene.tableOutput = Object.assign({ stonePickaxe: 0, copperPickaxe: 0, stoneSword: 0, copperSword: 0, furnace: 0 }, data.tableOutput || {});
   scene.mineMaps = deserializeMapCollection(data.mineMaps || {});
   scene.homeMap = deserializeMap(data.homeMap || scene.homeMap);
   scene.mineEnemies = deserializeEnemyCollection(data.mineEnemies || {});

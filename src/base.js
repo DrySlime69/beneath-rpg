@@ -306,6 +306,18 @@ const craftingTableRecipes = {
     requirements: '10 Copper Bars + 20 Stone',
     timePerItem: 15000
   },
+  stoneSword: {
+    name: 'Stone Sword',
+    description: 'A balanced early melee weapon. Damage 3, Speed 1.0, Effects none.',
+    requirements: '10 Stone',
+    timePerItem: 5000
+  },
+  copperSword: {
+    name: 'Copper Sword',
+    description: 'A stronger balanced melee weapon. Damage 5, Speed 1.0, Effects none.',
+    requirements: '5 Copper Bars',
+    timePerItem: 7000
+  },
   furnace: {
     name: 'Furnace',
     description: 'A placeable workstation used to smelt ores into bars.',
@@ -391,6 +403,22 @@ function startCraftingTableRecipe(scene) {
     scene.inventory.stone -= 20;
   }
 
+  if (recipeId === 'stoneSword') {
+    if (scene.inventory.stone < 10) {
+      setMessage(scene, 'Need 10 Stone.');
+      return;
+    }
+    scene.inventory.stone -= 10;
+  }
+
+  if (recipeId === 'copperSword') {
+    if (scene.inventory.copperBars < 5) {
+      setMessage(scene, 'Need 5 Copper Bars.');
+      return;
+    }
+    scene.inventory.copperBars -= 5;
+  }
+
   if (recipeId === 'furnace') {
     if (scene.hasFurnace || hasPlacedHomeObject(scene, 'furnace')) {
       setMessage(scene, 'You already have a Furnace.');
@@ -447,12 +475,14 @@ function updateCraftingTableUI(scene) {
   const output = [];
   if (scene.tableOutput.stonePickaxe > 0) output.push('Stone Pickaxe x' + scene.tableOutput.stonePickaxe);
   if (scene.tableOutput.copperPickaxe > 0) output.push('Copper Pickaxe x' + scene.tableOutput.copperPickaxe);
+  if (scene.tableOutput.stoneSword > 0) output.push('Stone Sword x' + scene.tableOutput.stoneSword);
+  if (scene.tableOutput.copperSword > 0) output.push('Copper Sword x' + scene.tableOutput.copperSword);
   if (scene.tableOutput.furnace > 0) output.push('Furnace x' + scene.tableOutput.furnace);
   scene.tableOutputItem.textContent = output.join(' ') || 'Empty';
 }
 
 function collectCraftingTableOutput(scene) {
-  if (scene.tableOutput.stonePickaxe <= 0 && scene.tableOutput.copperPickaxe <= 0 && scene.tableOutput.furnace <= 0) {
+  if (scene.tableOutput.stonePickaxe <= 0 && scene.tableOutput.copperPickaxe <= 0 && scene.tableOutput.stoneSword <= 0 && scene.tableOutput.copperSword <= 0 && scene.tableOutput.furnace <= 0) {
     setMessage(scene, 'No completed items.');
     return;
   }
@@ -469,6 +499,28 @@ function collectCraftingTableOutput(scene) {
     scene.maxUnlockedMineLevel = Math.max(scene.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS, FIRST_LOCKED_MINE_LEVEL);
     if (!scene.mineMaps[FIRST_LOCKED_MINE_LEVEL]) scene.mineMaps[FIRST_LOCKED_MINE_LEVEL] = createMineMap(scene, FIRST_LOCKED_MINE_LEVEL);
     scene.tableOutput.copperPickaxe = 0;
+  }
+
+  if (scene.tableOutput.stoneSword > 0) {
+    const added = addItemToFirstOpenSlot(scene, { id: 'stoneSword' });
+    if (!added) {
+      setMessage(scene, 'No inventory space for Stone Sword.');
+      updateInventoryUI(scene);
+      updateCraftingTableUI(scene);
+      return;
+    }
+    scene.tableOutput.stoneSword -= 1;
+  }
+
+  if (scene.tableOutput.copperSword > 0) {
+    const added = addItemToFirstOpenSlot(scene, { id: 'copperSword' });
+    if (!added) {
+      setMessage(scene, 'No inventory space for Copper Sword.');
+      updateInventoryUI(scene);
+      updateCraftingTableUI(scene);
+      return;
+    }
+    scene.tableOutput.copperSword -= 1;
   }
 
   if (scene.tableOutput.furnace > 0) {

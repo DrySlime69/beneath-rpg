@@ -1,6 +1,6 @@
 const PLAYER_MAX_HEALTH = 100;
 const PLAYER_ATTACK_RANGE = 42;
-const PLAYER_ATTACK_COOLDOWN = 420;
+const PLAYER_ATTACK_COOLDOWN = 520;
 const PLAYER_INVULN_MS = 650;
 
 function setupCombat(scene) {
@@ -164,8 +164,11 @@ function enemyCollidesAt(scene, enemy, px, py) {
 
 function playerAttack(scene, time) {
   if (scene.player.attackCooldown) return;
+
+  const attackStats = getPlayerAttackStats(scene);
+  const cooldown = Math.max(180, Math.round(PLAYER_ATTACK_COOLDOWN / Math.max(0.25, attackStats.speed || 1)));
   scene.player.attackCooldown = true;
-  scene.time.delayedCall(PLAYER_ATTACK_COOLDOWN, () => {
+  scene.time.delayedCall(cooldown, () => {
     scene.player.attackCooldown = false;
   });
 
@@ -175,7 +178,7 @@ function playerAttack(scene, time) {
   spawnAttackArc(scene, ax, ay);
 
   if (scene.currentMapName !== 'mine') {
-    setMessage(scene, 'You swing your tool.');
+    setMessage(scene, 'You swing your ' + attackStats.name + '.');
     return;
   }
 
@@ -184,7 +187,7 @@ function playerAttack(scene, time) {
     if (enemy.dead) continue;
     const dist = Phaser.Math.Distance.Between(ax, ay, enemy.x, enemy.y);
     if (dist <= PLAYER_ATTACK_RANGE) {
-      damageEnemy(scene, enemy, scene.pickaxeDamage * 5 + scene.pickaxeTier * 3, dir);
+      damageEnemy(scene, enemy, attackStats.damage * 6, dir);
       hit = true;
       break;
     }
