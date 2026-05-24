@@ -40,17 +40,28 @@
 
       <button id="openDevItemsButton" class="devItemsOpenButton">Testing Item Catalog</button>
 
-      <div class="inventoryLabel">
-        Hotbar
+      <div id="inventoryContent">
+        <div id="inventoryLists">
+          <div class="inventoryLabel">
+            Hotbar
+          </div>
+
+          <div id="hotbarGrid"></div>
+
+          <div class="inventoryLabel">
+            Backpack
+          </div>
+
+          <div id="backpackGrid"></div>
+        </div>
+
+        <div id="inventoryItemDetails">
+          <h3 id="inventoryDetailName">Select an item</h3>
+          <div id="inventoryDetailInfo">Click an item to view its details.</div>
+          <div id="inventoryDetailStats"></div>
+          <div id="inventoryDetailRecipe"></div>
+        </div>
       </div>
-
-      <div id="hotbarGrid"></div>
-
-      <div class="inventoryLabel">
-        Backpack
-      </div>
-
-      <div id="backpackGrid"></div>
 
       <div id="inventoryHint">
         I = close inventory. T = teleport. P = place selected home object. X = pick up faced home object.

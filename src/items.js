@@ -55,13 +55,13 @@ const ITEMS = {
 
   stoneSword: {
     id: 'stoneSword', name: 'Stone Sword', category: 'weapons', weaponType: 'sword',
-    damage: 3, speed: 1.0, effects: [], durabilityMax: 80, maxAmount: 20,
+    damage: 3, speed: 1.0, effects: [], durabilityMax: 80, maxAmount: 1,
     info: 'Balanced early melee weapon.',
     recipe: { station: 'Crafting Table', costs: { stone: 10 }, timePerItem: 5000 }
   },
   copperSword: {
     id: 'copperSword', name: 'Copper Sword', category: 'weapons', weaponType: 'sword',
-    damage: 5, speed: 1.0, effects: [], durabilityMax: 120, maxAmount: 20,
+    damage: 5, speed: 1.0, effects: [], durabilityMax: 120, maxAmount: 1,
     info: 'Stronger balanced melee weapon.',
     recipe: { station: 'Crafting Table', costs: { copperBars: 5 }, timePerItem: 7000 }
   },

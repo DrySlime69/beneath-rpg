@@ -182,6 +182,10 @@ function cacheDom(scene) {
   scene.inventoryScreen = document.getElementById('inventoryScreen');
   scene.hotbarGrid = document.getElementById('hotbarGrid');
   scene.backpackGrid = document.getElementById('backpackGrid');
+  scene.inventoryDetailName = document.getElementById('inventoryDetailName');
+  scene.inventoryDetailInfo = document.getElementById('inventoryDetailInfo');
+  scene.inventoryDetailStats = document.getElementById('inventoryDetailStats');
+  scene.inventoryDetailRecipe = document.getElementById('inventoryDetailRecipe');
   scene.craftingScreen = document.getElementById('craftingScreen');
   scene.craftingTableScreen = document.getElementById('craftingTableScreen');
 
