@@ -5,6 +5,7 @@ class GameScene extends Phaser.Scene {
   }
 
   create() {
+    window.__beneathActiveScene = this;
     this.tileSize = 26;
     this.mapWidth = 44;
     this.mapHeight = 24;
@@ -84,6 +85,7 @@ class GameScene extends Phaser.Scene {
     setupChestScreen(this);
     setupSaveMenuEvents(this);
     setupDevInventory(this);
+    setupDevLevelWarp(this);
     generateMaps(this);
 
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -134,7 +136,7 @@ class GameScene extends Phaser.Scene {
       togglePauseMenu(this);
     }
 
-    if (this.pauseMenuOpen || this.saveMenuOpen || this.loadMenuOpen || this.overwriteMenuOpen || this.loadConfirmOpen || this.devItemOpen) {
+    if (this.pauseMenuOpen || this.saveMenuOpen || this.loadMenuOpen || this.overwriteMenuOpen || this.loadConfirmOpen || this.devItemOpen || this.devLevelWarpOpen) {
       redraw(this);
       return;
     }

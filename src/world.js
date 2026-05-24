@@ -52,7 +52,7 @@ function getMineMap(scene, level) {
 }
 
 function switchToMine(scene, level = scene.mineLevel || 1) {
-  scene.mineLevel = Phaser.Math.Clamp(level, 1, 99);
+  scene.mineLevel = Phaser.Math.Clamp(level, 1, 100);
   scene.map = getMineMap(scene, scene.mineLevel);
   scene.currentMapName = 'mine';
   scene.currentBiomeId = scene.map.biomeId || getBiomeForLevel(scene.mineLevel).id;

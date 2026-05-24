@@ -712,3 +712,47 @@ canvas {
   pointer-events: auto;
   width: min(650px, 52vw);
 }
+
+
+/* Developer Mine Level Warp */
+.devLevelWarpPanel {
+  width: min(760px, 94vw);
+  max-height: 88vh;
+  overflow: hidden;
+}
+
+.devHint {
+  color: #cccccc;
+  font-size: 13px;
+  margin-top: -6px;
+}
+
+#devLevelWarpGrid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 7px;
+  max-height: 58vh;
+  overflow-y: auto;
+  padding: 8px;
+  border: 2px solid rgba(255,255,255,0.35);
+  background: rgba(0,0,0,0.28);
+}
+
+.menuPanel .devLevelButton {
+  margin: 0;
+  padding: 10px 0;
+  min-width: 42px;
+  background: #23425d;
+  border: 2px solid #d7e9ff;
+  font-size: 14px;
+}
+
+.menuPanel .devLevelButton:hover {
+  background: #356d99;
+}
+
+.menuPanel .devLevelButton.currentDevLevel {
+  background: #c58b2c;
+  color: #111111;
+  border-color: #fff1aa;
+}
