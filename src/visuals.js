@@ -1,15 +1,12 @@
 const TORCH_LIGHT_RADIUS = 5.7;
 const PLAYER_LIGHT_RADIUS = 8.4;
 const HOME_PLAYER_LIGHT_RADIUS = 12.8;
-const HOME_STRING_LIGHT_RADIUS = 2.15;
+const HOME_STRING_LIGHT_RADIUS = 4.8;
 const HOME_FURNACE_LIGHT_RADIUS = 5.2;
 
-const HOME_WALL_LIGHTS = [
-  // Tiny warm perimeter bulbs tucked against the room walls.
-  // They are meant to feel like ambience, not bright overhead party lights.
-  { x: 29.2, y: 6.15 }, { x: 32.0, y: 5.95 }, { x: 34.8, y: 5.95 }, { x: 37.1, y: 6.25 },
-  { x: 28.75, y: 8.3 }, { x: 38.35, y: 8.4 },
-  { x: 30.0, y: 11.05 }, { x: 33.1, y: 11.35 }, { x: 36.5, y: 11.0 }
+const HOME_STRING_LIGHTS = [
+  { x1: 28.6, y1: 5.55, x2: 38.4, y2: 5.55, bulbs: [29.3, 31.1, 33.0, 34.9, 36.8, 38.1] },
+  { x1: 29.3, y1: 9.55, x2: 37.7, y2: 9.55, bulbs: [30.0, 32.0, 34.0, 36.0, 37.3] }
 ];
 
 function setupVisualEffects(scene) {
@@ -121,12 +118,14 @@ function getHomeWarmLightAt(scene, tileX, tileY) {
   let light = 0;
   const t = (scene.visualTime || scene.time?.now || 0) * 0.004;
 
-  for (const bulb of HOME_WALL_LIGHTS) {
-    const dist = Phaser.Math.Distance.Between(tileX + 0.5, tileY + 0.5, bulb.x, bulb.y);
-    if (dist <= HOME_STRING_LIGHT_RADIUS) {
-      const flicker = 0.96 + Math.sin(t + bulb.x * 1.7 + bulb.y * 0.9) * 0.025;
-      const strength = Phaser.Math.Clamp(1 - dist / HOME_STRING_LIGHT_RADIUS, 0, 1);
-      light = Math.max(light, strength * strength * flicker * 0.22);
+  for (const strand of HOME_STRING_LIGHTS) {
+    for (const bulbX of strand.bulbs) {
+      const dist = Phaser.Math.Distance.Between(tileX + 0.5, tileY + 0.5, bulbX, strand.y1 + 0.55);
+      if (dist <= HOME_STRING_LIGHT_RADIUS) {
+        const flicker = 0.92 + Math.sin(t + bulbX * 1.3 + strand.y1 * 0.7) * 0.07 + Math.sin(t * 2.1 + bulbX) * 0.04;
+        const strength = Phaser.Math.Clamp(1 - dist / HOME_STRING_LIGHT_RADIUS, 0, 1);
+        light = Math.max(light, strength * strength * flicker * 0.95);
+      }
     }
   }
 
@@ -151,17 +150,21 @@ function getHomeWarmLightAt(scene, tileX, tileY) {
 }
 
 function drawHomeStringLight(scene, x, y, brightness) {
-  // Legacy decor support for older saves: draw tiny embedded bulbs only.
   const px = x * scene.tileSize;
   const py = y * scene.tileSize;
   const s = scene.tileSize;
   const t = (scene.visualTime || 0) * 0.004;
-  const glow = 0.82 + Math.sin(t + x * 1.7 + y) * 0.05;
+  const glow = 0.88 + Math.sin(t + x * 1.7 + y) * 0.12;
 
-  scene.worldLayer.fillStyle(0xffb55a, 0.08 * glow);
-  scene.worldLayer.fillCircle(px + s / 2, py + s / 2, 8);
-  scene.worldLayer.fillStyle(0xffcf75, 0.65);
-  scene.worldLayer.fillCircle(px + s / 2, py + s / 2, 2);
+  scene.worldLayer.lineStyle(2, darkenColor(0x1b1008, Math.max(0.7, brightness)), 0.95);
+  scene.worldLayer.lineBetween(px + 1, py + 4, px + s - 1, py + 5);
+
+  scene.worldLayer.fillStyle(0xffb02e, 0.22 * glow);
+  scene.worldLayer.fillCircle(px + s / 2, py + 12, 18);
+  scene.worldLayer.fillStyle(0xffd36a, 0.96);
+  scene.worldLayer.fillCircle(px + s / 2, py + 10, 4);
+  scene.worldLayer.fillStyle(0xffffd0, 0.85);
+  scene.worldLayer.fillCircle(px + s / 2 - 1, py + 9, 2);
 }
 
 function drawHomeStringLightStrands(scene) {
@@ -169,22 +172,28 @@ function drawHomeStringLightStrands(scene) {
   const s = scene.tileSize;
   const t = (scene.visualTime || 0) * 0.004;
 
-  for (const bulb of HOME_WALL_LIGHTS) {
-    const bx = bulb.x * s;
-    const by = bulb.y * s;
-    const flicker = 0.88 + Math.sin(t + bulb.x * 2.1 + bulb.y) * 0.04;
+  for (const strand of HOME_STRING_LIGHTS) {
+    const y = strand.y1 * s;
+    scene.worldLayer.lineStyle(3, 0x140a04, 0.95);
+    scene.worldLayer.beginPath();
+    scene.worldLayer.moveTo(strand.x1 * s, y);
+    scene.worldLayer.lineTo(strand.x2 * s, y);
+    scene.worldLayer.strokePath();
 
-    // Soft wall warmth first. Very low alpha so it reads as ambience.
-    scene.worldLayer.fillStyle(0xffa84a, 0.055 * flicker);
-    scene.worldLayer.fillCircle(bx, by, 18);
-    scene.worldLayer.fillStyle(0xffc56a, 0.08 * flicker);
-    scene.worldLayer.fillCircle(bx, by, 10);
-
-    // Tiny embedded bulb. No visible wire/hanging line.
-    scene.worldLayer.fillStyle(0xffb04a, 0.75);
-    scene.worldLayer.fillCircle(bx, by, 2.4);
-    scene.worldLayer.fillStyle(0xffffc6, 0.35);
-    scene.worldLayer.fillCircle(bx - 0.6, by - 0.6, 1.0);
+    for (const bulbX of strand.bulbs) {
+      const bx = bulbX * s;
+      const flicker = 0.86 + Math.sin(t + bulbX * 2.3) * 0.12 + Math.sin(t * 1.7 + bulbX) * 0.05;
+      scene.worldLayer.lineStyle(1, 0x201006, 1);
+      scene.worldLayer.lineBetween(bx, y, bx, y + 7);
+      scene.worldLayer.fillStyle(0xffa12a, 0.32 * flicker);
+      scene.worldLayer.fillCircle(bx, y + 10, 24);
+      scene.worldLayer.fillStyle(0xffc64a, 0.55 * flicker);
+      scene.worldLayer.fillCircle(bx, y + 10, 13);
+      scene.worldLayer.fillStyle(0xffe27a, 1);
+      scene.worldLayer.fillCircle(bx, y + 10, 5);
+      scene.worldLayer.fillStyle(0xffffdb, 0.9);
+      scene.worldLayer.fillCircle(bx - 1, y + 8, 2);
+    }
   }
 }
 
@@ -215,7 +224,7 @@ function drawAmbientEffects(scene) {
       scene.visualLayer.fillRect(mote.x, mote.y, mote.size, mote.size);
     }
 
-    scene.visualLayer.fillStyle(0xffb45c, 0.018);
+    scene.visualLayer.fillStyle(0xffb45c, 0.035);
     scene.visualLayer.fillRect(cam.worldView.x - 20, cam.worldView.y - 20, cam.worldView.width + 40, cam.worldView.height + 40);
     return;
   }
