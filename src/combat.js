@@ -233,11 +233,17 @@ function damagePlayer(scene, amount, enemy, time) {
 
 function handlePlayerDefeat(scene) {
   scene.player.health = scene.player.maxHealth;
+
+  // Death fully resets enemy state. Any damaged/dead enemies are discarded so
+  // mine levels repopulate with fresh full-health enemies when revisited.
+  scene.mineEnemies = {};
+  scene.enemies = [];
+
   switchToHome(scene);
   scene.player.x = scene.homePosition.x;
   scene.player.y = scene.homePosition.y;
   updateHealthUI(scene);
-  setMessage(scene, 'You were knocked out and woke up at home.');
+  setMessage(scene, 'You were knocked out and woke up at home. Enemies have returned to full strength.');
 }
 
 function healPlayer(scene, amount) {

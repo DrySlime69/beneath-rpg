@@ -20,10 +20,6 @@ function handleMovement(scene, delta) {
   moveWithCollision(scene, dx * distance, 0);
   moveWithCollision(scene, 0, dy * distance);
 
-  const tile = getTileAtPixel(scene, scene.player.x, scene.player.y);
-  if (tile && (tile.type === 'exitUp' || tile.type === 'exitDown')) {
-    tryUseMineExit(scene, tile);
-  }
 }
 
 function getCardinalDirection(dx, dy) {
