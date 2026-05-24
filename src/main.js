@@ -186,6 +186,11 @@ function cacheDom(scene) {
   scene.inventoryDetailInfo = document.getElementById('inventoryDetailInfo');
   scene.inventoryDetailStats = document.getElementById('inventoryDetailStats');
   scene.inventoryDetailRecipe = document.getElementById('inventoryDetailRecipe');
+  scene.deleteItemDropZone = document.getElementById('deleteItemDropZone');
+  scene.deleteItemConfirmScreen = document.getElementById('deleteItemConfirmScreen');
+  scene.deleteItemConfirmText = document.getElementById('deleteItemConfirmText');
+  scene.confirmDeleteItemYes = document.getElementById('confirmDeleteItemYes');
+  scene.confirmDeleteItemNo = document.getElementById('confirmDeleteItemNo');
   scene.craftingScreen = document.getElementById('craftingScreen');
   scene.craftingTableScreen = document.getElementById('craftingTableScreen');
 

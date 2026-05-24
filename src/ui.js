@@ -24,6 +24,8 @@ function handleHotbarNumberKeys(scene){for(let i=0;i<8;i++){const key=scene.keys
 function decorateHotbarSlot(scene,slot,index,item){slot.textContent=(index+1)+'\n'+getItemLabel(scene,item);slot.classList.toggle('selectedHotbar',index===(scene.selectedHotbarIndex||0))}
 
 function updateInventoryUI(scene){
+  ensureVisibleStackableItems(scene);
+
   for(let i=0;i<scene.hotbarDisplaySlots.length;i++){
     decorateHotbarSlot(scene,scene.hotbarDisplaySlots[i],i,scene.hotbarItems[i]);
   }
@@ -134,4 +136,21 @@ function updateInventoryDetailPanel(scene){
 function getInventoryCategoryName(categoryId){
   const cat=ITEM_CATEGORIES.find(c=>c.id===categoryId);
   return cat?.name||categoryId||'Unknown';
+}
+
+
+function ensureVisibleStackableItems(scene){
+  if(!scene.inventory||!scene.backpackItems||!scene.hotbarItems)return;
+  for(const [id,amount] of Object.entries(scene.inventory)){
+    const def=getItemDef(id);
+    if(!def?.stackable||amount<=0)continue;
+    const exists=scene.hotbarItems.concat(scene.backpackItems).some(item=>item&&item.id===id);
+    if(exists)continue;
+    const openBackpack=scene.backpackItems.findIndex(item=>!item);
+    if(openBackpack>=0)scene.backpackItems[openBackpack]={id};
+    else {
+      const openHotbar=scene.hotbarItems.findIndex(item=>!item);
+      if(openHotbar>=0)scene.hotbarItems[openHotbar]={id};
+    }
+  }
 }

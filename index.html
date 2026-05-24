@@ -55,11 +55,18 @@
           <div id="backpackGrid"></div>
         </div>
 
-        <div id="inventoryItemDetails">
-          <h3 id="inventoryDetailName">Select an item</h3>
-          <div id="inventoryDetailInfo">Click an item to view its details.</div>
-          <div id="inventoryDetailStats"></div>
-          <div id="inventoryDetailRecipe"></div>
+        <div id="inventorySidePanel">
+          <div id="inventoryItemDetails">
+            <h3 id="inventoryDetailName">Select an item</h3>
+            <div id="inventoryDetailInfo">Click an item to view its details.</div>
+            <div id="inventoryDetailStats"></div>
+            <div id="inventoryDetailRecipe"></div>
+          </div>
+
+          <div id="deleteItemDropZone" title="Drag an item here to delete it">
+            <div class="deleteItemIcon">✕</div>
+            <div class="deleteItemLabel">Delete Item</div>
+          </div>
         </div>
       </div>
 
@@ -97,6 +104,16 @@
       </div>
     </div>
   </div>
+  <!-- Delete Item Confirmation -->
+  <div id="deleteItemConfirmScreen" class="menuOverlay">
+    <div class="menuPanel smallMenuPanel">
+      <h2>Delete item?</h2>
+      <p id="deleteItemConfirmText">Are you sure you want to delete this item?</p>
+      <button id="confirmDeleteItemYes">Yes</button>
+      <button id="confirmDeleteItemNo">No</button>
+    </div>
+  </div>
+
 
   <!-- Furnace -->
   <div id="craftingScreen">

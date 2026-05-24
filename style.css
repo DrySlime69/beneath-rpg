@@ -113,9 +113,15 @@ canvas {
 
 #inventoryContent {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, 1fr) 300px;
   gap: 16px;
   align-items: start;
+}
+
+#inventorySidePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 #inventoryItemDetails {
@@ -152,6 +158,48 @@ canvas {
 .invSlot.inventorySelected {
   border-color: #66ccff;
   box-shadow: 0 0 10px rgba(102, 204, 255, 0.65);
+}
+
+#deleteItemDropZone {
+  min-height: 92px;
+  background: rgba(80, 10, 10, 0.68);
+  border: 2px dashed #cc4444;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #ffaaaa;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+#deleteItemDropZone.dragOverDelete {
+  background: rgba(150, 20, 20, 0.88);
+  border-color: #ff6666;
+  color: white;
+  box-shadow: 0 0 14px rgba(255, 80, 80, 0.7);
+}
+
+.deleteItemIcon {
+  width: 42px;
+  height: 42px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.deleteItemLabel {
+  font-size: 13px;
+}
+
+#deleteItemConfirmScreen {
+  z-index: 12000;
 }
 
 #hotbarGrid {
