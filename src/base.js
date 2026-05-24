@@ -22,13 +22,16 @@ function getHomeObjectInventoryStateKey(objectType) {
 }
 
 function getHomeObjectDisplayName(objectType) {
+  const def = getItemDef(objectType);
+  if (def?.name) return def.name;
   if (objectType === 'furnace') return 'Furnace';
   if (objectType === 'craftingTable') return 'Workbench';
   return 'Object';
 }
 
 function isPlaceableHomeItem(item) {
-  return item && (item.id === 'furnace' || item.id === 'craftingTable');
+  const def = getItemDef(item?.id);
+  return !!def?.placeable;
 }
 
 function getSelectedHotbarPlaceable(scene) {
@@ -63,7 +66,25 @@ function hasPlacedHomeObject(scene, objectType) {
 }
 
 function isHomeObject(tile) {
-  return tile && (tile.type === 'furnace' || tile.type === 'craftingTable');
+  return tile && !!getItemDef(tile.type)?.placeable;
+}
+
+function isChestTile(tile) {
+  return tile && !!getItemDef(tile.type)?.storageSlots;
+}
+
+function createPlacedHomeObjectTile(objectType) {
+  const def = getItemDef(objectType);
+  const extra = {};
+  if (def?.storageSlots) {
+    extra.storageSlots = def.storageSlots;
+    extra.storage = Array(def.storageSlots).fill(null);
+  }
+  return makeTile(objectType, extra);
+}
+
+function chestHasItems(tile) {
+  return !!(tile?.storage || []).some(item => !!item);
 }
 
 function placeHeldHomeObject(scene) {
@@ -74,7 +95,7 @@ function placeHeldHomeObject(scene) {
 
   const held = getSelectedHotbarPlaceable(scene);
   if (!held) {
-    setMessage(scene, 'Select a Furnace or Workbench in your hotbar first.');
+    setMessage(scene, 'Select a placeable home item in your hotbar first.');
     return;
   }
 
@@ -82,7 +103,7 @@ function placeHeldHomeObject(scene) {
   const stateKey = getHomeObjectInventoryStateKey(objectType);
   const objectName = getHomeObjectDisplayName(objectType);
 
-  if (!scene[stateKey]) {
+  if (stateKey && !scene[stateKey]) {
     setMessage(scene, objectName + ' is already placed. Pick it up first.');
     return;
   }
@@ -95,9 +116,9 @@ function placeHeldHomeObject(scene) {
     return;
   }
 
-  scene.map[target.y][target.x] = makeTile(objectType);
+  scene.map[target.y][target.x] = createPlacedHomeObjectTile(objectType);
   scene.hotbarItems[held.slot] = null;
-  scene[stateKey] = false;
+  if (stateKey) scene[stateKey] = false;
 
   setMessage(scene, 'Placed ' + objectName + '.');
   updateInventoryUI(scene);
@@ -117,7 +138,7 @@ function pickupHomeObject(scene) {
   const tile = getTile(scene, target.x, target.y);
 
   if (!isHomeObject(tile)) {
-    setMessage(scene, 'Face a Furnace or Workbench, then press X to pick it up.');
+    setMessage(scene, 'Face a home object, then press X to pick it up.');
     return;
   }
 
@@ -127,10 +148,15 @@ function pickupHomeObject(scene) {
     return;
   }
 
+  if (isChestTile(tile) && chestHasItems(tile)) {
+    setMessage(scene, 'Empty this chest before picking it up.');
+    return;
+  }
+
   const stateKey = getHomeObjectInventoryStateKey(tile.type);
   const objectName = getHomeObjectDisplayName(tile.type);
 
-  if (scene[stateKey]) {
+  if (stateKey && scene[stateKey]) {
     setMessage(scene, objectName + ' is already in your inventory.');
     return;
   }
@@ -141,7 +167,7 @@ function pickupHomeObject(scene) {
     return;
   }
 
-  scene[stateKey] = true;
+  if (stateKey) scene[stateKey] = true;
   scene.map[target.y][target.x] = makeTile('homeFloor');
 
   if (added.area === 'hotbar') {
@@ -168,6 +194,11 @@ function handleInteract(scene) {
 
   if (tile.type === 'craftingTable') {
     toggleCraftingTableMenu(scene);
+    return;
+  }
+
+  if (isChestTile(tile)) {
+    toggleChestMenu(scene, tile);
     return;
   }
 

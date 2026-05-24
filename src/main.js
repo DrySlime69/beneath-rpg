@@ -46,6 +46,7 @@ class GameScene extends Phaser.Scene {
     this.inventoryOpen = false;
     this.craftingOpen = false;
     this.craftingTableOpen = false;
+    this.chestOpen = false;
 
     this.furnaceQueue = [];
     this.furnaceOutput = { copperBars: 0 };
@@ -80,6 +81,7 @@ class GameScene extends Phaser.Scene {
     }
 
     setupInventoryScreen(this);
+    setupChestScreen(this);
     setupSaveMenuEvents(this);
     setupDevInventory(this);
     generateMaps(this);
@@ -145,7 +147,7 @@ class GameScene extends Phaser.Scene {
       handleInteract(this);
     }
 
-    if (this.inventoryOpen || this.craftingOpen || this.craftingTableOpen) {
+    if (this.inventoryOpen || this.craftingOpen || this.craftingTableOpen || this.chestOpen) {
       redraw(this);
       return;
     }
@@ -193,6 +195,10 @@ function cacheDom(scene) {
   scene.confirmDeleteItemNo = document.getElementById('confirmDeleteItemNo');
   scene.craftingScreen = document.getElementById('craftingScreen');
   scene.craftingTableScreen = document.getElementById('craftingTableScreen');
+  scene.chestScreen = document.getElementById('chestScreen');
+  scene.chestTitle = document.getElementById('chestTitle');
+  scene.chestGrid = document.getElementById('chestGrid');
+  scene.closeChestButton = document.getElementById('closeChestButton');
 
   scene.craftCopperBarsButton = document.getElementById('craftCopperBars');
   scene.copperBarAmountSlider = document.getElementById('copperBarAmount');

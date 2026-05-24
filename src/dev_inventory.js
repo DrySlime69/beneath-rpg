@@ -141,22 +141,24 @@ function addSelectedDevItem(scene) {
 
   if (item.placeable) {
     const stateKey = getHomeObjectInventoryStateKey(item.id);
-    if (!stateKey) return;
-    if (scene[stateKey]) {
-      setMessage(scene, item.name + ' is already in your inventory.');
-      return;
+    if (stateKey) {
+      if (scene[stateKey]) {
+        setMessage(scene, item.name + ' is already in your inventory.');
+        return;
+      }
+      if (hasPlacedHomeObject(scene, item.id)) {
+        setMessage(scene, item.name + ' is currently placed at home. Pick it up first.');
+        return;
+      }
     }
-    if (hasPlacedHomeObject(scene, item.id)) {
-      setMessage(scene, item.name + ' is currently placed at home. Pick it up first.');
-      return;
+    let addedCount = 0;
+    for (let i = 0; i < amount; i++) {
+      const added = addItemToFirstOpenSlot(scene, { id: item.id });
+      if (!added) break;
+      addedCount++;
+      if (stateKey) { scene[stateKey] = true; break; }
     }
-    const added = addItemToFirstOpenSlot(scene, { id: item.id });
-    if (!added) {
-      setMessage(scene, 'No inventory space for ' + item.name + '.');
-      return;
-    }
-    scene[stateKey] = true;
-    setMessage(scene, 'Added ' + item.name + '.');
+    setMessage(scene, addedCount > 0 ? 'Added ' + addedCount + ' ' + item.name + '(s).' : 'No inventory space for ' + item.name + '.');
     updateInventoryUI(scene);
     return;
   }

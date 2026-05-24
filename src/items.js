@@ -71,6 +71,16 @@ const ITEMS = {
     info: 'Placeable home workstation used to smelt ores into bars.',
     recipe: { station: 'Crafting Table', costs: { stone: 20 }, timePerItem: 15000 }
   },
+  woodChest: {
+    id: 'woodChest', name: 'Wood Chest', category: 'placeables', placeable: true, storageSlots: 8, maxAmount: 1,
+    info: 'Small placeable storage chest for your home base.',
+    recipe: { station: 'Crafting Table', costs: { wood: 10 }, timePerItem: 6000 }
+  },
+  copperChest: {
+    id: 'copperChest', name: 'Copper Chest', category: 'placeables', placeable: true, storageSlots: 16, maxAmount: 1,
+    info: 'Larger placeable storage chest for your home base.',
+    recipe: { station: 'Crafting Table', costs: { copperBars: 10, wood: 4 }, timePerItem: 9000 }
+  },
   craftingTable: {
     id: 'craftingTable', name: 'Workbench', category: 'placeables', placeable: true, maxAmount: 1,
     info: 'Placeable home workstation used to craft tools, weapons, and placeables.',
@@ -125,6 +135,7 @@ function getItemStatsText(item) {
     lines.push('Durability: ' + item.durabilityMax);
   }
   if (item.placeable) lines.push('Placeable: Home only.');
+  if (item.storageSlots) lines.push('Storage Slots: ' + item.storageSlots);
   if (item.category === 'special') lines.push('Utility item.');
   return lines.join('\n');
 }
@@ -141,7 +152,7 @@ function createItemInstance(id) {
 }
 
 function getCraftingTableRecipes() {
-  const ids = ['stonePickaxe', 'copperPickaxe', 'stoneSword', 'copperSword', 'furnace'];
+  const ids = ['stonePickaxe', 'copperPickaxe', 'stoneSword', 'copperSword', 'furnace', 'woodChest', 'copperChest'];
   const recipes = {};
   ids.forEach(id => {
     const item = getItemDef(id);

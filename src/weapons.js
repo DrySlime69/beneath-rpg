@@ -54,7 +54,7 @@ function useSelectedHotbarItem(scene, time) {
     return;
   }
 
-  if (item && (item.id === 'furnace' || item.id === 'craftingTable')) {
+  if (item && getItemDef(item.id)?.placeable) {
     setMessage(scene, 'Press P to place the selected ' + getItemName(item.id) + ' at home.');
     return;
   }

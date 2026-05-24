@@ -177,6 +177,7 @@ function closeInventoryAndCraftingMenus(scene) {
   }
   closeCraftingMenu(scene);
   closeCraftingTableMenu(scene);
+  closeChestMenu(scene);
 }
 
 function showMenuElement(element, visible) {
@@ -276,7 +277,9 @@ function serializeMap(map) {
     variation: tile.variation,
     detailSeed: tile.detailSeed,
     targetLevel: tile.targetLevel,
-    requiredPickaxeTier: tile.requiredPickaxeTier
+    requiredPickaxeTier: tile.requiredPickaxeTier,
+    storageSlots: tile.storageSlots,
+    storage: tile.storage
   })));
 }
 

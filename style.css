@@ -653,3 +653,62 @@ canvas {
   padding: 12px;
   background: #336633;
 }
+
+#chestScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 10002;
+  background: rgba(0, 0, 0, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  pointer-events: auto;
+}
+
+#chestPanel {
+  width: min(650px, 90vw);
+  background: rgba(12, 8, 5, 0.97);
+  border: 3px solid white;
+  padding: 18px;
+  box-sizing: border-box;
+}
+
+#chestHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+#chestHeader h2 { margin: 0; }
+
+#chestGrid {
+  display: grid;
+  grid-template-columns: repeat(8, 68px);
+  gap: 8px;
+  justify-content: center;
+}
+
+#chestHint {
+  margin-top: 14px;
+  color: #cccccc;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Chest panel floats over the inventory instead of blocking it. */
+#chestScreen {
+  background: transparent;
+  pointer-events: none;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 80px 28px 0 0;
+  box-sizing: border-box;
+}
+
+#chestPanel {
+  pointer-events: auto;
+  width: min(650px, 52vw);
+}

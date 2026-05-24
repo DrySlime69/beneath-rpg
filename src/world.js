@@ -24,7 +24,7 @@ function makeTile(type, extra = {}) {
   if (type === 'coal') Object.assign(tile, { hardness: 1, hp: 3, maxHp: 3 });
   if (type === 'copper') Object.assign(tile, { hardness: 2, hp: 10, maxHp: 10 });
   if (type === 'copperWall') Object.assign(tile, { hardness: 3, hp: 14, maxHp: 14 });
-  if (type === 'furnace' || type === 'craftingTable') tile.hardness = 999;
+  if (type === 'furnace' || type === 'craftingTable' || type === 'woodChest' || type === 'copperChest') tile.hardness = 999;
   if (type === 'exit' || type === 'exitUp' || type === 'exitDown') tile.hardness = 999;
   return tile;
 }
@@ -93,6 +93,8 @@ function getTileBaseColor(tile) {
   if (tile.type === 'teleportPad') return 0x3344aa;
   if (tile.type === 'furnace') return 0xff4422;
   if (tile.type === 'craftingTable') return 0x8b5a2b;
+  if (tile.type === 'woodChest') return 0x9a642e;
+  if (tile.type === 'copperChest') return 0xb96a35;
   if (tile.type === 'caveWall') return tile.variation % 2 ? 0x321c10 : 0x25140b;
   if (tile.type === 'exit' || tile.type === 'exitDown') return 0x00aa00;
   if (tile.type === 'exitUp') return 0x2255cc;
@@ -261,6 +263,20 @@ function drawTileDetails(scene, tile, x, y, brightness) {
     scene.worldLayer.fillRect(px + 8, py + 8, size - 16, size - 16);
     scene.worldLayer.fillStyle(darkenColor(isWorking ? 0xffff88 : 0xffaa44, brightness));
     scene.worldLayer.fillRect(px + 10, py + 11, size - 20, size - 20);
+  }
+
+
+
+  if (tile.type === 'woodChest' || tile.type === 'copperChest') {
+    const copper = tile.type === 'copperChest';
+    scene.worldLayer.fillStyle(darkenColor(copper ? 0x8f4426 : 0x6b3f1d, brightness));
+    scene.worldLayer.fillRect(px + 4, py + 7, size - 8, size - 10);
+    scene.worldLayer.fillStyle(darkenColor(copper ? 0xd88445 : 0xb8793a, brightness));
+    scene.worldLayer.fillRect(px + 5, py + 6, size - 10, 5);
+    scene.worldLayer.fillStyle(darkenColor(copper ? 0xffb066 : 0x3a200d, brightness));
+    scene.worldLayer.fillRect(px + 11, py + 14, 4, 4);
+    scene.worldLayer.lineStyle(1, darkenColor(copper ? 0xffc080 : 0xd09a5a, brightness), 0.75);
+    scene.worldLayer.strokeRect(px + 4, py + 7, size - 8, size - 10);
   }
 
   if (tile.type === 'teleportPad') {

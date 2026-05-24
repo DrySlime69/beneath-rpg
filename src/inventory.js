@@ -51,13 +51,42 @@ function createInventorySlot(scene,area,index){
   return slot
 }
 
-function getItemArray(scene,area){return area==='hotbar'?scene.hotbarItems:scene.backpackItems}
+function getItemArray(scene,area){
+  if(area==='hotbar')return scene.hotbarItems;
+  if(area==='backpack')return scene.backpackItems;
+  if(area==='chest')return scene.activeChestTile?.storage||null;
+  return null;
+}
 
 function moveInventoryItem(scene,fromArea,fromIndex,toArea,toIndex){
   const a=getItemArray(scene,fromArea),b=getItemArray(scene,toArea);
+  if(!a||!b)return;
   const item=a[fromIndex];
-  a[fromIndex]=b[toIndex];
-  b[toIndex]=item;
+  if(!item)return;
+  const target=b[toIndex];
+  const def=getItemDef(item.id);
+
+  if(def?.stackable && (fromArea==='chest' || toArea==='chest')){
+    if(target){setMessage(scene,'Move to an empty chest/inventory slot for resource stacks.');updateInventoryUI(scene);return;}
+    if(fromArea==='chest' && toArea!=='chest'){
+      scene.inventory[item.id]=(scene.inventory[item.id]||0)+(item.amount||0);
+      a[fromIndex]=null;
+      ensureVisibleStackableItems(scene);
+    }else if(fromArea!=='chest' && toArea==='chest'){
+      const amount=scene.inventory[item.id]||0;
+      if(amount<=0){setMessage(scene,'No '+def.name+' to store.');return;}
+      b[toIndex]={id:item.id,amount};
+      scene.inventory[item.id]=0;
+      a[fromIndex]=null;
+    }else{
+      a[fromIndex]=target;
+      b[toIndex]=item;
+    }
+  }else{
+    a[fromIndex]=target;
+    b[toIndex]=item;
+  }
+
   if(toArea==='hotbar')scene.selectedHotbarIndex=toIndex;
   scene.selectedInventoryItem={area:toArea,index:toIndex};
   updateInventoryUI(scene)
@@ -130,7 +159,7 @@ function confirmDeleteInventoryItem(scene){
 
   if(item && item===pending.item){
     const def=getItemDef(item.id);
-    if(def?.stackable){
+    if(def?.stackable && pending.area!=='chest'){
       scene.inventory[item.id]=0;
       arr[pending.index]=null;
     }else{
@@ -153,4 +182,66 @@ function cancelDeleteInventoryItem(scene){
   scene.pendingDeleteItem=null;
   closeDeleteItemConfirm(scene);
   updateInventoryUI(scene);
+}
+
+function setupChestScreen(scene){
+  scene.chestScreen=document.getElementById('chestScreen');
+  scene.chestTitle=document.getElementById('chestTitle');
+  scene.chestGrid=document.getElementById('chestGrid');
+  scene.closeChestButton=document.getElementById('closeChestButton');
+  scene.activeChestTile=null;
+  scene.chestOpen=false;
+  if(scene.closeChestButton&&!scene.closeChestButton.dataset.ready){
+    scene.closeChestButton.dataset.ready='true';
+    scene.closeChestButton.addEventListener('click',()=>closeChestMenu(scene));
+  }
+}
+
+function toggleChestMenu(scene,tile){
+  if(scene.chestOpen && scene.activeChestTile===tile){closeChestMenu(scene);return;}
+  openChestMenu(scene,tile);
+}
+
+function openChestMenu(scene,tile){
+  const def=getItemDef(tile.type);
+  if(!def?.storageSlots){setMessage(scene,'That is not a chest.');return;}
+  if(!tile.storage)tile.storage=Array(def.storageSlots).fill(null);
+  tile.storageSlots=def.storageSlots;
+  scene.activeChestTile=tile;
+  scene.chestOpen=true;
+  scene.inventoryOpen=true;
+  if(scene.inventoryScreen)scene.inventoryScreen.style.display='flex';
+  if(scene.chestTitle)scene.chestTitle.textContent=def.name+' Storage';
+  if(scene.chestScreen)scene.chestScreen.style.display='flex';
+  renderChestSlots(scene);
+  updateInventoryUI(scene);
+  setMessage(scene,'Opened '+def.name+'.');
+}
+
+function closeChestMenu(scene){
+  scene.chestOpen=false;
+  scene.activeChestTile=null;
+  if(scene.chestScreen)scene.chestScreen.style.display='none';
+  updateInventoryUI(scene);
+}
+
+function renderChestSlots(scene){
+  if(!scene.chestGrid||!scene.activeChestTile)return;
+  const tile=scene.activeChestTile;
+  const slots=tile.storageSlots||getItemDef(tile.type)?.storageSlots||8;
+  if(!tile.storage)tile.storage=Array(slots).fill(null);
+  while(tile.storage.length<slots)tile.storage.push(null);
+  scene.chestGrid.innerHTML='';
+  for(let i=0;i<slots;i++)scene.chestGrid.appendChild(createInventorySlot(scene,'chest',i));
+  updateChestSlots(scene);
+}
+
+function updateChestSlots(scene){
+  if(!scene.chestGrid||!scene.activeChestTile)return;
+  const slots=Array.from(scene.chestGrid.children);
+  for(let i=0;i<slots.length;i++){
+    const item=scene.activeChestTile.storage[i];
+    slots[i].textContent=getItemLabel(scene,item);
+    slots[i].classList.toggle('inventorySelected',scene.selectedInventoryItem&&scene.selectedInventoryItem.area==='chest'&&scene.selectedInventoryItem.index===i);
+  }
 }

@@ -5,7 +5,8 @@ function getItemLabel(scene,item){
   const def=getItemDef(item.id);
 
   if(def?.stackable){
-    return def.name.replace(' ','\n')+'\n'+(scene.inventory[item.id]||0);
+    const amount = item.amount ?? (scene.inventory[item.id]||0);
+    return def.name.replace(' ','\n')+'\n'+amount;
   }
 
   if(item.id==='pickaxe'){
@@ -44,12 +45,13 @@ function updateInventoryUI(scene){
     b[i].classList.toggle('inventorySelected',scene.selectedInventoryItem&&scene.selectedInventoryItem.area==='backpack'&&scene.selectedInventoryItem.index===i);
   }
 
+  updateChestSlots(scene);
   updateInventoryDetailPanel(scene);
 }
 
 function getInventoryDetailItem(scene){
   if(!scene.selectedInventoryItem)return null;
-  const arr=scene.selectedInventoryItem.area==='hotbar'?scene.hotbarItems:scene.backpackItems;
+  const arr=getItemArray(scene,scene.selectedInventoryItem.area);
   return arr?.[scene.selectedInventoryItem.index]||null;
 }
 
@@ -86,7 +88,7 @@ function updateInventoryDetailPanel(scene){
   const stats=[];
   if(def.stackable){
     stats.push('Category: '+getInventoryCategoryName(def.category));
-    stats.push('Quantity: '+(scene.inventory[def.id]||0));
+    stats.push('Quantity: '+(item.amount ?? (scene.inventory[def.id]||0)));
   }
 
   if(item.id==='pickaxe'){
@@ -123,6 +125,7 @@ function updateInventoryDetailPanel(scene){
   if(def.placeable){
     stats.push('Category: Placeables');
     stats.push('Placeable: Home only');
+    if(def.storageSlots)stats.push('Storage Slots: '+def.storageSlots);
   }
 
   if(def.category==='special'){
