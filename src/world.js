@@ -339,5 +339,6 @@ function redraw(scene) {
     scene.playerLayer.strokeRect(target.x * scene.tileSize + 2, target.y * scene.tileSize + 2, scene.tileSize - 4, scene.tileSize - 4);
   }
 
+  drawEnemies(scene);
   drawMiner(scene);
 }

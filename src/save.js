@@ -231,6 +231,8 @@ function buildSaveData(scene) {
     player: {
       x: scene.player.x,
       y: scene.player.y,
+      health: scene.player.health,
+      maxHealth: scene.player.maxHealth,
       lastMoveDirection: scene.lastMoveDirection
     },
     currentMapName: scene.currentMapName,
@@ -250,7 +252,8 @@ function buildSaveData(scene) {
     tableQueue: scene.tableQueue,
     tableOutput: scene.tableOutput,
     mineMaps: serializeMapCollection(scene.mineMaps),
-    homeMap: serializeMap(scene.homeMap)
+    homeMap: serializeMap(scene.homeMap),
+    mineEnemies: serializeEnemyCollection(scene.mineEnemies)
   };
 }
 
@@ -275,6 +278,32 @@ function serializeMap(map) {
   })));
 }
 
+function serializeEnemyCollection(collection) {
+  const output = {};
+  Object.keys(collection || {}).forEach(level => {
+    output[level] = (collection[level] || []).filter(enemy => !enemy.dead).map(enemy => ({
+      id: enemy.id,
+      type: enemy.type,
+      x: enemy.x,
+      y: enemy.y,
+      radius: enemy.radius,
+      maxHp: enemy.maxHp,
+      hp: enemy.hp,
+      damage: enemy.damage,
+      speed: enemy.speed,
+      aggroRange: enemy.aggroRange,
+      attackRange: enemy.attackRange,
+      hitCooldownUntil: 0,
+      wanderAngle: enemy.wanderAngle || 0,
+      wanderTimer: enemy.wanderTimer || 800,
+      knockbackX: 0,
+      knockbackY: 0,
+      dead: false
+    }));
+  });
+  return output;
+}
+
 function loadGameFromSlot(scene, slot) {
   const data = readSaveSlot(slot);
   if (!data) {
@@ -284,6 +313,8 @@ function loadGameFromSlot(scene, slot) {
 
   scene.player.x = data.player?.x ?? scene.player.x;
   scene.player.y = data.player?.y ?? scene.player.y;
+  scene.player.maxHealth = data.player?.maxHealth || PLAYER_MAX_HEALTH;
+  scene.player.health = data.player?.health || scene.player.maxHealth;
   scene.lastMoveDirection = data.player?.lastMoveDirection || { x: 1, y: 0 };
   scene.mineLevel = data.mineLevel || 1;
   scene.maxUnlockedMineLevel = data.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS;
@@ -302,11 +333,14 @@ function loadGameFromSlot(scene, slot) {
   scene.tableOutput = data.tableOutput || { stonePickaxe: 0, copperPickaxe: 0, furnace: 0 };
   scene.mineMaps = deserializeMapCollection(data.mineMaps || {});
   scene.homeMap = deserializeMap(data.homeMap || scene.homeMap);
+  scene.mineEnemies = deserializeEnemyCollection(data.mineEnemies || {});
 
   if (data.currentMapName === 'home') switchToHome(scene);
   else switchToMine(scene, scene.mineLevel || 1);
 
+  ensureEnemiesForCurrentMap(scene);
   updateInventoryUI(scene);
+  updateHealthUI(scene);
   redraw(scene);
   setMessage(scene, 'Loaded save slot ' + slot + '.');
   return true;
@@ -322,4 +356,31 @@ function deserializeMapCollection(maps) {
 
 function deserializeMap(map) {
   return map.map(row => row.map(data => makeTile(data.type, data)));
+}
+
+
+function deserializeEnemyCollection(collection) {
+  const output = {};
+  Object.keys(collection || {}).forEach(level => {
+    output[level] = (collection[level] || []).map(enemy => ({
+      id: enemy.id || ('enemy_' + level + '_' + Math.random()),
+      type: enemy.type || 'slime',
+      x: enemy.x || 0,
+      y: enemy.y || 0,
+      radius: enemy.radius || 8,
+      maxHp: enemy.maxHp || 20,
+      hp: enemy.hp || enemy.maxHp || 20,
+      damage: enemy.damage || 8,
+      speed: enemy.speed || 45,
+      aggroRange: enemy.aggroRange || 160,
+      attackRange: enemy.attackRange || 18,
+      hitCooldownUntil: 0,
+      wanderAngle: enemy.wanderAngle || 0,
+      wanderTimer: enemy.wanderTimer || 800,
+      knockbackX: 0,
+      knockbackY: 0,
+      dead: false
+    }));
+  });
+  return output;
 }

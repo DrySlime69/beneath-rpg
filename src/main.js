@@ -14,7 +14,9 @@ class GameScene extends Phaser.Scene {
       x: 2.5 * this.tileSize,
       y: 2.5 * this.tileSize,
       radius: 8,
-      speed: 128
+      speed: 128,
+      maxHealth: PLAYER_MAX_HEALTH,
+      health: PLAYER_MAX_HEALTH
     };
 
     this.lastMoveDirection = { x: 1, y: 0 };
@@ -88,6 +90,7 @@ class GameScene extends Phaser.Scene {
       teleport: Phaser.Input.Keyboard.KeyCodes.T,
       place: Phaser.Input.Keyboard.KeyCodes.P,
       pickup: Phaser.Input.Keyboard.KeyCodes.X,
+      attack: Phaser.Input.Keyboard.KeyCodes.F,
       interact: Phaser.Input.Keyboard.KeyCodes.E,
       escape: Phaser.Input.Keyboard.KeyCodes.ESC,
       hotbar1: Phaser.Input.Keyboard.KeyCodes.ONE,
@@ -109,7 +112,8 @@ class GameScene extends Phaser.Scene {
     this.cameras.main.setDeadzone(120, 80);
     this.cameras.main.setZoom(1.5);
 
-    setMessage(this, 'Mine Level 1. Levels 1-5 are open. Craft Copper Pickaxe for Level 6.');
+    setupCombat(this);
+    setMessage(this, 'Mine Level 1. F = attack. Levels 1-5 are open. Craft Copper Pickaxe for Level 6.');
     updateInventoryUI(this);
     redraw(this);
   }
@@ -122,7 +126,7 @@ class GameScene extends Phaser.Scene {
       togglePauseMenu(this);
     }
 
-    if (this.pauseMenuOpen || this.saveMenuOpen || this.overwriteMenuOpen) {
+    if (this.pauseMenuOpen || this.saveMenuOpen || this.loadMenuOpen || this.overwriteMenuOpen || this.loadConfirmOpen) {
       redraw(this);
       return;
     }
@@ -155,6 +159,7 @@ class GameScene extends Phaser.Scene {
     }
 
     handleMovement(this, delta);
+    updateCombat(this, time, delta);
 
     if (Phaser.Input.Keyboard.JustDown(this.keys.mine)) {
       mineTargetTile(this);
@@ -169,6 +174,7 @@ class GameScene extends Phaser.Scene {
 function cacheDom(scene) {
   scene.messageBox = document.getElementById('message');
   scene.hotbarDisplaySlots = Array.from(document.querySelectorAll('#inventory .slot'));
+  scene.healthText = document.getElementById('healthText');
   scene.inventoryScreen = document.getElementById('inventoryScreen');
   scene.hotbarGrid = document.getElementById('hotbarGrid');
   scene.backpackGrid = document.getElementById('backpackGrid');
