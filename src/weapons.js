@@ -29,22 +29,54 @@ function getSelectedWeapon(scene) {
   return getWeaponStats(item);
 }
 
-function getPlayerAttackStats(scene) {
-  const weapon = getSelectedWeapon(scene);
-  if (weapon) {
-    return {
-      name: weapon.name,
-      damage: weapon.damage,
-      speed: weapon.speed,
-      effects: weapon.effects || []
-    };
+
+function isPickaxeItem(item) {
+  return !!item && item.id === 'pickaxe';
+}
+
+function isSwordItem(item) {
+  return !!getWeaponStats(item);
+}
+
+function getSelectedHotbarItem(scene) {
+  return scene.hotbarItems?.[scene.selectedHotbarIndex || 0] || null;
+}
+
+function useSelectedHotbarItem(scene, time) {
+  const item = getSelectedHotbarItem(scene);
+
+  if (isPickaxeItem(item)) {
+    mineTargetTile(scene);
+    return;
   }
 
+  if (isSwordItem(item)) {
+    playerAttack(scene, time);
+    return;
+  }
+
+  if (item && (item.id === 'furnace' || item.id === 'craftingTable')) {
+    setMessage(scene, 'Press P to place the selected ' + (item.id === 'furnace' ? 'Furnace' : 'Workbench') + ' at home.');
+    return;
+  }
+
+  if (item && item.id === 'teleportStone') {
+    setMessage(scene, 'Press T to use the Teleport Stone.');
+    return;
+  }
+
+  setMessage(scene, 'Select a pickaxe to mine or a sword to attack.');
+}
+
+function getPlayerAttackStats(scene) {
+  const weapon = getSelectedWeapon(scene);
+  if (!weapon) return null;
+
   return {
-    name: 'Pickaxe',
-    damage: Math.max(1, scene.pickaxeDamage || 1),
-    speed: 0.85,
-    effects: []
+    name: weapon.name,
+    damage: weapon.damage,
+    speed: weapon.speed,
+    effects: weapon.effects || []
   };
 }
 

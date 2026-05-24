@@ -84,9 +84,6 @@ function makeEnemy(type, x, y, level) {
 function updateCombat(scene, time, delta) {
   ensureEnemiesForCurrentMap(scene);
 
-  if (Phaser.Input.Keyboard.JustDown(scene.keys.attack)) {
-    playerAttack(scene, time);
-  }
 
   if (scene.currentMapName !== 'mine') return;
 
@@ -166,6 +163,10 @@ function playerAttack(scene, time) {
   if (scene.player.attackCooldown) return;
 
   const attackStats = getPlayerAttackStats(scene);
+  if (!attackStats) {
+    setMessage(scene, 'Select a sword in your hotbar to attack.');
+    return;
+  }
   const cooldown = Math.max(180, Math.round(PLAYER_ATTACK_COOLDOWN / Math.max(0.25, attackStats.speed || 1)));
   scene.player.attackCooldown = true;
   scene.time.delayedCall(cooldown, () => {

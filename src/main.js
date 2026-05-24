@@ -89,7 +89,6 @@ class GameScene extends Phaser.Scene {
       a: Phaser.Input.Keyboard.KeyCodes.A,
       s: Phaser.Input.Keyboard.KeyCodes.S,
       d: Phaser.Input.Keyboard.KeyCodes.D,
-      mine: Phaser.Input.Keyboard.KeyCodes.SPACE,
       inventory: Phaser.Input.Keyboard.KeyCodes.I,
       teleport: Phaser.Input.Keyboard.KeyCodes.T,
       place: Phaser.Input.Keyboard.KeyCodes.P,
@@ -117,7 +116,7 @@ class GameScene extends Phaser.Scene {
     this.cameras.main.setZoom(1.5);
 
     setupCombat(this);
-    setMessage(this, 'Mine Level 1. F = attack. Levels 1-5 are open. Craft Copper Pickaxe for Level 6.');
+    setMessage(this, 'Mine Level 1. Select a tool or weapon, then press F to use it. Levels 1-5 are open.');
     updateInventoryUI(this);
     redraw(this);
   }
@@ -165,8 +164,8 @@ class GameScene extends Phaser.Scene {
     handleMovement(this, delta);
     updateCombat(this, time, delta);
 
-    if (Phaser.Input.Keyboard.JustDown(this.keys.mine)) {
-      mineTargetTile(this);
+    if (Phaser.Input.Keyboard.JustDown(this.keys.attack)) {
+      useSelectedHotbarItem(this, time);
     }
 
     this.followTarget.x = this.player.x;
