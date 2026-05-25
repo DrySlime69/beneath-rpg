@@ -1,17 +1,23 @@
-# Beneath RPG
+# BELOW / Beneath RPG - Spore Grotto Level 1 Floor Only
 
-GitHub Pages-ready Phaser mining RPG build.
+This build keeps the existing player, inventory, UI, crafting, save, item, and combat systems.
 
-## Upload instructions
+Level 1 has been rebuilt as a clean authored starting point:
 
-Delete the old files in your GitHub repository first, then upload everything from this zip to the repository root.
+- old procedural mine room/corridor generation is not used for Level 1
+- Level 1 is a large open floor-only room
+- no ore deposits
+- no mushrooms
+- no props
+- no cave wall decoration
+- no enemies
+- no portals drawn on the map
+- the visible floor is composed from a repeatable Spore Grotto 32x32 floor tileset
 
-Your repository root should contain:
+Important files:
 
-- index.html
-- style.css
-- src/
-- .nojekyll
-- README.md
+- `src/maps/mine.js` — Level 1 map definition
+- `assets/levels/spore_level1_background.png` — composed floor-only Level 1 background
+- `assets/levels/spore_floor_tileset_32.png` — repeatable source floor tileset strip
 
-Do not upload the outer folder itself. The index.html file must be visible at the top level of the repo.
+Run locally by opening `index.html`, or push the full folder contents to GitHub Pages.

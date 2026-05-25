@@ -83,9 +83,13 @@ function createAuthoredSporeLevel1Map(scene) {
   const biome = getBiomeForLevel(1);
   const map = createEmptyMap(scene, scene.mapWidth, scene.mapHeight);
 
-  map.generationMode = 'objectAuthoredCavern';
-  map.generationVersion = 400;
-  map.curatedLevelId = 'spore_grotto_01_living_cavern';
+  // Level 1 rebuild: FLOOR ONLY.
+  // The visible art is a pre-rendered 32x32 repeatable Spore Grotto floor tileset
+  // composed into one large open room background. No ore, no props, no mushrooms,
+  // no wall decor, no room generator, no corridor generator.
+  map.generationMode = 'authoredFloorOnlyTileset';
+  map.generationVersion = 501;
+  map.curatedLevelId = 'spore_grotto_01_floor_only_open_room';
   map.staticAuthoredLevel = true;
   map.staticBackgroundKey = 'level_spore_1_bg';
   map.maxMineLevel = MINE_MAX_LEVEL;
@@ -93,52 +97,15 @@ function createAuthoredSporeLevel1Map(scene) {
   map.connections = [];
   map.landmarks = [];
 
+  // Gameplay collision is also floor-only. The entire level is walkable for now.
   fillAuthoredOpenFloor(scene, map);
-  addNaturalBoundaryCollision(scene, map);
 
-  const entry = { x: 4, y: 5 };
-  const down = { x: 37, y: 5 };
-  carveSafePad(scene, map, entry.x, entry.y, 2);
-  carveSafePad(scene, map, down.x, down.y, 2);
-  map[entry.y][entry.x] = makeTile('exitUp', { targetLevel: 0 });
-  map[down.y][down.x] = makeTile('exitDown', { targetLevel: 2, requiredPickaxeTier: 1 });
-
-  // Spore grotto set dressing. These are object placements, not mine-generation terrain.
-  [
-    [5,14,'glowMushroom',true], [9,15,'fungusPatch',false], [13,13,'sporeGarden',true],
-    [18,16,'glowPool',true], [23,14,'sporePods',false], [28,16,'fungusPatch',false],
-    [32,13,'glowMushroom',true], [36,17,'sporeGarden',true], [7,20,'mossClump',false],
-    [16,20,'smallBlueCrystal',false], [25,19,'mossClump',false], [39,20,'smallBlueCrystal',false],
-    [20,9,'glowPool',true], [30,9,'glowMushroom',false], [11,9,'sporePods',false]
-  ].forEach(p => addDecor(scene, map, p[0], p[1], p[2], p[3]));
-
-  [
-    [6,4,'sporeVines'], [10,5,'wallMushrooms'], [16,4,'hangingMoss'], [22,5,'sporeVines'],
-    [29,4,'wallMushrooms'], [35,5,'hangingMoss'], [39,6,'sporeVines']
-  ].forEach(p => addWallDecor(scene, map, p[0], p[1], p[2]));
-
-  // Level 1 has STONE ONLY. Large chunks are placed where they read naturally in the cave art.
-  [
-    { x: 6, y: 21 },
-    { x: 13, y: 19 },
-    { x: 22, y: 17 },
-    { x: 31, y: 21 },
-    { x: 38, y: 16 }
-  ].forEach(p => placeAuthoredStoneDeposit(scene, map, p.x, p.y));
-
-  map.entrySpawn = { x: 7, y: 11 };
-  map.downSpawn = { x: down.x, y: down.y };
-  map.landmarks.push(
-    { type: 'livingSporeCavern', x: 18, y: 16 },
-    { type: 'stoneDeposit', x: 6, y: 21 },
-    { type: 'stoneDeposit', x: 13, y: 19 },
-    { type: 'stoneDeposit', x: 22, y: 17 },
-    { type: 'stoneDeposit', x: 31, y: 21 },
-    { type: 'stoneDeposit', x: 38, y: 16 }
-  );
+  // Spawn near center so you can judge the floor art immediately.
+  map.entrySpawn = { x: Math.floor(scene.mapWidth / 2), y: Math.floor(scene.mapHeight / 2) };
+  map.downSpawn = { x: Math.floor(scene.mapWidth / 2), y: Math.floor(scene.mapHeight / 2) };
 
   applyBiomeToMap(map, biome);
-  map.visualDecorVersion = 400;
+  map.visualDecorVersion = 501;
   return map;
 }
 
