@@ -1,14 +1,14 @@
-# Beneath RPG - Level 1 Floor Rebuild V3
+# Beneath RPG - Level 1 Floor Rebuild v4
 
-This build keeps the existing player, inventory, crafting, UI, save, and base systems.
+This build keeps the player, inventory, UI, save, crafting, and core RPG systems intact.
 
-Level 1 mine has been rebuilt as a floor-only authored Spore Grotto test map:
+Level 1 has been rebuilt as a floor-only authored Spore Grotto test room.
 
-- No old room/corridor mine generation
-- No ore, props, mushrooms, enemies, or decorations added to Level 1
-- Large open walkable room
-- New dark cobblestone Spore Grotto floor background
-- Tile distribution fixed to avoid obvious square color patches
-- Glows are now sparse, feathered, and mostly decorative instead of blocky tile clusters
+## v4 floor fix
+- Replaced the oversized blob floor texture.
+- Added dense small cobblestone detail.
+- Removed obvious square color patches.
+- Reduced glow density and blended it softly into the floor.
+- Kept Level 1 floor-only: no ore, mushrooms, enemies, props, or wall decor.
 
-Use this as the visual baseline before adding walls, collisions, ore, mushrooms, and props back in.
+Open `index.html` locally or push the folder to GitHub Pages.
