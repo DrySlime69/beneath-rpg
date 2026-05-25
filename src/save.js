@@ -403,6 +403,7 @@ function ensureBiomeDataOnLoadedMaps(scene) {
     const level = Number(levelKey);
     const map = scene.mineMaps[levelKey];
     const biome = getBiomeById(map.biomeId) || getBiomeForLevel(level);
+    normalizeMineResourceDensity(scene, map, level);
     applyBiomeToMap(map, biome);
   });
 }

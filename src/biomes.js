@@ -88,17 +88,18 @@ function addBiomeDecorations(scene, map, biome, level) {
     }
   }
 
+  const decorLevel = Math.min(level, 6);
   if (biome.id === 'mushroomCaverns') {
-    decorate(26 + level * 2, 'glowMushroom');
-    decorate(10 + level, 'fungusPatch');
+    decorate(26 + decorLevel * 2, 'glowMushroom');
+    decorate(10 + decorLevel, 'fungusPatch');
   } else if (biome.id === 'copperRuins') {
-    decorate(12 + level, 'copperScrap');
-    decorate(6 + Math.floor(level / 2), 'ruinSupport');
+    decorate(12 + decorLevel, 'copperScrap');
+    decorate(6 + Math.floor(decorLevel / 2), 'ruinSupport');
   } else if (biome.id === 'crystalDepths') {
-    decorate(22 + level, 'blueCrystal');
-    decorate(8 + Math.floor(level / 2), 'crystalShard');
+    decorate(22 + decorLevel, 'blueCrystal');
+    decorate(8 + Math.floor(decorLevel / 2), 'crystalShard');
   } else {
-    decorate(8 + level, 'pebbles');
+    decorate(8 + decorLevel, 'pebbles');
   }
 }
 

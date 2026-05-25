@@ -32,7 +32,10 @@ function createMineMap(scene, level = 1) {
 
   let cx = startX;
   let cy = startY;
-  const roomCount = 12 + level * 2;
+  // Keep cave fullness stable at deeper levels. Earlier builds scaled room/resource
+  // counts directly with level, which eventually filled the whole map with ore.
+  const caveDensityLevel = Math.min(level, 6);
+  const roomCount = Phaser.Math.Clamp(12 + caveDensityLevel * 2, 14, 22);
 
   for (let i = 0; i < roomCount; i++) {
     const targetX = Phaser.Math.Between(4, scene.mapWidth - 6);
@@ -58,26 +61,9 @@ function createMineMap(scene, level = 1) {
   carveBlob(startX, startY, 4, 3);
   carveBlob(downX, downY, 3, 2);
 
-  placeResourcePocketsOnMap(scene, map, 'stone', 12 + level * 2, 4 + Math.min(level, 3));
-  placeResourcePocketsOnMap(scene, map, 'coal', 5 + level, 3 + Math.min(level, 3));
-  placeResourcePocketsOnMap(scene, map, 'wood', 4 + Math.floor(level / 2), 2 + Math.min(level, 3));
+  addBalancedMineResources(scene, map, biome, level);
 
-  if (biome.id === 'mushroomCaverns') {
-    placeResourcePocketsOnMap(scene, map, 'coal', 3 + level, 2);
-  } else if (biome.id === 'copperRuins') {
-    placeResourcePocketsOnMap(scene, map, 'copper', 4 + level, 4);
-    placeResourcePocketsOnMap(scene, map, 'copperWall', 2 + Math.floor(level / 2), 5);
-  } else if (biome.id === 'crystalDepths') {
-    placeResourcePocketsOnMap(scene, map, 'stone', 6 + level, 5);
-    placeResourcePocketsOnMap(scene, map, 'coal', 3 + Math.floor(level / 2), 4);
-  }
-
-  if (level <= STARTING_UNLOCKED_MINE_LEVELS) {
-    placeResourcePocketsOnMap(scene, map, 'copper', 4 + level, 3 + Math.min(level, 4));
-  } else {
-    placeResourcePocketsOnMap(scene, map, 'copper', 9 + level, 5);
-    placeResourcePocketsOnMap(scene, map, 'copperWall', 5, 7);
-  }
+  normalizeMineResourceDensity(scene, map, level);
 
   addBiomeDecorations(scene, map, biome, level);
 
@@ -88,21 +74,61 @@ function createMineMap(scene, level = 1) {
 
   map[startY][startX] = makeTile('exitUp', { targetLevel: level - 1 });
 
-  if (level < FIRST_LOCKED_MINE_LEVEL) {
-    map[downY][downX] = makeTile('exitDown', { targetLevel: level + 1, requiredPickaxeTier: levelInfo.nextRequiredPickaxeTier });
-  } else {
-    map[downY][downX] = makeTile('copperWall');
-  }
+  // Every generated level should have a deeper portal. The copper pickaxe gate
+  // belongs on the level 5 -> 6 transition, not by deleting portals after 6.
+  map[downY][downX] = makeTile('exitDown', {
+    targetLevel: level + 1,
+    requiredPickaxeTier: levelInfo.nextRequiredPickaxeTier
+  });
 
   applyBiomeToMap(map, biome);
   return map;
+}
+
+function addBalancedMineResources(scene, map, biome, level) {
+  // Resource density is intentionally capped so level 50 does not become more
+  // crowded than level 6. Biomes change flavor, not total map fullness.
+  const densityLevel = Math.min(level, 6);
+  const base = {
+    stonePockets: Phaser.Math.Clamp(10 + densityLevel * 2, 12, 22),
+    stoneSize: 4,
+    coalPockets: Phaser.Math.Clamp(4 + densityLevel, 5, 10),
+    coalSize: 3,
+    woodPockets: Phaser.Math.Clamp(3 + Math.floor(densityLevel / 2), 4, 7),
+    woodSize: 3,
+    copperPockets: Phaser.Math.Clamp(level <= STARTING_UNLOCKED_MINE_LEVELS ? 4 + densityLevel : 8, 5, 10),
+    copperSize: level <= STARTING_UNLOCKED_MINE_LEVELS ? 4 : 5,
+    copperWallPockets: 0,
+    copperWallSize: 5
+  };
+
+  if (biome.id === 'mushroomCaverns') {
+    base.coalPockets += 2;
+    base.woodPockets += 1;
+  } else if (biome.id === 'copperRuins') {
+    base.copperPockets = 10;
+    base.copperWallPockets = 3;
+  } else if (biome.id === 'crystalDepths') {
+    base.stonePockets += 2;
+    base.coalPockets += 1;
+    base.copperPockets = 7;
+    base.copperWallPockets = 2;
+  }
+
+  placeResourcePocketsOnMap(scene, map, 'stone', base.stonePockets, base.stoneSize);
+  placeResourcePocketsOnMap(scene, map, 'coal', base.coalPockets, base.coalSize);
+  placeResourcePocketsOnMap(scene, map, 'wood', base.woodPockets, base.woodSize);
+  placeResourcePocketsOnMap(scene, map, 'copper', base.copperPockets, base.copperSize);
+  if (base.copperWallPockets > 0) {
+    placeResourcePocketsOnMap(scene, map, 'copperWall', base.copperWallPockets, base.copperWallSize);
+  }
 }
 
 function getMineLevelInfo(level) {
   return {
     level,
     isUnlockedAtStart: level <= STARTING_UNLOCKED_MINE_LEVELS,
-    nextRequiredPickaxeTier: level + 1 >= FIRST_LOCKED_MINE_LEVEL ? 3 : 1
+    nextRequiredPickaxeTier: level + 1 === FIRST_LOCKED_MINE_LEVEL ? 3 : 1
   };
 }
 
@@ -125,6 +151,40 @@ function placeResourcePocketsOnMap(scene, map, type, pocketCount, maxTiles) {
   }
 }
 
+
+function normalizeMineResourceDensity(scene, map, level) {
+  // Safety cap for both new maps and loaded old saves. Deep maps should not
+  // become resource-filled; they should stay close to levels 1-6 density.
+  const resourceTypes = new Set(['stone', 'coal', 'copper', 'copperWall', 'wood']);
+  const resources = [];
+  let openishTiles = 0;
+
+  for (let y = 1; y < scene.mapHeight - 1; y++) {
+    for (let x = 1; x < scene.mapWidth - 1; x++) {
+      const tile = map[y]?.[x];
+      if (!tile) continue;
+      if (tile.type === 'floor' || tile.type === 'torch' || tile.type === 'exitUp' || tile.type === 'exitDown') openishTiles++;
+      if (resourceTypes.has(tile.type)) {
+        resources.push({ x, y, type: tile.type });
+        openishTiles++;
+      }
+    }
+  }
+
+  const maxResourceRatio = level <= STARTING_UNLOCKED_MINE_LEVELS ? 0.30 : 0.28;
+  const maxResources = Math.floor(openishTiles * maxResourceRatio);
+  if (resources.length <= maxResources) return;
+
+  // Prefer trimming common resource blocks first, keeping rarer copper walls/ore.
+  const trimPriority = { stone: 1, wood: 2, coal: 3, copperWall: 4, copper: 5 };
+  resources.sort((a, b) => (trimPriority[a.type] || 9) - (trimPriority[b.type] || 9) || Math.random() - 0.5);
+
+  const removeCount = resources.length - maxResources;
+  for (let i = 0; i < removeCount; i++) {
+    const spot = resources[i];
+    map[spot.y][spot.x] = makeTile('floor');
+  }
+}
 
 function addCaveTorches(scene, map, level, forcedSpots = []) {
   const spots = [...forcedSpots];
