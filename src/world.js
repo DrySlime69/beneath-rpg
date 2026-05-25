@@ -58,6 +58,7 @@ function getMineMap(scene, level) {
 function switchToMine(scene, level = scene.mineLevel || 1) {
   scene.mineLevel = Phaser.Math.Clamp(level, 1, 100);
   scene.map = getMineMap(scene, scene.mineLevel);
+  if (typeof ensureBiomeVisualDecor === 'function') ensureBiomeVisualDecor(scene, scene.map, scene.mineLevel);
   scene.currentMapName = 'mine';
   scene.currentBiomeId = scene.map.biomeId || getBiomeForLevel(scene.mineLevel).id;
   rebuildTorchLights(scene);
@@ -345,24 +346,31 @@ function drawLargeOreChunk(scene, tile, x, y, brightness) {
   const py = y * scene.tileSize;
   const size = scene.tileSize;
   const ore = getLargeOreChunkDef(tile.oreId);
-  const pulse = ore.glow ? 0.85 + Math.sin((scene.visualTime || 0) * 0.004 + x + y) * 0.12 : 1;
+  const pulse = ore.glow ? 0.9 + Math.sin((scene.visualTime || 0) * 0.004 + x + y) * 0.16 : 1;
+
+  // Make ore chunks read as pretty set pieces, not just another block.
+  scene.worldLayer.fillStyle(0x000000, 0.28);
+  scene.worldLayer.fillEllipse(px + 13, py + 23, 29, 9);
 
   if (ore.glow) {
-    scene.worldLayer.fillStyle(ore.glow, 0.08 * pulse * brightness);
-    scene.worldLayer.fillCircle(px + size / 2, py + size / 2, 15);
+    scene.worldLayer.fillStyle(ore.glow, 0.18 * pulse * brightness);
+    scene.worldLayer.fillCircle(px + size / 2, py + size / 2, 23);
   }
 
-  scene.worldLayer.fillStyle(darkenColor(ore.color, brightness));
-  scene.worldLayer.fillCircle(px + 12, py + 16, 9);
-  scene.worldLayer.fillCircle(px + 18, py + 18, 7);
-  scene.worldLayer.fillCircle(px + 9, py + 21, 6);
-  scene.worldLayer.fillStyle(darkenColor(ore.edge, Math.min(1, brightness + 0.2)), 0.9);
-  scene.worldLayer.fillRect(px + 8, py + 9, 5, 5);
-  scene.worldLayer.fillRect(px + 16, py + 12, 5, 4);
-  scene.worldLayer.fillRect(px + 11, py + 19, 7, 3);
-  scene.worldLayer.fillStyle(0xffffff, 0.22 * brightness);
-  scene.worldLayer.fillRect(px + 10, py + 10, 2, 2);
-  scene.worldLayer.fillRect(px + 17, py + 13, 2, 1);
+  scene.worldLayer.fillStyle(darkenColor(ore.color, Math.min(1, brightness + 0.08)), 0.98);
+  scene.worldLayer.fillCircle(px + 12, py + 16, 11);
+  scene.worldLayer.fillCircle(px + 19, py + 18, 9);
+  scene.worldLayer.fillCircle(px + 7, py + 22, 7);
+  scene.worldLayer.fillCircle(px + 17, py + 9, 7);
+  scene.worldLayer.fillStyle(darkenColor(ore.edge, Math.min(1, brightness + 0.30)), 0.96);
+  scene.worldLayer.fillRect(px + 7, py + 8, 6, 6);
+  scene.worldLayer.fillRect(px + 15, py + 5, 5, 8);
+  scene.worldLayer.fillRect(px + 17, py + 13, 7, 5);
+  scene.worldLayer.fillRect(px + 10, py + 19, 10, 4);
+  scene.worldLayer.fillStyle(0xffffff, 0.36 * brightness);
+  scene.worldLayer.fillRect(px + 9, py + 9, 2, 2);
+  scene.worldLayer.fillRect(px + 17, py + 7, 2, 2);
+  scene.worldLayer.fillRect(px + 19, py + 14, 2, 1);
 }
 
 function drawWallDecoration(scene, tile, x, y, brightness) {
@@ -669,7 +677,7 @@ function redraw(scene) {
       const tile = scene.map[y][x];
       const distance = Phaser.Math.Distance.Between(x + 0.5, y + 0.5, playerTileX, playerTileY);
       const lightRadius = scene.currentMapName === 'home' ? HOME_PLAYER_LIGHT_RADIUS : PLAYER_LIGHT_RADIUS;
-      const minBrightness = scene.currentMapName === 'home' ? 0.68 : getCurrentBiome(scene).darkness;
+      const minBrightness = scene.currentMapName === 'home' ? 0.68 : Math.max(0.56, getCurrentBiome(scene).darkness || 0.56);
       const playerLightStrength = Phaser.Math.Clamp(1 - distance / lightRadius, 0, 1);
       const torchLightStrength = getTorchLightAt(scene, x, y);
       const homeWarmLightStrength = getHomeWarmLightAt(scene, x, y);

@@ -17,7 +17,7 @@ const BIOMES = {
     wall: { base: 0x233118, edge: 0x8eb85b, shadow: 0x071009, speck: 0xb9ee7e },
     floor: 0x26381e,
     ambientMote: 0xb7f06d,
-    darkness: 0.30,
+    darkness: 0.56,
     torch: 0xb6ff62,
     floorDecor: ['glowMushroom', 'fungusPatch', 'sporePods', 'smallBlueCrystal', 'mossClump'],
     wallDecor: ['hangingMoss', 'wallMushrooms', 'sporeVines'],
@@ -32,7 +32,7 @@ const BIOMES = {
     wall: { base: 0x322216, edge: 0xc79b6a, shadow: 0x100804, speck: 0xf0d8a8 },
     floor: 0x3a2a1f,
     ambientMote: 0xe6c18a,
-    darkness: 0.31,
+    darkness: 0.56,
     torch: 0xffa64e,
     floorDecor: ['bonePile', 'ribBones', 'skull', 'webPatch', 'smallGreenCrystal'],
     wallDecor: ['wallSkull', 'hangingWeb', 'boneWall'],
@@ -47,7 +47,7 @@ const BIOMES = {
     wall: { base: 0x193149, edge: 0x8fdcff, shadow: 0x06101e, speck: 0xd0f7ff },
     floor: 0x20384a,
     ambientMote: 0xb7efff,
-    darkness: 0.29,
+    darkness: 0.58,
     torch: 0x87dfff,
     floorDecor: ['iceCrystal', 'frostPatch', 'frozenStalagmite', 'snowBones', 'smallBlueCrystal'],
     wallDecor: ['icicles', 'frostVeins', 'iceWallCrack'],
@@ -62,7 +62,7 @@ const BIOMES = {
     wall: { base: 0x201239, edge: 0xb15dff, shadow: 0x080414, speck: 0xff9dff },
     floor: 0x211833,
     ambientMote: 0xd676ff,
-    darkness: 0.30,
+    darkness: 0.56,
     torch: 0xd070ff,
     floorDecor: ['purpleCrystal', 'blueCrystal', 'crystalShard', 'glowPool', 'smallBlueCrystal'],
     wallDecor: ['crystalWallGrowth', 'purpleVeins', 'gemWall'],
@@ -77,7 +77,7 @@ const BIOMES = {
     wall: { base: 0x35110d, edge: 0xff5f21, shadow: 0x120201, speck: 0xffb135 },
     floor: 0x2f1710,
     ambientMote: 0xff8a2a,
-    darkness: 0.32,
+    darkness: 0.56,
     torch: 0xff5a1d,
     floorDecor: ['emberCrystal', 'lavaCrack', 'ashPile', 'charredBones', 'moltenPebbles'],
     wallDecor: ['lavaDrip', 'emberVeins', 'scorchedWall'],
@@ -92,7 +92,7 @@ const BIOMES = {
     wall: { base: 0x142432, edge: 0x31c9ff, shadow: 0x030911, speck: 0x7df2ff },
     floor: 0x182530,
     ambientMote: 0x5be8ff,
-    darkness: 0.31,
+    darkness: 0.56,
     torch: 0x24d6ff,
     floorDecor: ['corePillar', 'blueCore', 'ancientPlate', 'cableCoil', 'techRubble'],
     wallDecor: ['runePanel', 'blueConduit', 'coreWallPlate'],
@@ -162,8 +162,8 @@ function addBiomeDecorations(scene, map, biome, level) {
     }
   }
 
-  decorateFloor(42 + Phaser.Math.Between(0, 14));
-  decorateWall(28 + Phaser.Math.Between(0, 12));
+  decorateFloor(95 + Phaser.Math.Between(0, 30));
+  decorateWall(65 + Phaser.Math.Between(0, 20));
   addLargeOreChunks(scene, map, biome, level);
   addBiomePointOfInterest(scene, map, biome, level);
 }
@@ -174,7 +174,7 @@ function touchesWalkableTile(map, x, y) {
 }
 
 function addLargeOreChunks(scene, map, biome, level) {
-  const chunkCount = Phaser.Math.Between(3, 6);
+  const chunkCount = Phaser.Math.Between(7, 11);
   for (let i = 0; i < chunkCount; i++) {
     const oreId = Phaser.Utils.Array.GetRandom(biome.oreChunks || ['stone']);
     placeLargeOreChunk(scene, map, oreId);
@@ -227,6 +227,50 @@ function addBiomePointOfInterest(scene, map, biome, level) {
     map[y][x].poi = true;
     return;
   }
+}
+
+
+function ensureBiomeVisualDecor(scene, map, level) {
+  if (!map) return;
+  const biome = getBiomeById(map.biomeId) || getBiomeForLevel(level || 1);
+  applyBiomeToMap(map, biome);
+  if (map.visualDecorVersion >= 3) return;
+
+  // Add an obvious biome pass to old/generated maps without destroying mined paths.
+  const floorTiles = [];
+  const wallTiles = [];
+  for (let y = 2; y < scene.mapHeight - 2; y++) {
+    for (let x = 2; x < scene.mapWidth - 2; x++) {
+      const tile = map[y]?.[x];
+      if (!tile) continue;
+      if (tile.type === 'floor' || tile.type === 'torch') floorTiles.push({ x, y });
+      if (tile.type === 'caveWall' && touchesWalkableTile(map, x, y)) wallTiles.push({ x, y });
+    }
+  }
+
+  const floorTarget = Math.min(floorTiles.length, 85 + Phaser.Math.Between(0, 30));
+  for (let i = 0; i < floorTarget && floorTiles.length; i++) {
+    const idx = Phaser.Math.Between(0, floorTiles.length - 1);
+    const spot = floorTiles.splice(idx, 1)[0];
+    const tile = map[spot.y]?.[spot.x];
+    if (!tile || tile.type !== 'floor' || tile.decor || tile.poi) continue;
+    tile.decor = Phaser.Utils.Array.GetRandom(biome.floorDecor || ['pebbles']);
+  }
+
+  const wallTarget = Math.min(wallTiles.length, 55 + Phaser.Math.Between(0, 18));
+  for (let i = 0; i < wallTarget && wallTiles.length; i++) {
+    const idx = Phaser.Math.Between(0, wallTiles.length - 1);
+    const spot = wallTiles.splice(idx, 1)[0];
+    const tile = map[spot.y]?.[spot.x];
+    if (!tile || tile.type !== 'caveWall' || tile.wallDecor) continue;
+    tile.wallDecor = Phaser.Utils.Array.GetRandom(biome.wallDecor || []);
+  }
+
+  // Make sure every level has several visible set pieces and large ore clusters.
+  for (let i = 0; i < 5; i++) addBiomePointOfInterest(scene, map, biome, level || 1);
+  addLargeOreChunks(scene, map, biome, level || 1);
+  addLargeOreChunks(scene, map, biome, level || 1);
+  map.visualDecorVersion = 3;
 }
 
 function getBiomeEnemyType(level, index) {

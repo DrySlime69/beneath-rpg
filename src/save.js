@@ -282,10 +282,14 @@ function serializeMap(map) {
     storageSlots: tile.storageSlots,
     storage: tile.storage,
     biome: tile.biome,
-    decor: tile.decor
+    decor: tile.decor,
+    wallDecor: tile.wallDecor,
+    oreId: tile.oreId,
+    poi: tile.poi
   })));
   rows.biomeId = map.biomeId;
   rows.biomeName = map.biomeName;
+  rows.visualDecorVersion = map.visualDecorVersion || 0;
   return rows;
 }
 
@@ -395,6 +399,7 @@ function deserializeMap(map) {
   const rows = map.map(row => row.map(data => makeTile(data.type, data)));
   rows.biomeId = map.biomeId;
   rows.biomeName = map.biomeName;
+  rows.visualDecorVersion = map.visualDecorVersion || 0;
   return rows;
 }
 
@@ -405,6 +410,7 @@ function ensureBiomeDataOnLoadedMaps(scene) {
     const biome = getBiomeById(map.biomeId) || getBiomeForLevel(level);
     normalizeMineResourceDensity(scene, map, level);
     applyBiomeToMap(map, biome);
+    if (typeof ensureBiomeVisualDecor === 'function') ensureBiomeVisualDecor(scene, map, level);
   });
 }
 
