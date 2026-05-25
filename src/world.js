@@ -24,6 +24,10 @@ function makeTile(type, extra = {}) {
   if (type === 'coal') Object.assign(tile, { hardness: 1, hp: 3, maxHp: 3 });
   if (type === 'copper') Object.assign(tile, { hardness: 2, hp: 10, maxHp: 10 });
   if (type === 'copperWall') Object.assign(tile, { hardness: 3, hp: 14, maxHp: 14 });
+  if (type === 'largeOreChunk') {
+    const ore = typeof getLargeOreChunkDef === 'function' ? getLargeOreChunkDef(extra.oreId || 'stone') : null;
+    Object.assign(tile, { hardness: ore?.hardness || 2, hp: ore?.hp || 18, maxHp: ore?.hp || 18 });
+  }
   if (type === 'furnace' || type === 'craftingTable' || type === 'woodChest' || type === 'copperChest') tile.hardness = 999;
   if (type === 'torch') Object.assign(tile, { hardness: 0, hp: 1, maxHp: 1, variation: extra.variation ?? (Phaser.Math ? Phaser.Math.Between(0, 3) : 0) });
   if (type === 'exit' || type === 'exitUp' || type === 'exitDown') tile.hardness = 999;
@@ -108,13 +112,14 @@ function getTileBaseColor(tile) {
   if (tile.type === 'stone') return biome.id === 'crystalDepths' ? 0x4f6f88 : 0x5a5a5a;
   if (tile.type === 'coal') return 0x333333;
   if (tile.type === 'wood') return biome.id === 'mushroomCaverns' ? 0x5b4aa0 : 0x8a5a2b;
-  if (tile.type === 'copper') return biome.id === 'copperRuins' ? 0xc7793f : 0xaa6633;
-  if (tile.type === 'copperWall') return biome.id === 'copperRuins' ? 0x984822 : 0x7f3f24;
+  if (tile.type === 'copper') return biome.id === 'boneHollow' ? 0xc98546 : 0xaa6633;
+  if (tile.type === 'copperWall') return 0x7f3f24;
+  if (tile.type === 'largeOreChunk') return getLargeOreChunkDef(tile.oreId).color;
   return 0x000000;
 }
 
 function isWallLike(tile) {
-  return tile && ['caveWall', 'stone', 'coal', 'copper', 'copperWall', 'wood'].includes(tile.type);
+  return tile && ['caveWall', 'stone', 'coal', 'copper', 'copperWall', 'wood', 'largeOreChunk'].includes(tile.type);
 }
 
 function isWalkableTile(tile) {
@@ -140,6 +145,10 @@ function getWallVisualColors(tile) {
     : { base: 0x7a4a22, edge: 0xd79a55, shadow: 0x2b1407, speck: 0xe2b16d };
   if (tile.type === 'copper') return { base: 0x9b5a2e, edge: 0xffb066, shadow: 0x3a1b12, speck: 0xffaa55 };
   if (tile.type === 'copperWall') return { base: 0x71381f, edge: 0xff8844, shadow: 0x28110b, speck: 0xff9a58 };
+  if (tile.type === 'largeOreChunk') {
+    const ore = getLargeOreChunkDef(tile.oreId);
+    return { base: ore.color, edge: ore.edge, shadow: 0x090909, speck: ore.edge };
+  }
   return biome.wall;
 }
 
@@ -239,10 +248,12 @@ function drawTileDetails(scene, tile, x, y, brightness) {
   }
 
   if (tile.type === 'caveWall') {
-    scene.worldLayer.fillStyle(darkenColor(0x56321e, brightness), 0.55);
+    const wc = getWallVisualColors(tile);
+    scene.worldLayer.fillStyle(darkenColor(wc.speck || wc.edge, brightness), 0.48);
     scene.worldLayer.fillRect(px + 5, py + 5, 4 + tile.variation, 3);
     scene.worldLayer.fillRect(px + 15, py + 13, 5, 4);
     if ((tile.detailSeed || 0) % 2 === 0) scene.worldLayer.fillRect(px + 8, py + 19, 3, 2);
+    if (tile.wallDecor) drawWallDecoration(scene, tile, x, y, brightness);
   }
 
   if (tile.type === 'stone') {
@@ -265,6 +276,10 @@ function drawTileDetails(scene, tile, x, y, brightness) {
     scene.worldLayer.fillRect(px + 16, py + 9, 3, 3);
     scene.worldLayer.fillRect(px + 9, py + 18, 4, 3);
     scene.worldLayer.fillRect(px + 20, py + 19, 2, 2);
+  }
+
+  if (tile.type === 'largeOreChunk') {
+    drawLargeOreChunk(scene, tile, x, y, brightness);
   }
 
   if (tile.type === 'craftingTable') {
@@ -325,31 +340,244 @@ function drawTileDetails(scene, tile, x, y, brightness) {
 }
 
 
+function drawLargeOreChunk(scene, tile, x, y, brightness) {
+  const px = x * scene.tileSize;
+  const py = y * scene.tileSize;
+  const size = scene.tileSize;
+  const ore = getLargeOreChunkDef(tile.oreId);
+  const pulse = ore.glow ? 0.85 + Math.sin((scene.visualTime || 0) * 0.004 + x + y) * 0.12 : 1;
+
+  if (ore.glow) {
+    scene.worldLayer.fillStyle(ore.glow, 0.08 * pulse * brightness);
+    scene.worldLayer.fillCircle(px + size / 2, py + size / 2, 15);
+  }
+
+  scene.worldLayer.fillStyle(darkenColor(ore.color, brightness));
+  scene.worldLayer.fillCircle(px + 12, py + 16, 9);
+  scene.worldLayer.fillCircle(px + 18, py + 18, 7);
+  scene.worldLayer.fillCircle(px + 9, py + 21, 6);
+  scene.worldLayer.fillStyle(darkenColor(ore.edge, Math.min(1, brightness + 0.2)), 0.9);
+  scene.worldLayer.fillRect(px + 8, py + 9, 5, 5);
+  scene.worldLayer.fillRect(px + 16, py + 12, 5, 4);
+  scene.worldLayer.fillRect(px + 11, py + 19, 7, 3);
+  scene.worldLayer.fillStyle(0xffffff, 0.22 * brightness);
+  scene.worldLayer.fillRect(px + 10, py + 10, 2, 2);
+  scene.worldLayer.fillRect(px + 17, py + 13, 2, 1);
+}
+
+function drawWallDecoration(scene, tile, x, y, brightness) {
+  const px = x * scene.tileSize;
+  const py = y * scene.tileSize;
+  const s = scene.tileSize;
+  const decor = tile.wallDecor;
+  const t = scene.visualTime || 0;
+
+  if (['hangingMoss', 'sporeVines'].includes(decor)) {
+    scene.worldLayer.lineStyle(1, darkenColor(0x86d85c, brightness), 0.75);
+    scene.worldLayer.lineBetween(px + 7, py + 2, px + 7, py + 16);
+    scene.worldLayer.lineBetween(px + 15, py + 1, px + 15, py + 12);
+    scene.worldLayer.fillStyle(darkenColor(0xb7ff79, brightness), 0.7);
+    scene.worldLayer.fillCircle(px + 7, py + 15, 2);
+    scene.worldLayer.fillCircle(px + 15, py + 12, 2);
+  }
+  if (decor === 'wallMushrooms') {
+    scene.worldLayer.fillStyle(darkenColor(0x7ee3ff, brightness), 0.8);
+    scene.worldLayer.fillEllipse(px + 6, py + 14, 8, 5);
+    scene.worldLayer.fillStyle(darkenColor(0xf15b73, brightness), 0.82);
+    scene.worldLayer.fillEllipse(px + 18, py + 8, 7, 4);
+  }
+  if (['wallSkull', 'boneWall'].includes(decor)) {
+    scene.worldLayer.fillStyle(darkenColor(0xd8c7a3, brightness), 0.85);
+    scene.worldLayer.fillCircle(px + 13, py + 10, 5);
+    scene.worldLayer.fillStyle(darkenColor(0x101010, brightness), 0.8);
+    scene.worldLayer.fillCircle(px + 11, py + 9, 1.5);
+    scene.worldLayer.fillCircle(px + 15, py + 9, 1.5);
+    scene.worldLayer.lineStyle(1, darkenColor(0xe8d8b8, brightness), 0.7);
+    scene.worldLayer.lineBetween(px + 5, py + 17, px + 20, py + 13);
+  }
+  if (decor === 'hangingWeb') {
+    scene.worldLayer.lineStyle(1, darkenColor(0xd7d1c6, brightness), 0.5);
+    scene.worldLayer.lineBetween(px + 3, py + 3, px + 20, py + 15);
+    scene.worldLayer.lineBetween(px + 20, py + 3, px + 4, py + 17);
+    scene.worldLayer.strokeCircle(px + 12, py + 10, 8);
+  }
+  if (['icicles', 'frostVeins', 'iceWallCrack'].includes(decor)) {
+    scene.worldLayer.fillStyle(darkenColor(0xaeeeff, brightness), 0.8);
+    scene.worldLayer.fillTriangle(px + 6, py + 2, px + 10, py + 2, px + 8, py + 17);
+    scene.worldLayer.fillTriangle(px + 16, py + 1, px + 21, py + 1, px + 18, py + 13);
+    scene.worldLayer.lineStyle(1, darkenColor(0xd8fbff, brightness), 0.55);
+    scene.worldLayer.lineBetween(px + 4, py + 20, px + 20, py + 9);
+  }
+  if (['crystalWallGrowth', 'purpleVeins', 'gemWall'].includes(decor)) {
+    const pulse = 0.75 + Math.sin(t * 0.004 + x) * 0.12;
+    scene.worldLayer.fillStyle(darkenColor(0xc06cff, Math.min(1, brightness + 0.2)), 0.75 * pulse);
+    scene.worldLayer.fillTriangle(px + 12, py + 4, px + 8, py + 18, px + 16, py + 18);
+    scene.worldLayer.lineStyle(1, darkenColor(0xff9cff, brightness), 0.55);
+    scene.worldLayer.lineBetween(px + 3, py + 8, px + 22, py + 16);
+  }
+  if (['lavaDrip', 'emberVeins', 'scorchedWall'].includes(decor)) {
+    scene.worldLayer.lineStyle(2, darkenColor(0xff5a1d, brightness), 0.85);
+    scene.worldLayer.lineBetween(px + 8, py + 2, px + 8, py + 17);
+    scene.worldLayer.lineBetween(px + 17, py + 3, px + 17, py + 12);
+    scene.worldLayer.fillStyle(darkenColor(0xffb13a, brightness), 0.75);
+    scene.worldLayer.fillCircle(px + 8, py + 18, 2);
+  }
+  if (['runePanel', 'blueConduit', 'coreWallPlate'].includes(decor)) {
+    scene.worldLayer.fillStyle(darkenColor(0x102a38, brightness), 0.85);
+    scene.worldLayer.fillRect(px + 5, py + 5, s - 10, s - 10);
+    scene.worldLayer.lineStyle(1, darkenColor(0x42dfff, Math.min(1, brightness + 0.25)), 0.85);
+    scene.worldLayer.strokeRect(px + 7, py + 7, s - 14, s - 14);
+    scene.worldLayer.lineBetween(px + 12, py + 8, px + 12, py + 18);
+  }
+}
+
 function drawBiomeDecoration(scene, tile, x, y, brightness) {
   const px = x * scene.tileSize;
   const py = y * scene.tileSize;
   const size = scene.tileSize;
   const t = scene.visualTime || 0;
+  const decor = tile.decor;
 
-  if (tile.decor === 'glowMushroom') {
-    const pulse = 0.75 + Math.sin(t * 0.004 + x) * 0.2;
-    scene.worldLayer.fillStyle(darkenColor(0x3d2476, brightness));
+  function mushroom(cap, stem = 0x8b6a4a, glow = 0.75) {
+    const pulse = 0.82 + Math.sin(t * 0.004 + x) * 0.14;
+    scene.worldLayer.fillStyle(darkenColor(stem, brightness));
     scene.worldLayer.fillRect(px + 11, py + 13, 3, 8);
-    scene.worldLayer.fillStyle(darkenColor(0xb281ff, Math.min(1, brightness * pulse + 0.15)), 0.92);
-    scene.worldLayer.fillEllipse(px + 13, py + 11, 13, 8);
-    scene.worldLayer.fillStyle(darkenColor(0xe8d6ff, Math.min(1, brightness * pulse + 0.25)), 0.75);
-    scene.worldLayer.fillCircle(px + 10, py + 9, 2);
-    scene.worldLayer.fillCircle(px + 16, py + 10, 2);
+    scene.worldLayer.fillStyle(darkenColor(cap, Math.min(1, brightness * pulse + 0.15)), 0.92);
+    scene.worldLayer.fillEllipse(px + 13, py + 11, 14, 8);
+    if (glow) {
+      scene.worldLayer.fillStyle(cap, 0.08 * glow * pulse);
+      scene.worldLayer.fillCircle(px + 13, py + 12, 16);
+    }
   }
 
-  if (tile.decor === 'fungusPatch') {
+  if (decor === 'glowMushroom') mushroom(0x78e7ff, 0x5b4aa0, 1.0);
+  if (decor === 'fungusPatch') {
     scene.worldLayer.fillStyle(darkenColor(0x6b4fb4, brightness), 0.72);
     scene.worldLayer.fillCircle(px + 7, py + 19, 3);
     scene.worldLayer.fillCircle(px + 14, py + 17, 4);
     scene.worldLayer.fillCircle(px + 21, py + 20, 2);
+    scene.worldLayer.fillStyle(darkenColor(0x9dff65, brightness), 0.75);
+    scene.worldLayer.fillCircle(px + 12, py + 20, 1.5);
+  }
+  if (decor === 'sporePods') {
+    scene.worldLayer.fillStyle(darkenColor(0x5bd36e, brightness), 0.85);
+    scene.worldLayer.fillCircle(px + 8, py + 18, 4);
+    scene.worldLayer.fillCircle(px + 15, py + 16, 3);
+    scene.worldLayer.fillCircle(px + 20, py + 20, 2.5);
+    scene.worldLayer.fillStyle(darkenColor(0xe8ff9a, brightness), 0.75);
+    scene.worldLayer.fillCircle(px + 8, py + 16, 1.2);
+  }
+  if (decor === 'mossClump') {
+    scene.worldLayer.fillStyle(darkenColor(0x5e9d3b, brightness), 0.65);
+    scene.worldLayer.fillEllipse(px + 13, py + 19, 20, 7);
   }
 
-  if (tile.decor === 'copperScrap') {
+  if (decor === 'bonePile' || decor === 'ribBones' || decor === 'snowBones' || decor === 'charredBones') {
+    const c = decor === 'charredBones' ? 0x9a8a72 : decor === 'snowBones' ? 0xdff6ff : 0xd8c7a3;
+    scene.worldLayer.lineStyle(2, darkenColor(c, brightness), 0.82);
+    scene.worldLayer.lineBetween(px + 5, py + 18, px + 20, py + 12);
+    scene.worldLayer.lineBetween(px + 7, py + 12, px + 22, py + 20);
+    scene.worldLayer.strokeCircle(px + 11, py + 13, 5);
+  }
+  if (decor === 'skull') {
+    scene.worldLayer.fillStyle(darkenColor(0xe0d1b0, brightness), 0.9);
+    scene.worldLayer.fillCircle(px + 13, py + 13, 7);
+    scene.worldLayer.fillStyle(0x0b0908, 0.8);
+    scene.worldLayer.fillCircle(px + 10, py + 12, 2);
+    scene.worldLayer.fillCircle(px + 16, py + 12, 2);
+    scene.worldLayer.fillRect(px + 11, py + 17, 5, 3);
+  }
+  if (decor === 'webPatch') {
+    scene.worldLayer.lineStyle(1, darkenColor(0xd7d1c6, brightness), 0.45);
+    scene.worldLayer.strokeCircle(px + 13, py + 15, 9);
+    scene.worldLayer.lineBetween(px + 4, py + 15, px + 22, py + 15);
+    scene.worldLayer.lineBetween(px + 13, py + 6, px + 13, py + 24);
+    scene.worldLayer.lineBetween(px + 6, py + 8, px + 20, py + 22);
+  }
+
+  if (decor === 'iceCrystal' || decor === 'smallBlueCrystal') {
+    const color = decor === 'iceCrystal' ? 0x8eefff : 0x55dfff;
+    scene.worldLayer.fillStyle(color, 0.07);
+    scene.worldLayer.fillCircle(px + 13, py + 15, 15);
+    scene.worldLayer.fillStyle(darkenColor(color, Math.min(1, brightness + 0.25)), 0.9);
+    scene.worldLayer.fillTriangle(px + 13, py + 4, px + 7, py + 22, px + 18, py + 22);
+    scene.worldLayer.fillStyle(0xffffff, 0.25);
+    scene.worldLayer.fillTriangle(px + 13, py + 6, px + 11, py + 18, px + 15, py + 18);
+  }
+  if (decor === 'frostPatch') {
+    scene.worldLayer.fillStyle(darkenColor(0x9eeaff, brightness), 0.35);
+    scene.worldLayer.fillEllipse(px + 13, py + 18, 21, 8);
+    scene.worldLayer.lineStyle(1, darkenColor(0xe4fbff, brightness), 0.45);
+    scene.worldLayer.lineBetween(px + 5, py + 18, px + 21, py + 18);
+  }
+  if (decor === 'frozenStalagmite') {
+    scene.worldLayer.fillStyle(darkenColor(0xa8e8ff, brightness), 0.82);
+    scene.worldLayer.fillTriangle(px + 8, py + 22, px + 13, py + 8, px + 18, py + 22);
+    scene.worldLayer.fillTriangle(px + 17, py + 23, px + 21, py + 13, px + 24, py + 23);
+  }
+
+  if (decor === 'purpleCrystal' || decor === 'blueCrystal' || decor === 'crystalShard') {
+    const color = decor === 'blueCrystal' ? 0x55dfff : decor === 'crystalShard' ? 0x7de8ff : 0xb85dff;
+    const pulse = 0.8 + Math.sin(t * 0.005 + x * 0.5 + y) * 0.25;
+    scene.worldLayer.fillStyle(color, 0.08 * pulse);
+    scene.worldLayer.fillCircle(px + 13, py + 16, 16);
+    scene.worldLayer.fillStyle(darkenColor(color, Math.min(1, brightness * pulse + 0.18)), 0.92);
+    scene.worldLayer.fillTriangle(px + 13, py + 4, px + 7, py + 22, px + 18, py + 22);
+    scene.worldLayer.fillTriangle(px + 19, py + 20, px + 22, py + 11, px + 25, py + 21);
+    scene.worldLayer.fillStyle(0xffffff, 0.22);
+    scene.worldLayer.fillTriangle(px + 13, py + 6, px + 11, py + 18, px + 15, py + 18);
+  }
+  if (decor === 'glowPool') {
+    scene.worldLayer.fillStyle(0x27e6ff, 0.12);
+    scene.worldLayer.fillEllipse(px + 13, py + 18, 22, 9);
+    scene.worldLayer.fillStyle(0x6dffff, 0.28);
+    scene.worldLayer.fillEllipse(px + 13, py + 18, 15, 5);
+  }
+
+  if (decor === 'emberCrystal') {
+    scene.worldLayer.fillStyle(0xff3a1a, 0.12);
+    scene.worldLayer.fillCircle(px + 13, py + 16, 15);
+    scene.worldLayer.fillStyle(darkenColor(0xff5a1d, brightness), 0.9);
+    scene.worldLayer.fillTriangle(px + 13, py + 5, px + 7, py + 22, px + 19, py + 22);
+    scene.worldLayer.fillStyle(darkenColor(0xffd35c, brightness), 0.8);
+    scene.worldLayer.fillRect(px + 11, py + 12, 4, 6);
+  }
+  if (decor === 'lavaCrack') {
+    scene.worldLayer.lineStyle(2, darkenColor(0xff4a16, Math.min(1, brightness + 0.3)), 0.9);
+    scene.worldLayer.lineBetween(px + 4, py + 19, px + 12, py + 15);
+    scene.worldLayer.lineBetween(px + 12, py + 15, px + 19, py + 21);
+    scene.worldLayer.lineStyle(1, 0xffd36d, 0.6);
+    scene.worldLayer.lineBetween(px + 5, py + 19, px + 18, py + 20);
+  }
+  if (decor === 'ashPile' || decor === 'moltenPebbles') {
+    scene.worldLayer.fillStyle(darkenColor(0x4b3830, brightness), 0.6);
+    scene.worldLayer.fillEllipse(px + 13, py + 20, 20, 7);
+    if (decor === 'moltenPebbles') {
+      scene.worldLayer.fillStyle(0xff6a1f, 0.7);
+      scene.worldLayer.fillCircle(px + 9, py + 18, 2);
+      scene.worldLayer.fillCircle(px + 18, py + 20, 1.5);
+    }
+  }
+
+  if (decor === 'corePillar' || decor === 'blueCore' || decor === 'coreMachine') {
+    scene.worldLayer.fillStyle(darkenColor(0x162f3f, brightness), 0.9);
+    scene.worldLayer.fillRect(px + 7, py + 5, 12, 18);
+    scene.worldLayer.lineStyle(1, darkenColor(0x42dfff, Math.min(1, brightness + 0.2)), 0.85);
+    scene.worldLayer.strokeRect(px + 8, py + 6, 10, 16);
+    scene.worldLayer.fillStyle(0x38e5ff, 0.16);
+    scene.worldLayer.fillCircle(px + 13, py + 14, 16);
+    scene.worldLayer.fillStyle(0x98ffff, 0.75);
+    scene.worldLayer.fillCircle(px + 13, py + 14, 3);
+  }
+  if (decor === 'ancientPlate' || decor === 'techRubble' || decor === 'cableCoil') {
+    scene.worldLayer.fillStyle(darkenColor(0x2a4654, brightness), 0.82);
+    scene.worldLayer.fillRect(px + 5, py + 15, 16, 6);
+    scene.worldLayer.lineStyle(1, darkenColor(0x4edcff, brightness), 0.55);
+    scene.worldLayer.lineBetween(px + 6, py + 18, px + 20, py + 18);
+    if (decor === 'cableCoil') scene.worldLayer.strokeCircle(px + 13, py + 17, 6);
+  }
+
+  if (decor === 'copperScrap' || decor === 'ruinSupport') {
     scene.worldLayer.fillStyle(darkenColor(0xff8a3a, brightness), 0.8);
     scene.worldLayer.fillRect(px + 5, py + 17, 7, 3);
     scene.worldLayer.fillRect(px + 17, py + 8, 4, 8);
@@ -357,30 +585,37 @@ function drawBiomeDecoration(scene, tile, x, y, brightness) {
     scene.worldLayer.lineBetween(px + 6, py + 18, px + 22, py + 10);
   }
 
-  if (tile.decor === 'ruinSupport') {
-    scene.worldLayer.fillStyle(darkenColor(0x6b3b20, brightness));
-    scene.worldLayer.fillRect(px + 5, py + 5, 4, size - 9);
-    scene.worldLayer.fillRect(px + size - 9, py + 5, 4, size - 9);
-    scene.worldLayer.fillRect(px + 5, py + 6, size - 10, 4);
-    scene.worldLayer.fillStyle(darkenColor(0xc06c35, brightness), 0.7);
-    scene.worldLayer.fillRect(px + 4, py + 5, size - 8, 1);
+  if (decor === 'sporeGarden' || decor === 'boneAltar' || decor === 'iceShrine' || decor === 'crystalGate' || decor === 'emberVent') {
+    scene.worldLayer.fillStyle(0x000000, 0.2);
+    scene.worldLayer.fillEllipse(px + 13, py + 22, 25, 7);
+  }
+  if (decor === 'sporeGarden') { mushroom(0x9dff65, 0x6d4b2b, 1); }
+  if (decor === 'boneAltar') {
+    scene.worldLayer.fillStyle(darkenColor(0x5a4433, brightness));
+    scene.worldLayer.fillRect(px + 5, py + 12, 17, 10);
+    scene.worldLayer.fillStyle(darkenColor(0xe0d1b0, brightness));
+    scene.worldLayer.fillCircle(px + 13, py + 10, 6);
+  }
+  if (decor === 'iceShrine') {
+    scene.worldLayer.fillStyle(0x90efff, 0.12);
+    scene.worldLayer.fillCircle(px + 13, py + 14, 18);
+    scene.worldLayer.fillStyle(darkenColor(0xa8efff, brightness));
+    scene.worldLayer.fillTriangle(px + 13, py + 3, px + 4, py + 23, px + 22, py + 23);
+  }
+  if (decor === 'crystalGate') {
+    scene.worldLayer.lineStyle(3, darkenColor(0xb85dff, brightness), 0.85);
+    scene.worldLayer.strokeRect(px + 5, py + 5, 16, 18);
+    scene.worldLayer.fillStyle(0xb85dff, 0.13);
+    scene.worldLayer.fillRect(px + 7, py + 7, 12, 14);
+  }
+  if (decor === 'emberVent') {
+    scene.worldLayer.fillStyle(0xff3415, 0.17);
+    scene.worldLayer.fillCircle(px + 13, py + 17, 15);
+    scene.worldLayer.fillStyle(darkenColor(0xff6a1f, brightness));
+    scene.worldLayer.fillEllipse(px + 13, py + 18, 18, 8);
   }
 
-  if (tile.decor === 'blueCrystal') {
-    const pulse = 0.8 + Math.sin(t * 0.005 + x * 0.5 + y) * 0.25;
-    scene.worldLayer.fillStyle(darkenColor(0x55dfff, Math.min(1, brightness * pulse + 0.18)), 0.92);
-    scene.worldLayer.fillTriangle(px + 13, py + 4, px + 7, py + 21, px + 18, py + 21);
-    scene.worldLayer.fillStyle(darkenColor(0xd6fbff, Math.min(1, brightness * pulse + 0.28)), 0.65);
-    scene.worldLayer.fillTriangle(px + 13, py + 6, px + 11, py + 18, px + 15, py + 18);
-  }
-
-  if (tile.decor === 'crystalShard') {
-    scene.worldLayer.fillStyle(darkenColor(0x7de8ff, brightness), 0.75);
-    scene.worldLayer.fillTriangle(px + 6, py + 17, px + 9, py + 9, px + 12, py + 18);
-    scene.worldLayer.fillTriangle(px + 17, py + 19, px + 20, py + 11, px + 23, py + 20);
-  }
-
-  if (tile.decor === 'pebbles') {
+  if (decor === 'pebbles') {
     scene.worldLayer.fillStyle(darkenColor(0x8a725a, brightness), 0.4);
     scene.worldLayer.fillRect(px + 6, py + 18, 3, 2);
     scene.worldLayer.fillRect(px + 15, py + 10, 2, 2);

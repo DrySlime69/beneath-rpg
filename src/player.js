@@ -149,6 +149,16 @@ function mineTargetTile(scene) {
     return;
   }
 
+  if (tile.type === 'largeOreChunk') {
+    const ore = getLargeOreChunkDef(tile.oreId);
+    if (usingHands || getSelectedPickaxeTier(scene) < ore.requiredTier) {
+      setMessage(scene, 'Need a stronger pickaxe to mine ' + ore.name + '.');
+      return;
+    }
+    hitResource(scene, tile, target.x, target.y, ore.inventoryKey, ore.name, ore.edge || ore.color, '+' + ore.yieldAmount + ' ' + ore.name, ore.yieldAmount);
+    return;
+  }
+
   if (tile.type === 'caveWall') setMessage(scene, 'Cave wall is too hard to mine.');
   else setMessage(scene, 'Nothing mineable there.');
 }

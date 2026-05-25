@@ -353,7 +353,7 @@ function loadGameFromSlot(scene, slot) {
   scene.mineLevel = data.mineLevel || 1;
   scene.maxUnlockedMineLevel = data.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS;
   scene.mineReturnPosition = data.mineReturnPosition || scene.mineReturnPosition;
-  scene.inventory = Object.assign({ stone: 0, coal: 0, copperOre: 0, copperBars: 0, wood: 0 }, data.inventory || scene.inventory);
+  scene.inventory = Object.assign({ stone: 0, coal: 0, copperOre: 0, copperBars: 0, wood: 0, ironOre: 0, obsidianOre: 0, goldOre: 0, ebonyOre: 0 }, data.inventory || scene.inventory);
   scene.hotbarItems = sanitizeRemovedItems(data.hotbarItems || scene.hotbarItems);
   scene.backpackItems = sanitizeRemovedItems(data.backpackItems || scene.backpackItems);
   scene.selectedHotbarIndex = data.selectedHotbarIndex || 0;

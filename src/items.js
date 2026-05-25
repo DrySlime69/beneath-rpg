@@ -34,6 +34,26 @@ const ITEMS = {
     source: 'Found by mining wood blocks in the mine.'
   },
 
+  ironOre: {
+    id: 'ironOre', name: 'Iron Ore', category: 'resources', stackable: true, maxAmount: 999,
+    info: 'A strong mid-depth ore. Currently used for testing and future tool tiers.',
+    source: 'Found in large Iron Ore chunks in Bone Hollow, Frostfang Depths, and Crystal Depths.'
+  },
+  obsidianOre: {
+    id: 'obsidianOre', name: 'Obsidian Ore', category: 'resources', stackable: true, maxAmount: 999,
+    info: 'Dark volcanic ore from cold and ember depths. Future heavy gear material.',
+    source: 'Found in large Obsidian Ore chunks in Frostfang Depths, Crystal Depths, and Ember Caverns.'
+  },
+  goldOre: {
+    id: 'goldOre', name: 'Gold Ore', category: 'resources', stackable: true, maxAmount: 999,
+    info: 'Bright valuable ore for future advanced crafting.',
+    source: 'Found in large Gold Ore chunks in Crystal Depths, Ember Caverns, and Ancient Core.'
+  },
+  ebonyOre: {
+    id: 'ebonyOre', name: 'Ebony Ore', category: 'resources', stackable: true, maxAmount: 999,
+    info: 'Rare dark ore from the deepest themed regions.',
+    source: 'Found in large Ebony Ore chunks in Ember Caverns and Ancient Core.'
+  },
 
   stonePickaxe: {
     id: 'stonePickaxe', name: 'Stone Pickaxe', category: 'tools', toolType: 'pickaxe', tier: 2,

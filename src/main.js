@@ -32,7 +32,11 @@ class GameScene extends Phaser.Scene {
       coal: 0,
       copperOre: 0,
       copperBars: 0,
-      wood: 0
+      wood: 0,
+      ironOre: 0,
+      obsidianOre: 0,
+      goldOre: 0,
+      ebonyOre: 0
     };
 
     this.pickaxeTier = 0;

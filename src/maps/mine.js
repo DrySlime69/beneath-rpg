@@ -102,16 +102,32 @@ function addBalancedMineResources(scene, map, biome, level) {
     copperWallSize: 5
   };
 
-  if (biome.id === 'mushroomCaverns') {
-    base.coalPockets += 2;
-    base.woodPockets += 1;
-  } else if (biome.id === 'copperRuins') {
-    base.copperPockets = 10;
-    base.copperWallPockets = 3;
-  } else if (biome.id === 'crystalDepths') {
+  if (biome.id === 'sporeGrotto') {
+    base.coalPockets += 1;
+    base.woodPockets += 2;
+    base.copperPockets += 1;
+  } else if (biome.id === 'boneHollow') {
     base.stonePockets += 2;
     base.coalPockets += 1;
-    base.copperPockets = 7;
+    base.copperPockets = 8;
+  } else if (biome.id === 'frostfangDepths') {
+    base.stonePockets += 2;
+    base.coalPockets += 1;
+    base.copperPockets = 6;
+    base.copperWallPockets = 1;
+  } else if (biome.id === 'crystalDepths') {
+    base.stonePockets += 1;
+    base.coalPockets += 1;
+    base.copperPockets = 6;
+    base.copperWallPockets = 1;
+  } else if (biome.id === 'emberCaverns') {
+    base.coalPockets += 2;
+    base.copperPockets = 5;
+    base.copperWallPockets = 2;
+  } else if (biome.id === 'ancientCore') {
+    base.stonePockets += 1;
+    base.coalPockets += 1;
+    base.copperPockets = 5;
     base.copperWallPockets = 2;
   }
 
@@ -155,7 +171,7 @@ function placeResourcePocketsOnMap(scene, map, type, pocketCount, maxTiles) {
 function normalizeMineResourceDensity(scene, map, level) {
   // Safety cap for both new maps and loaded old saves. Deep maps should not
   // become resource-filled; they should stay close to levels 1-6 density.
-  const resourceTypes = new Set(['stone', 'coal', 'copper', 'copperWall', 'wood']);
+  const resourceTypes = new Set(['stone', 'coal', 'copper', 'copperWall', 'wood', 'largeOreChunk']);
   const resources = [];
   let openishTiles = 0;
 
@@ -188,7 +204,7 @@ function normalizeMineResourceDensity(scene, map, level) {
 
 function addCaveTorches(scene, map, level, forcedSpots = []) {
   const spots = [...forcedSpots];
-  const torchCount = Phaser.Math.Clamp(3 + Math.floor(level / 2), 3, 8);
+  const torchCount = Phaser.Math.Clamp(5 + Math.floor(Math.min(level, 6) / 2), 5, 8);
 
   for (let i = 0; i < torchCount; i++) {
     spots.push({
@@ -219,5 +235,5 @@ function touchesWallForTorch(map, x, y) {
     map[y]?.[x - 1],
     map[y]?.[x + 1]
   ];
-  return neighbors.some(tile => tile && ['caveWall', 'stone', 'coal', 'copper', 'copperWall', 'wood'].includes(tile.type));
+  return neighbors.some(tile => tile && ['caveWall', 'stone', 'coal', 'copper', 'copperWall', 'wood', 'largeOreChunk'].includes(tile.type));
 }
