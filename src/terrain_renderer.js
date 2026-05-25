@@ -1,5 +1,4 @@
 // Layered terrain renderer.
-// Spore Grotto uses extracted reference-sheet room plates and prop sprites for a more cohesive tilemap-art look.
 // Keeps mining/collision tile based, but renders Spore Grotto with larger blended
 // terrain chunks + decals so the floor no longer looks like repeated square tiles.
 
@@ -173,7 +172,7 @@ function addSporeHeroFloorDecals(scene) {
     for (let i = 0; i < 5; i++) {
       const ox = (((h >> (i * 3)) % 13) - 6) * s * 0.42;
       const oy = (((h >> (i * 4 + 1)) % 11) - 5) * s * 0.36;
-      g.fillStyle(i % 2 ? 0x0b241b : accent, i % 2 ? 0.16 : 0.07);
+      g.fillStyle(i % 2 ? 0x0b241b : accent, i % 2 ? 0.34 : 0.15);
       g.fillEllipse(cx + ox, cy + oy, (room.w * (0.30 + i * 0.035)) * s, (room.h * (0.16 + i * 0.025)) * s);
     }
     g.lineStyle(2, accent, 0.13);
@@ -203,7 +202,7 @@ function addSporeRoomFloorPlates(scene) {
     const key = 'spore_room_plate_' + roomType + '_' + (h % 3);
     if (!scene.textures.exists(key)) continue;
     const img = scene.add.image((room.cx + 0.5) * s, (room.cy + 0.5) * s, key);
-    img.setDisplaySize((room.w + 9.5) * s, (room.h + 8.0) * s);
+    img.setDisplaySize((room.w + 7.5) * s, (room.h + 6.5) * s);
     img.setOrigin(0.5);
     img.setAlpha(1.0);
     img.setAngle([0, 0, 0, 180][h % 4]);
@@ -312,7 +311,7 @@ function addSporeWallSetPieces(scene) {
       const img = scene.add.image(x, y, key);
       img.setDisplaySize(s * 3.0, s * 3.0);
       img.setOrigin(0.5);
-      img.setAlpha(0.48);
+      img.setAlpha(0.78);
       img.setDepth(1.95 + y / 100000);
       scene.terrainOverlayLayer.add(img);
     }
@@ -345,7 +344,7 @@ function addSporeFloorDecals(scene) {
       const tile = scene.map[y]?.[x];
       if (!isVisualFloorTile(tile)) continue;
       const h = terrainHash(x, y, (scene.mineLevel || 1) + 77);
-      if (h % 100 > 18) continue;
+      if (h % 100 > 34) continue;
       const key = 'spore_floor_decal_' + (h % 10);
       const dx = ((h >> 3) % 11) - 5;
       const dy = ((h >> 7) % 11) - 5;
@@ -353,7 +352,7 @@ function addSporeFloorDecals(scene) {
       const scale = 1.25 + ((h % 7) * 0.09);
       img.setDisplaySize(s * scale, s * scale);
       img.setOrigin(0.5);
-      img.setAlpha(0.38);
+      img.setAlpha(0.78);
       img.setAngle([0, 90, 180, 270][(h >> 2) % 4]);
       scene.terrainDecalLayer.add(img);
     }
