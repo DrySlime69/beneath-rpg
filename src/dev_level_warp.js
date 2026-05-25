@@ -4,7 +4,7 @@ function setupDevLevelWarp(scene) {
   scene.closeDevLevelWarpButton = document.getElementById('closeDevLevelWarp');
 
   if (scene.devLevelWarpGrid && scene.devLevelWarpGrid.children.length === 0) {
-    for (let level = 1; level <= 100; level++) {
+    for (let level = 1; level <= 60; level++) {
       const button = document.createElement('button');
       button.className = 'devLevelButton';
       button.textContent = String(level);
@@ -78,7 +78,7 @@ function refreshDevLevelWarpButtons(scene) {
 
 function warpToMineLevel(scene, level) {
   closeDevLevelWarp(scene);
-  const targetLevel = Phaser.Math.Clamp(Number(level) || 1, 1, 100);
+  const targetLevel = Phaser.Math.Clamp(Number(level) || 1, 1, 60);
   scene.maxUnlockedMineLevel = Math.max(scene.maxUnlockedMineLevel || 1, targetLevel);
   switchToMine(scene, targetLevel);
   scene.player.x = 3.5 * scene.tileSize;

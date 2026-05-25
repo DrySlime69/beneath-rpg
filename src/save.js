@@ -285,11 +285,21 @@ function serializeMap(map) {
     decor: tile.decor,
     wallDecor: tile.wallDecor,
     oreId: tile.oreId,
-    poi: tile.poi
+    poi: tile.poi,
+    roomId: tile.roomId,
+    roomType: tile.roomType,
+    corridor: tile.corridor,
+    landmark: tile.landmark
   })));
   rows.biomeId = map.biomeId;
   rows.biomeName = map.biomeName;
   rows.visualDecorVersion = map.visualDecorVersion || 0;
+  rows.generationMode = map.generationMode || '';
+  rows.generationVersion = map.generationVersion || 0;
+  rows.maxMineLevel = map.maxMineLevel || (typeof MINE_MAX_LEVEL !== 'undefined' ? MINE_MAX_LEVEL : 60);
+  rows.rooms = Array.isArray(map.rooms) ? map.rooms : [];
+  rows.connections = Array.isArray(map.connections) ? map.connections : [];
+  rows.landmarks = Array.isArray(map.landmarks) ? map.landmarks : [];
   return rows;
 }
 
@@ -400,6 +410,12 @@ function deserializeMap(map) {
   rows.biomeId = map.biomeId;
   rows.biomeName = map.biomeName;
   rows.visualDecorVersion = map.visualDecorVersion || 0;
+  rows.generationMode = map.generationMode || '';
+  rows.generationVersion = map.generationVersion || 0;
+  rows.maxMineLevel = map.maxMineLevel || (typeof MINE_MAX_LEVEL !== 'undefined' ? MINE_MAX_LEVEL : 60);
+  rows.rooms = Array.isArray(map.rooms) ? map.rooms : [];
+  rows.connections = Array.isArray(map.connections) ? map.connections : [];
+  rows.landmarks = Array.isArray(map.landmarks) ? map.landmarks : [];
   return rows;
 }
 

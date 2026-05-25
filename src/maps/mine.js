@@ -3,6 +3,10 @@ const FIRST_LOCKED_MINE_LEVEL = 6;
 const STARTING_UNLOCKED_MINE_LEVELS = 5;
 
 function createMineMap(scene, level = 1) {
+  if (typeof createRoomBasedMineMap === 'function') {
+    return createRoomBasedMineMap(scene, level);
+  }
+
   const biome = getBiomeForLevel(level);
   const map = createEmptyMap(scene, scene.mapWidth, scene.mapHeight);
   applyBiomeToMap(map, biome);
