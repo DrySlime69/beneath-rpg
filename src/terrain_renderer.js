@@ -26,11 +26,12 @@ function preloadTerrainAssets(scene) {
 }
 
 function setupTerrainRenderer(scene) {
-  scene.terrainChunkLayer = scene.add.container(0, 0).setDepth(1.08);
-  scene.terrainFloorLayer = scene.add.container(0, 0).setDepth(1.15);
-  scene.terrainWallLayer = scene.add.container(0, 0).setDepth(1.28);
-  scene.terrainDecalLayer = scene.add.container(0, 0).setDepth(1.34);
-  scene.terrainOverlayLayer = scene.add.container(0, 0).setDepth(1.42);
+  scene.terrainBackdropLayer = scene.add.container(0, 0).setDepth(1.03);
+  scene.terrainChunkLayer = scene.add.container(0, 0).setDepth(1.10);
+  scene.terrainFloorLayer = scene.add.container(0, 0).setDepth(1.18);
+  scene.terrainWallLayer = scene.add.container(0, 0).setDepth(1.32);
+  scene.terrainDecalLayer = scene.add.container(0, 0).setDepth(1.45);
+  scene.terrainOverlayLayer = scene.add.container(0, 0).setDepth(1.62);
   scene.terrainSpriteSignature = '';
   scene.terrainSpritesEnabled = true;
 }
@@ -63,6 +64,7 @@ function refreshTerrainSprites(scene, force = false) {
   const signature = getTerrainSpriteSignature(scene);
   if (!force && signature === scene.terrainSpriteSignature) return;
 
+  if (scene.terrainBackdropLayer) scene.terrainBackdropLayer.removeAll(true);
   if (scene.terrainChunkLayer) scene.terrainChunkLayer.removeAll(true);
   scene.terrainFloorLayer.removeAll(true);
   scene.terrainWallLayer.removeAll(true);
@@ -72,9 +74,10 @@ function refreshTerrainSprites(scene, force = false) {
 
   if (!isSporeTerrainScene(scene)) return;
 
+  addSporePaintedRoomBackdrops(scene);
   addSporeRoomFloorPlates(scene);
   addSporeCorridorBlends(scene);
-  addSporeTerrainChunks(scene);
+  addSporeHeroFloorDecals(scene);
   addSporeFloorDecals(scene);
 
   for (let y = 0; y < scene.mapHeight; y++) {
@@ -122,6 +125,65 @@ function normalizeSporeRoomType(type) {
   return allowed.includes(type) ? type : 'quietChamber';
 }
 
+
+function addSporePaintedRoomBackdrops(scene) {
+  if (!scene.map?.rooms || !scene.terrainBackdropLayer) return;
+  const s = scene.tileSize;
+  for (const room of scene.map.rooms) {
+    const cx = (room.cx + 0.5) * s;
+    const cy = (room.cy + 0.5) * s;
+    const g = scene.add.graphics();
+    // Heavy vignette shell: this hides square room boundaries and frames the room
+    // like a painted cave illustration.
+    g.fillStyle(0x000000, 0.58);
+    g.fillEllipse(cx, cy, (room.w + 10.5) * s, (room.h + 9.5) * s);
+    g.fillStyle(0x04110d, 0.92);
+    g.fillEllipse(cx, cy, (room.w + 7.8) * s, (room.h + 6.8) * s);
+    g.fillStyle(0x153827, 0.74);
+    g.fillEllipse(cx, cy, (room.w + 5.9) * s, (room.h + 5.0) * s);
+    g.fillStyle(0x75e493, 0.10);
+    g.fillEllipse(cx, cy, (room.w + 3.4) * s, (room.h + 2.6) * s);
+    g.setDepth(1.031);
+    scene.terrainBackdropLayer.add(g);
+  }
+}
+
+function addSporeHeroFloorDecals(scene) {
+  if (!scene.map?.rooms || !scene.terrainDecalLayer) return;
+  const s = scene.tileSize;
+  for (const room of scene.map.rooms) {
+    const h = terrainHash(room.cx || 0, room.cy || 0, (room.id || 0) + 910);
+    const cx = (room.cx + 0.5) * s;
+    const cy = (room.cy + 0.5) * s;
+    const g = scene.add.graphics();
+    const roomType = normalizeSporeRoomType(room.type);
+    const accent = roomType === 'floodedGrotto' ? 0x51e9e5 :
+      roomType === 'fungalNest' ? 0xff78c8 :
+      roomType === 'sporePit' ? 0x77ffd2 :
+      roomType === 'rootCavern' ? 0xb49052 : 0x91ff8f;
+    // A few large, obvious painted shapes per room. These are intentionally
+    // room-scale, not tile-scale, so the floor stops reading as a repeated grid.
+    for (let i = 0; i < 5; i++) {
+      const ox = (((h >> (i * 3)) % 13) - 6) * s * 0.42;
+      const oy = (((h >> (i * 4 + 1)) % 11) - 5) * s * 0.36;
+      g.fillStyle(i % 2 ? 0x0b241b : accent, i % 2 ? 0.34 : 0.15);
+      g.fillEllipse(cx + ox, cy + oy, (room.w * (0.30 + i * 0.035)) * s, (room.h * (0.16 + i * 0.025)) * s);
+    }
+    g.lineStyle(2, accent, 0.13);
+    for (let i = 0; i < 7; i++) {
+      const y = cy + (((h >> (i * 2)) % 11) - 5) * s * 0.22;
+      g.beginPath();
+      g.moveTo(cx - room.w * s * 0.38, y);
+      g.lineTo(cx - room.w * s * 0.12, y + (((h >> i) % 5) - 2) * s * 0.16);
+      g.lineTo(cx + room.w * s * 0.16, y + (((h >> (i+2)) % 5) - 2) * s * 0.16);
+      g.lineTo(cx + room.w * s * 0.38, y + (((h >> (i+4)) % 5) - 2) * s * 0.16);
+      g.strokePath();
+    }
+    g.setDepth(1.46);
+    scene.terrainDecalLayer.add(g);
+  }
+}
+
 function addSporeRoomFloorPlates(scene) {
   if (!scene.map?.rooms || !scene.map.rooms.length || !scene.terrainChunkLayer) return;
   const s = scene.tileSize;
@@ -134,21 +196,19 @@ function addSporeRoomFloorPlates(scene) {
     const key = 'spore_room_plate_' + roomType + '_' + (h % 3);
     if (!scene.textures.exists(key)) continue;
     const img = scene.add.image((room.cx + 0.5) * s, (room.cy + 0.5) * s, key);
-    img.setDisplaySize((room.w + 4.4) * s, (room.h + 4.2) * s);
+    img.setDisplaySize((room.w + 7.5) * s, (room.h + 6.5) * s);
     img.setOrigin(0.5);
-    img.setAlpha(0.96);
+    img.setAlpha(1.0);
     img.setAngle([0, 0, 0, 180][h % 4]);
     img.setDepth(1.04);
     scene.terrainChunkLayer.add(img);
 
-    // Add a soft darker rim around rooms, which makes the center feel painted
-    // instead of evenly tiled.
     const rim = scene.add.graphics();
-    rim.fillStyle(0x09140f, 0.16);
-    rim.fillEllipse((room.cx + 0.5) * s, (room.cy + 0.5) * s, (room.w + 5.2) * s, (room.h + 4.8) * s);
-    rim.fillStyle(0x66d26d, 0.055);
-    rim.fillEllipse((room.cx + 0.5) * s, (room.cy + 0.5) * s, (room.w + 2.1) * s, (room.h + 1.7) * s);
-    rim.setDepth(1.035);
+    rim.fillStyle(0x000000, 0.34);
+    rim.fillEllipse((room.cx + 0.5) * s, (room.cy + 0.5) * s, (room.w + 8.8) * s, (room.h + 7.9) * s);
+    rim.fillStyle(0x7dff9c, 0.11);
+    rim.fillEllipse((room.cx + 0.5) * s, (room.cy + 0.5) * s, (room.w + 2.9) * s, (room.h + 2.4) * s);
+    rim.setDepth(1.09);
     scene.terrainChunkLayer.add(rim);
   }
 }
@@ -170,9 +230,9 @@ function addSporeCorridorBlends(scene) {
     const key = 'spore_corridor_blend_' + (h % 4);
     if (!scene.textures.exists(key)) continue;
     const img = scene.add.image(midX, midY, key);
-    img.setDisplaySize(len * 0.95, s * 3.0);
+    img.setDisplaySize(len * 1.12, s * 4.45);
     img.setOrigin(0.5);
-    img.setAlpha(0.70);
+    img.setAlpha(0.98);
     img.setAngle(Math.atan2(dy, dx) * 180 / Math.PI);
     img.setDepth(1.045);
     scene.terrainChunkLayer.add(img);
@@ -205,7 +265,7 @@ function addSporeFloorDecals(scene) {
       const tile = scene.map[y]?.[x];
       if (!isVisualFloorTile(tile)) continue;
       const h = terrainHash(x, y, (scene.mineLevel || 1) + 77);
-      if (h % 100 > 18) continue;
+      if (h % 100 > 34) continue;
       const key = 'spore_floor_decal_' + (h % 10);
       const dx = ((h >> 3) % 11) - 5;
       const dy = ((h >> 7) % 11) - 5;
@@ -213,7 +273,7 @@ function addSporeFloorDecals(scene) {
       const scale = 1.25 + ((h % 7) * 0.09);
       img.setDisplaySize(s * scale, s * scale);
       img.setOrigin(0.5);
-      img.setAlpha(0.55);
+      img.setAlpha(0.78);
       img.setAngle([0, 90, 180, 270][(h >> 2) % 4]);
       scene.terrainDecalLayer.add(img);
     }

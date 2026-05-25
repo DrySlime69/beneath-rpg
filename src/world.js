@@ -875,11 +875,19 @@ function redraw(scene) {
       const color = darkenColor(getTileBaseColor(tile), brightness);
 
       const useSpriteTerrain = typeof isSporeTerrainScene === 'function' && isSporeTerrainScene(scene) && (isWalkableTile(tile) || isWallLike(tile));
-      scene.worldLayer.fillStyle(useSpriteTerrain ? darkenColor(color, 0.55) : color);
-      scene.worldLayer.fillRect(x * scene.tileSize, y * scene.tileSize, scene.tileSize, scene.tileSize);
-      if (!useSpriteTerrain || tile.type !== 'caveWall') {
-        drawTileDetails(scene, tile, x, y, brightness);
-      } else if (tile.type === 'largeOreChunk' || tile.decor || tile.wallDecor || tile.type === 'torch' || tile.type === 'exitUp' || tile.type === 'exitDown') {
+      if (useSpriteTerrain) {
+        // Spore Grotto now uses a painted-room renderer. Keep a single dark
+        // underpaint for collision/mining tiles, but do not draw per-tile floor
+        // colors/details that make the cave read as a square grid.
+        const underpaint = isWalkableTile(tile) ? 0x06110f : 0x020806;
+        scene.worldLayer.fillStyle(underpaint, 1);
+        scene.worldLayer.fillRect(x * scene.tileSize, y * scene.tileSize, scene.tileSize, scene.tileSize);
+        if (tile.type === 'largeOreChunk' || tile.decor || tile.wallDecor || tile.type === 'torch' || tile.type === 'exitUp' || tile.type === 'exitDown') {
+          drawTileDetails(scene, tile, x, y, Math.max(brightness, 0.72));
+        }
+      } else {
+        scene.worldLayer.fillStyle(color);
+        scene.worldLayer.fillRect(x * scene.tileSize, y * scene.tileSize, scene.tileSize, scene.tileSize);
         drawTileDetails(scene, tile, x, y, brightness);
       }
     }
