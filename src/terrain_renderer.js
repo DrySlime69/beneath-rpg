@@ -8,7 +8,14 @@ const SPORE_TERRAIN_ASSETS = [
   'shadow_top','shadow_bottom','shadow_left','shadow_right',
   'floor_chunk_0','floor_chunk_1','floor_chunk_2','floor_chunk_3','floor_chunk_4','floor_chunk_5','floor_chunk_6','floor_chunk_7',
   'floor_decal_0','floor_decal_1','floor_decal_2','floor_decal_3','floor_decal_4','floor_decal_5','floor_decal_6','floor_decal_7','floor_decal_8','floor_decal_9',
-  'wall_shadow_blob_0','wall_shadow_blob_1','wall_shadow_blob_2','wall_shadow_blob_3'
+  'wall_shadow_blob_0','wall_shadow_blob_1','wall_shadow_blob_2','wall_shadow_blob_3',
+  'corridor_blend_0','corridor_blend_1','corridor_blend_2','corridor_blend_3',
+  'room_plate_mushroomGrove_0','room_plate_mushroomGrove_1','room_plate_mushroomGrove_2',
+  'room_plate_sporePit_0','room_plate_sporePit_1','room_plate_sporePit_2',
+  'room_plate_rootCavern_0','room_plate_rootCavern_1','room_plate_rootCavern_2',
+  'room_plate_fungalNest_0','room_plate_fungalNest_1','room_plate_fungalNest_2',
+  'room_plate_quietChamber_0','room_plate_quietChamber_1','room_plate_quietChamber_2',
+  'room_plate_floodedGrotto_0','room_plate_floodedGrotto_1','room_plate_floodedGrotto_2'
 ];
 
 function preloadTerrainAssets(scene) {
@@ -65,6 +72,8 @@ function refreshTerrainSprites(scene, force = false) {
 
   if (!isSporeTerrainScene(scene)) return;
 
+  addSporeRoomFloorPlates(scene);
+  addSporeCorridorBlends(scene);
   addSporeTerrainChunks(scene);
   addSporeFloorDecals(scene);
 
@@ -105,6 +114,69 @@ function countVisualFloors(scene, startX, startY, width, height) {
     }
   }
   return count;
+}
+
+
+function normalizeSporeRoomType(type) {
+  const allowed = ['mushroomGrove', 'sporePit', 'rootCavern', 'fungalNest', 'quietChamber', 'floodedGrotto'];
+  return allowed.includes(type) ? type : 'quietChamber';
+}
+
+function addSporeRoomFloorPlates(scene) {
+  if (!scene.map?.rooms || !scene.map.rooms.length || !scene.terrainChunkLayer) return;
+  const s = scene.tileSize;
+  for (const room of scene.map.rooms) {
+    if (!room || room.role === 'entrance' || room.role === 'exit') {
+      // Entrance/exit still get a subtle foundation so they blend with the cave.
+    }
+    const roomType = normalizeSporeRoomType(room.type);
+    const h = terrainHash(room.cx || room.x || 0, room.cy || room.y || 0, room.id || 0);
+    const key = 'spore_room_plate_' + roomType + '_' + (h % 3);
+    if (!scene.textures.exists(key)) continue;
+    const img = scene.add.image((room.cx + 0.5) * s, (room.cy + 0.5) * s, key);
+    img.setDisplaySize((room.w + 4.4) * s, (room.h + 4.2) * s);
+    img.setOrigin(0.5);
+    img.setAlpha(0.96);
+    img.setAngle([0, 0, 0, 180][h % 4]);
+    img.setDepth(1.04);
+    scene.terrainChunkLayer.add(img);
+
+    // Add a soft darker rim around rooms, which makes the center feel painted
+    // instead of evenly tiled.
+    const rim = scene.add.graphics();
+    rim.fillStyle(0x09140f, 0.16);
+    rim.fillEllipse((room.cx + 0.5) * s, (room.cy + 0.5) * s, (room.w + 5.2) * s, (room.h + 4.8) * s);
+    rim.fillStyle(0x66d26d, 0.055);
+    rim.fillEllipse((room.cx + 0.5) * s, (room.cy + 0.5) * s, (room.w + 2.1) * s, (room.h + 1.7) * s);
+    rim.setDepth(1.035);
+    scene.terrainChunkLayer.add(rim);
+  }
+}
+
+function addSporeCorridorBlends(scene) {
+  if (!scene.map?.connections || !scene.map?.rooms || !scene.terrainChunkLayer) return;
+  const s = scene.tileSize;
+  const roomsById = new Map(scene.map.rooms.map(room => [room.id, room]));
+  for (const link of scene.map.connections) {
+    const a = roomsById.get(link.from);
+    const b = roomsById.get(link.to);
+    if (!a || !b) continue;
+    const midX = ((a.cx + b.cx) / 2 + 0.5) * s;
+    const midY = ((a.cy + b.cy) / 2 + 0.5) * s;
+    const dx = (b.cx - a.cx) * s;
+    const dy = (b.cy - a.cy) * s;
+    const len = Math.max(s * 3, Math.sqrt(dx * dx + dy * dy));
+    const h = terrainHash(a.id || 0, b.id || 0, scene.mineLevel || 1);
+    const key = 'spore_corridor_blend_' + (h % 4);
+    if (!scene.textures.exists(key)) continue;
+    const img = scene.add.image(midX, midY, key);
+    img.setDisplaySize(len * 0.95, s * 3.0);
+    img.setOrigin(0.5);
+    img.setAlpha(0.70);
+    img.setAngle(Math.atan2(dy, dx) * 180 / Math.PI);
+    img.setDepth(1.045);
+    scene.terrainChunkLayer.add(img);
+  }
 }
 
 function addSporeTerrainChunks(scene) {
