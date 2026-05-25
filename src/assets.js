@@ -76,8 +76,12 @@ function addAssetSpritesForTile(scene, tile, x, y) {
   const s = scene.tileSize;
 
   if (tile.type === 'largeOreChunk') {
+    // A large ore cluster is made of several mineable tiles, but only the
+    // anchor tile gets the visible sprite. Otherwise the same ore art repeats
+    // on every chunk tile and turns into a noisy pile.
+    if (!tile.chunkAnchor) return;
     const key = 'ore_' + (tile.oreId || 'stone');
-    addBiomeSprite(scene, key, centerX, centerY + 1, s * 1.55, s * 1.55, 0.98, x, y);
+    addBiomeSprite(scene, key, centerX, centerY + 2, s * 1.8, s * 1.8, 0.98, x, y);
   }
 
   if (tile.wallDecor) {

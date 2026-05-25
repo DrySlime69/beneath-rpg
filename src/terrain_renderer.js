@@ -1,6 +1,7 @@
 // Layered terrain renderer.
-// Keeps mining/collision tile based, but renders Spore Grotto with larger blended
-// terrain chunks + decals so the floor no longer looks like repeated square tiles.
+// Disciplined layered terrain renderer.
+// IMPORTANT: no giant room-painting overlays. Gameplay stays tile based and
+// visuals are composed from consistent-scale modular tiles/props.
 
 const SPORE_TERRAIN_ASSETS = [
   'floor_0','floor_1','floor_2','floor_3','floor_4','floor_5','floor_6','floor_7',
@@ -78,10 +79,10 @@ function refreshTerrainSprites(scene, force = false) {
 
   if (!isSporeTerrainScene(scene)) return;
 
-  addSporePaintedRoomBackdrops(scene);
-  addSporeRoomFloorPlates(scene);
-  addSporeCorridorBlends(scene);
-  addSporeHeroFloorDecals(scene);
+  // Render in strict order. Avoid room-sized images: they caused the visual
+  // corruption/overlap shown in testing.
+  addSporeSoftRoomGroundTint(scene);
+  addSporeTerrainChunks(scene);
   addSporeFloorDecals(scene);
   addSporeRoomSetPieces(scene);
   addSporeWallSetPieces(scene);
@@ -132,6 +133,29 @@ function normalizeSporeRoomType(type) {
 }
 
 
+
+function addSporeSoftRoomGroundTint(scene) {
+  if (!scene.map?.rooms || !scene.terrainBackdropLayer) return;
+  const s = scene.tileSize;
+  for (const room of scene.map.rooms) {
+    const cx = (room.cx + 0.5) * s;
+    const cy = (room.cy + 0.5) * s;
+    const g = scene.add.graphics();
+    const type = normalizeSporeRoomType(room.type);
+    const accent = type === 'floodedGrotto' ? 0x1fa9a0 :
+      type === 'fungalNest' ? 0x6c4778 :
+      type === 'sporePit' ? 0x2f9a65 :
+      type === 'rootCavern' ? 0x5d4b2e : 0x3d6b35;
+    // Subtle room-sized tint only. This is drawn behind tiles and cannot cover gameplay.
+    g.fillStyle(0x000000, 0.18);
+    g.fillEllipse(cx, cy, (room.w + 3) * s, (room.h + 3) * s);
+    g.fillStyle(accent, 0.16);
+    g.fillEllipse(cx, cy, (room.w + 1.5) * s, (room.h + 1.2) * s);
+    g.setDepth(1.031);
+    scene.terrainBackdropLayer.add(g);
+  }
+}
+
 function addSporePaintedRoomBackdrops(scene) {
   if (!scene.map?.rooms || !scene.terrainBackdropLayer) return;
   const s = scene.tileSize;
@@ -172,7 +196,7 @@ function addSporeHeroFloorDecals(scene) {
     for (let i = 0; i < 5; i++) {
       const ox = (((h >> (i * 3)) % 13) - 6) * s * 0.42;
       const oy = (((h >> (i * 4 + 1)) % 11) - 5) * s * 0.36;
-      g.fillStyle(i % 2 ? 0x0b241b : accent, i % 2 ? 0.34 : 0.15);
+      g.fillStyle(i % 2 ? 0x0b241b : accent, i % 2 ? 0.16 : 0.07);
       g.fillEllipse(cx + ox, cy + oy, (room.w * (0.30 + i * 0.035)) * s, (room.h * (0.16 + i * 0.025)) * s);
     }
     g.lineStyle(2, accent, 0.13);
@@ -202,7 +226,7 @@ function addSporeRoomFloorPlates(scene) {
     const key = 'spore_room_plate_' + roomType + '_' + (h % 3);
     if (!scene.textures.exists(key)) continue;
     const img = scene.add.image((room.cx + 0.5) * s, (room.cy + 0.5) * s, key);
-    img.setDisplaySize((room.w + 7.5) * s, (room.h + 6.5) * s);
+    img.setDisplaySize((room.w + 9.5) * s, (room.h + 8.0) * s);
     img.setOrigin(0.5);
     img.setAlpha(1.0);
     img.setAngle([0, 0, 0, 180][h % 4]);
@@ -255,28 +279,23 @@ function addSporeRoomSetPieces(scene) {
     const cx = (room.cx + 0.5) * s;
     const cy = (room.cy + 0.5) * s;
 
+    // Controlled, consistent tile scale. These are decorative accents, not
+    // full-room paintings. Keep them mostly at room edges so paths stay readable.
     const placements = [];
     if (type === 'mushroomGrove') {
-      placements.push(['prop_giant_mushroom_' + (h % 3), cx - room.w * s * 0.20, cy - room.h * s * 0.05, s * 4.3, s * 5.6, 1]);
-      placements.push(['prop_mushroom_cluster_' + ((h >> 3) % 3), cx + room.w * s * 0.22, cy + room.h * s * 0.22, s * 3.1, s * 2.6, 1]);
-      placements.push(['prop_spore_bulbs', cx + room.w * s * 0.05, cy - room.h * s * 0.28, s * 2.4, s * 2.4, 0.95]);
-    } else if (type === 'sporePit') {
-      placements.push(['prop_spore_pool', cx, cy + room.h * s * 0.10, s * 5.2, s * 3.1, 1]);
-      placements.push(['prop_spore_bulbs', cx - room.w * s * 0.28, cy - room.h * s * 0.18, s * 2.5, s * 2.5, 0.95]);
-      placements.push(['prop_mushroom_cluster_' + (h % 3), cx + room.w * s * 0.30, cy + room.h * s * 0.16, s * 2.7, s * 2.1, 0.95]);
+      placements.push(['prop_giant_mushroom_' + (h % 3), cx - room.w * s * 0.25, cy + room.h * s * 0.20, s * 1.7, s * 2.15, 0.95]);
+      placements.push(['prop_mushroom_cluster_' + ((h >> 3) % 3), cx + room.w * s * 0.25, cy + room.h * s * 0.22, s * 1.35, s * 1.15, 0.9]);
+    } else if (type === 'sporePit' || type === 'floodedGrotto') {
+      placements.push(['prop_spore_pool', cx, cy + room.h * s * 0.22, s * 2.25, s * 1.35, 0.72]);
+      placements.push(['prop_spore_bulbs', cx - room.w * s * 0.28, cy - room.h * s * 0.12, s * 1.1, s * 1.1, 0.8]);
     } else if (type === 'rootCavern') {
-      placements.push(['prop_root_curtain', cx - room.w * s * 0.22, cy - room.h * s * 0.16, s * 4.4, s * 3.8, 0.96]);
-      placements.push(['prop_giant_mushroom_' + ((h >> 2) % 3), cx + room.w * s * 0.24, cy + room.h * s * 0.10, s * 3.3, s * 4.3, 0.92]);
+      placements.push(['prop_root_curtain', cx - room.w * s * 0.25, cy - room.h * s * 0.20, s * 1.8, s * 1.55, 0.72]);
+      placements.push(['prop_mushroom_cluster_' + (h % 3), cx + room.w * s * 0.28, cy + room.h * s * 0.18, s * 1.25, s * 1.05, 0.85]);
     } else if (type === 'fungalNest') {
-      placements.push(['prop_fungal_nest', cx, cy + room.h * s * 0.05, s * 5.1, s * 3.8, 1]);
-      placements.push(['prop_mushroom_cluster_' + (h % 3), cx - room.w * s * 0.30, cy + room.h * s * 0.22, s * 2.9, s * 2.4, 0.95]);
-      placements.push(['prop_mushroom_cluster_' + ((h >> 4) % 3), cx + room.w * s * 0.30, cy + room.h * s * 0.22, s * 2.9, s * 2.4, 0.95]);
-    } else if (type === 'floodedGrotto') {
-      placements.push(['prop_spore_pool', cx - room.w * s * 0.12, cy + room.h * s * 0.12, s * 5.8, s * 3.4, 1]);
-      placements.push(['prop_giant_mushroom_' + ((h >> 5) % 3), cx + room.w * s * 0.30, cy - room.h * s * 0.06, s * 3.2, s * 4.2, 0.9]);
+      placements.push(['prop_fungal_nest', cx, cy + room.h * s * 0.23, s * 2.1, s * 1.55, 0.82]);
+      placements.push(['prop_mushroom_cluster_' + (h % 3), cx - room.w * s * 0.30, cy + room.h * s * 0.18, s * 1.15, s * 0.95, 0.85]);
     } else {
-      placements.push(['prop_mushroom_cluster_' + (h % 3), cx - room.w * s * 0.24, cy + room.h * s * 0.18, s * 2.9, s * 2.4, 0.9]);
-      if (h % 2 === 0) placements.push(['prop_spore_bulbs', cx + room.w * s * 0.22, cy - room.h * s * 0.18, s * 2.1, s * 2.1, 0.82]);
+      placements.push(['prop_mushroom_cluster_' + (h % 3), cx - room.w * s * 0.24, cy + room.h * s * 0.18, s * 1.15, s * 0.95, 0.75]);
     }
 
     for (const [key, x, y, w, ht, alpha] of placements) {
@@ -311,7 +330,7 @@ function addSporeWallSetPieces(scene) {
       const img = scene.add.image(x, y, key);
       img.setDisplaySize(s * 3.0, s * 3.0);
       img.setOrigin(0.5);
-      img.setAlpha(0.78);
+      img.setAlpha(0.48);
       img.setDepth(1.95 + y / 100000);
       scene.terrainOverlayLayer.add(img);
     }
@@ -321,16 +340,16 @@ function addSporeWallSetPieces(scene) {
 function addSporeTerrainChunks(scene) {
   const s = scene.tileSize;
   // Large overlapping chunks hide the 1-tile grid while collision/mining stays tile based.
-  for (let y = -1; y < scene.mapHeight; y += 3) {
-    for (let x = -1; x < scene.mapWidth; x += 3) {
+  for (let y = 0; y < scene.mapHeight; y += 4) {
+    for (let x = 0; x < scene.mapWidth; x += 4) {
       const floorCount = countVisualFloors(scene, x, y, 5, 5);
       if (floorCount < 7) continue;
       const h = terrainHash(x, y, scene.mineLevel || 1);
       const key = 'spore_floor_chunk_' + (h % 8);
       const img = scene.add.image((x + 2.5) * s, (y + 2.5) * s, key);
-      img.setDisplaySize(s * 5.15, s * 5.15);
+      img.setDisplaySize(s * 3.2, s * 3.2);
       img.setOrigin(0.5);
-      img.setAlpha(0.88 + ((h % 9) / 100));
+      img.setAlpha(0.42 + ((h % 6) / 100));
       img.setAngle([0, 90, 180, 270][h % 4]);
       scene.terrainChunkLayer.add(img);
     }
@@ -344,15 +363,15 @@ function addSporeFloorDecals(scene) {
       const tile = scene.map[y]?.[x];
       if (!isVisualFloorTile(tile)) continue;
       const h = terrainHash(x, y, (scene.mineLevel || 1) + 77);
-      if (h % 100 > 34) continue;
+      if (h % 100 > 18) continue;
       const key = 'spore_floor_decal_' + (h % 10);
       const dx = ((h >> 3) % 11) - 5;
       const dy = ((h >> 7) % 11) - 5;
       const img = scene.add.image(x * s + s / 2 + dx, y * s + s / 2 + dy, key);
-      const scale = 1.25 + ((h % 7) * 0.09);
+      const scale = 0.75 + ((h % 7) * 0.05);
       img.setDisplaySize(s * scale, s * scale);
       img.setOrigin(0.5);
-      img.setAlpha(0.78);
+      img.setAlpha(0.32);
       img.setAngle([0, 90, 180, 270][(h >> 2) % 4]);
       scene.terrainDecalLayer.add(img);
     }
@@ -409,9 +428,9 @@ function addSporeWallShadowBlob(scene, x, y) {
   const h = terrainHash(x, y, 203);
   if (h % 100 > 11) return;
   const img = scene.add.image(x * s + s / 2, y * s + s / 2, 'spore_wall_shadow_blob_' + (h % 4));
-  img.setDisplaySize(s * 2.35, s * 2.35);
+  img.setDisplaySize(s * 1.15, s * 1.15);
   img.setOrigin(0.5);
-  img.setAlpha(0.28);
+  img.setAlpha(0.18);
   scene.terrainOverlayLayer.add(img);
 }
 

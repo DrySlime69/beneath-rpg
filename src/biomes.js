@@ -196,7 +196,7 @@ function touchesWalkableTile(map, x, y) {
 }
 
 function addLargeOreChunks(scene, map, biome, level) {
-  const chunkCount = Phaser.Math.Between(7, 11);
+  const chunkCount = Phaser.Math.Between(3, 5);
   for (let i = 0; i < chunkCount; i++) {
     const oreId = Phaser.Utils.Array.GetRandom(biome.oreChunks || ['stone']);
     placeLargeOreChunk(scene, map, oreId);
@@ -223,7 +223,8 @@ function placeLargeOreChunk(scene, map, oreId) {
         hardness: ore.hardness,
         hp: ore.hp,
         maxHp: ore.hp,
-        biome: map.biomeId
+        biome: map.biomeId,
+        chunkAnchor: p.x === cx && p.y === cy
       });
     }
     return true;
