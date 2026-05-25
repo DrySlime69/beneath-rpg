@@ -422,7 +422,16 @@ function deserializeMap(map) {
 function ensureBiomeDataOnLoadedMaps(scene) {
   Object.keys(scene.mineMaps || {}).forEach(levelKey => {
     const level = Number(levelKey);
-    const map = scene.mineMaps[levelKey];
+    let map = scene.mineMaps[levelKey];
+
+    // Level 1 has been rebooted into a curated Spore Grotto intro map.
+    // Replace old procedural/paint-overlay Level 1 saves so players do not
+    // keep the broken legacy visuals or old mixed resource deposits.
+    if (level === 1 && map?.curatedLevelId !== 'spore_grotto_01' && typeof createMineMap === 'function') {
+      map = createMineMap(scene, 1);
+      scene.mineMaps[levelKey] = map;
+    }
+
     const biome = getBiomeById(map.biomeId) || getBiomeForLevel(level);
     normalizeMineResourceDensity(scene, map, level);
     applyBiomeToMap(map, biome);
