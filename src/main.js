@@ -4,6 +4,10 @@ class GameScene extends Phaser.Scene {
     super('GameScene');
   }
 
+  preload() {
+    if (typeof preloadGameAssets === 'function') preloadGameAssets(this);
+  }
+
   create() {
     window.__beneathActiveScene = this;
     this.tileSize = 26;
@@ -116,6 +120,7 @@ class GameScene extends Phaser.Scene {
     });
 
     this.worldLayer = this.add.graphics().setDepth(1);
+    if (typeof setupAssetSpriteLayer === 'function') setupAssetSpriteLayer(this);
     this.playerLayer = this.add.graphics().setDepth(5);
     this.visualLayer = this.add.graphics().setDepth(7);
     setupVisualEffects(this);
@@ -129,6 +134,7 @@ class GameScene extends Phaser.Scene {
     setupCombat(this);
     setMessage(this, 'Mine Level 1. Empty hotbar slots use Hands. Mine stone and wood, then craft a Stone Pickaxe.');
     updateInventoryUI(this);
+    if (typeof refreshAssetSprites === 'function') refreshAssetSprites(this, true);
     redraw(this);
   }
 

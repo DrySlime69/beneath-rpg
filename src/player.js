@@ -173,6 +173,7 @@ function hitResource(scene, tile, tx, ty, inventoryKey, label, particleColor, su
   if (tile.hp <= 0) {
     scene.inventory[inventoryKey] = (scene.inventory[inventoryKey] || 0) + yieldAmount;
     scene.map[ty][tx] = makeTile(scene.currentMapName === 'home' ? 'homeFloor' : 'floor');
+    if (typeof markAssetSpritesDirty === 'function') markAssetSpritesDirty(scene);
     spawnBreakBurst(scene, tx, ty, particleColor);
     setMessage(scene, successMessage);
   } else {

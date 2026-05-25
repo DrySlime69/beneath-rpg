@@ -48,6 +48,7 @@ function generateMaps(scene) {
   scene.map = scene.mineMaps[scene.mineLevel];
   scene.currentBiomeId = scene.map.biomeId || getBiomeForLevel(scene.mineLevel).id;
   rebuildTorchLights(scene);
+  if (typeof markAssetSpritesDirty === 'function') markAssetSpritesDirty(scene);
 }
 
 function getMineMap(scene, level) {
@@ -62,6 +63,7 @@ function switchToMine(scene, level = scene.mineLevel || 1) {
   scene.currentMapName = 'mine';
   scene.currentBiomeId = scene.map.biomeId || getBiomeForLevel(scene.mineLevel).id;
   rebuildTorchLights(scene);
+  if (typeof markAssetSpritesDirty === 'function') markAssetSpritesDirty(scene);
   setCameraBounds(scene);
 }
 
@@ -69,6 +71,7 @@ function switchToHome(scene) {
   scene.map = scene.homeMap;
   scene.currentMapName = 'home';
   rebuildTorchLights(scene);
+  if (typeof markAssetSpritesDirty === 'function') markAssetSpritesDirty(scene);
   setCameraBounds(scene);
 }
 
@@ -690,6 +693,8 @@ function redraw(scene) {
       drawTileDetails(scene, tile, x, y, brightness);
     }
   }
+
+  if (typeof refreshAssetSprites === 'function') refreshAssetSprites(scene);
 
   if (scene.currentMapName === 'home' && typeof drawHomeStringLightStrands === 'function') {
     drawHomeStringLightStrands(scene);
