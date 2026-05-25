@@ -203,8 +203,7 @@ function tryUseMineExit(scene, tile) {
     }
 
     switchToMine(scene, scene.mineLevel - 1);
-    scene.player.x = (scene.mapWidth - 5.5) * scene.tileSize;
-    scene.player.y = (scene.mapHeight - 4.5) * scene.tileSize;
+    placePlayerAtMineSpawn(scene, 'down');
     setMessage(scene, 'Mine Level ' + scene.mineLevel);
     return;
   }
@@ -220,8 +219,7 @@ function tryUseMineExit(scene, tile) {
 
     scene.maxUnlockedMineLevel = Math.max(scene.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS, targetLevel);
     switchToMine(scene, targetLevel);
-    scene.player.x = 3.5 * scene.tileSize;
-    scene.player.y = 3.5 * scene.tileSize;
+    placePlayerAtMineSpawn(scene, 'up');
     setMessage(scene, 'Mine Level ' + scene.mineLevel);
   }
 }

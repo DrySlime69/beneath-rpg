@@ -81,8 +81,7 @@ function warpToMineLevel(scene, level) {
   const targetLevel = Phaser.Math.Clamp(Number(level) || 1, 1, 60);
   scene.maxUnlockedMineLevel = Math.max(scene.maxUnlockedMineLevel || 1, targetLevel);
   switchToMine(scene, targetLevel);
-  scene.player.x = 3.5 * scene.tileSize;
-  scene.player.y = 3.5 * scene.tileSize;
+  placePlayerAtMineSpawn(scene, 'up');
   scene.mineReturnPosition = { x: scene.player.x, y: scene.player.y, level: targetLevel };
   if (scene.mineEnemies && scene.mineEnemies[targetLevel]) scene.enemies = scene.mineEnemies[targetLevel];
   setMessage(scene, 'Dev warp: Mine Level ' + targetLevel + '.');

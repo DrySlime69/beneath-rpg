@@ -45,10 +45,19 @@ function createRoomBasedMineMap(scene, level = 1) {
 
   addRoomBasedBiomeDecorations(scene, map, biome, clampedLevel, rooms);
 
+  // Resource/decor placement can overwrite the first portal pads, so clear them
+  // again at the very end. This guarantees the player never starts inside a
+  // resource, prop, or wall after entering a generated room level.
+  carveSafePortalPad(scene, map, entranceRoom.cx, entranceRoom.cy, 2);
+  carveSafePortalPad(scene, map, exitRoom.cx, exitRoom.cy, 2);
+
   addCaveTorches(scene, map, clampedLevel, [
     { x: entranceRoom.cx + 1, y: entranceRoom.cy },
     { x: exitRoom.cx - 1, y: exitRoom.cy }
   ]);
+
+  map.entrySpawn = { x: entranceRoom.cx, y: entranceRoom.cy };
+  map.downSpawn = { x: exitRoom.cx, y: exitRoom.cy };
 
   map[entranceRoom.cy][entranceRoom.cx] = makeTile('exitUp', { targetLevel: clampedLevel - 1, roomId: entranceRoom.id });
 

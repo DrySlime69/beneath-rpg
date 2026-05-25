@@ -56,8 +56,72 @@ function getMineMap(scene, level) {
   return scene.mineMaps[level];
 }
 
+
+function isSafeSpawnTile(scene, tx, ty) {
+  if (!scene.map || !scene.map[ty] || !scene.map[ty][tx]) return false;
+  for (let y = ty - 1; y <= ty + 1; y++) {
+    for (let x = tx - 1; x <= tx + 1; x++) {
+      const tile = scene.map[y]?.[x];
+      if (!tile || (typeof isSolidTile === 'function' ? isSolidTile(tile) : !['floor', 'homeFloor', 'teleportPad', 'exit', 'exitUp', 'exitDown', 'torch'].includes(tile.type))) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function findNearestSafeSpawnTile(scene, preferredTx, preferredTy) {
+  const px = Math.floor(preferredTx);
+  const py = Math.floor(preferredTy);
+  for (let radius = 0; radius <= 12; radius++) {
+    for (let y = py - radius; y <= py + radius; y++) {
+      for (let x = px - radius; x <= px + radius; x++) {
+        if (Math.max(Math.abs(x - px), Math.abs(y - py)) !== radius) continue;
+        if (isSafeSpawnTile(scene, x, y)) return { x, y };
+      }
+    }
+  }
+
+  // Final fallback: carve a small safety pad at the preferred point. This only
+  // happens if a loaded/generated map is malformed, and it prevents soft-locks.
+  for (let y = py - 1; y <= py + 1; y++) {
+    for (let x = px - 1; x <= px + 1; x++) {
+      if (scene.map[y]?.[x]) scene.map[y][x] = makeTile('floor');
+    }
+  }
+  return { x: px, y: py };
+}
+
+function getMineSpawnTile(scene, entry = 'up') {
+  const map = scene.map;
+  const stored = entry === 'down' ? map?.downSpawn : map?.entrySpawn;
+  if (stored) return findNearestSafeSpawnTile(scene, stored.x, stored.y);
+
+  const portalType = entry === 'down' ? 'exitDown' : 'exitUp';
+  for (let y = 0; y < scene.mapHeight; y++) {
+    for (let x = 0; x < scene.mapWidth; x++) {
+      if (map?.[y]?.[x]?.type === portalType) return findNearestSafeSpawnTile(scene, x, y);
+    }
+  }
+
+  const fallback = entry === 'down'
+    ? { x: scene.mapWidth - 6, y: scene.mapHeight - 5 }
+    : { x: 6, y: 6 };
+  return findNearestSafeSpawnTile(scene, fallback.x, fallback.y);
+}
+
+function placePlayerAtMineSpawn(scene, entry = 'up') {
+  const tile = getMineSpawnTile(scene, entry);
+  scene.player.x = (tile.x + 0.5) * scene.tileSize;
+  scene.player.y = (tile.y + 0.5) * scene.tileSize;
+  if (scene.followTarget) {
+    scene.followTarget.x = scene.player.x;
+    scene.followTarget.y = scene.player.y;
+  }
+}
+
 function switchToMine(scene, level = scene.mineLevel || 1) {
-  scene.mineLevel = Phaser.Math.Clamp(level, 1, 100);
+  scene.mineLevel = Phaser.Math.Clamp(level, 1, 60);
   scene.map = getMineMap(scene, scene.mineLevel);
   if (typeof ensureBiomeVisualDecor === 'function') ensureBiomeVisualDecor(scene, scene.map, scene.mineLevel);
   scene.currentMapName = 'mine';

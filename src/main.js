@@ -95,6 +95,7 @@ class GameScene extends Phaser.Scene {
     setupDevInventory(this);
     setupDevLevelWarp(this);
     generateMaps(this);
+    if (typeof placePlayerAtMineSpawn === 'function') placePlayerAtMineSpawn(this, 'up');
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keys = this.input.keyboard.addKeys({
