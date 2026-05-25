@@ -60,6 +60,7 @@ function getTerrainSpriteSignature(scene) {
 
 function isSporeTerrainScene(scene) {
   if (!scene || scene.currentMapName !== 'mine') return false;
+  if (scene.map && scene.map.staticAuthoredLevel) return false;
   const biomeId = scene.currentBiomeId || scene.map?.biomeId;
   return biomeId === 'sporeGrotto' || (scene.mineLevel || 1) <= 10;
 }

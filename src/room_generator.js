@@ -88,146 +88,102 @@ function createCuratedSporeLevel1Map(scene) {
   const biome = getBiomeForLevel(1);
   const map = createEmptyMap(scene, scene.mapWidth, scene.mapHeight);
 
-  map.generationMode = 'curatedLevel';
-  map.generationVersion = 100;
-  map.curatedLevelId = 'spore_grotto_01';
+  map.generationMode = 'authoredStaticLevel';
+  map.generationVersion = 200;
+  map.curatedLevelId = 'spore_grotto_01_static';
+  map.staticAuthoredLevel = true;
+  map.staticBackgroundKey = 'level_spore_1_bg';
   map.maxMineLevel = MINE_MAX_LEVEL;
   map.rooms = [];
   map.connections = [];
   map.landmarks = [];
 
-  // Room metadata is used by the existing terrain renderer for organic floor
-  // fields, cave edge silhouettes, and future landmark art.
-  const rooms = [
-    makeRoom(0, 'entrance', 'entryChamber', 3, 8, 9, 7),
-    makeRoom(1, 'standard', 'mushroomGrove', 13, 4, 11, 9),
-    makeRoom(2, 'standard', 'quietChamber', 24, 5, 8, 7),
-    makeRoom(3, 'standard', 'sporePit', 18, 14, 11, 7),
-    makeRoom(4, 'exit', 'descentChamber', 33, 12, 8, 7)
-  ];
-  map.rooms = rooms.map(room => ({ ...room }));
-  map.connections = [
-    { from: 0, to: 1, mainPath: true },
-    { from: 1, to: 2, mainPath: true },
-    { from: 1, to: 3, mainPath: false },
-    { from: 3, to: 4, mainPath: true },
-    { from: 2, to: 4, mainPath: false }
-  ];
-
-  // Hand-authored open layout. Legend:
-  // # = wall/collider, . = walkable floor, U = up portal, D = down portal,
-  // S = stone ore deposit, M/P/R/G = non-blocking Spore decor themes.
-  const layout = [
-    '############################################',
-    '############################################',
-    '#############...........####################',
-    '###########...............##################',
-    '#########.......M....S......####....########',
-    '#######.........................M....#######',
-    '######....S...........M..............#######',
-    '#####...............................########',
-    '###.....U...........#####...........########',
-    '###.................#####......S.....#######',
-    '###........S........#####............#######',
-    '####..................###............#######',
-    '#####.......M....................R....######',
-    '#########..................P..........######',
-    '#############........................D#####',
-    '###############........S..............#####',
-    '#################.............G......######',
-    '##################..................#######',
-    '####################.............##########',
-    '########################....###############',
-    '############################################',
-    '############################################',
-    '############################################',
-    '############################################'
-  ];
-
-  const stoneDeposits = [];
-  const decorSpots = [];
-  let entry = { x: 7, y: 8 };
-  let down = { x: 38, y: 14 };
-
-  for (let y = 0; y < Math.min(scene.mapHeight, layout.length); y++) {
-    const row = layout[y];
-    for (let x = 0; x < Math.min(scene.mapWidth, row.length); x++) {
-      const ch = row[x];
-      if (ch !== '#') {
-        map[y][x] = makeTile('floor', { roomId: findCuratedLevel1RoomId(rooms, x, y) });
-      }
-      if (ch === 'U') entry = { x, y };
-      if (ch === 'D') down = { x, y };
-      if (ch === 'S') stoneDeposits.push({ x, y });
-      if ('MPRG'.includes(ch)) decorSpots.push({ x, y, ch });
+  // New mine direction: Level 1 is an authored scene. The visible cave is a
+  // single background art layer, while this hidden tile grid only controls
+  // collision, portals, enemies, and mineable deposits.
+  for (let y = 0; y < scene.mapHeight; y++) {
+    for (let x = 0; x < scene.mapWidth; x++) {
+      const border = x <= 1 || y <= 1 || x >= scene.mapWidth - 2 || y >= scene.mapHeight - 2;
+      map[y][x] = makeTile(border ? 'caveWall' : 'floor');
     }
   }
 
-  // Smooth and open the authored chambers a little more while preserving the
-  // fixed wall boundaries. This prevents small accidental choke points.
-  for (const room of rooms) {
-    for (let y = room.y + 1; y < room.y + room.h - 1; y++) {
-      for (let x = room.x + 1; x < room.x + room.w - 1; x++) {
-        if (!isInsideMap(scene, x, y, 1)) continue;
-        const nx = (x - room.cx) / Math.max(2, room.w / 2);
-        const ny = (y - room.cy) / Math.max(2, room.h / 2);
-        if (nx * nx + ny * ny < 0.92) {
-          map[y][x] = makeTile('floor', { roomId: room.id, roomType: room.type });
-        }
+  // A few invisible collision islands line up with large background structures.
+  // Keep Level 1 very open: most of the scene is walkable.
+  const blockers = [
+    { x: 36, y: 3, w: 4, h: 3 },   // right arch wall mass
+    { x: 3, y: 4, w: 3, h: 3 },    // left portal wall mass
+    { x: 29, y: 19, w: 3, h: 2 },  // bottom ruin table mass
+    { x: 7, y: 5, w: 2, h: 2 },    // large mushroom base
+    { x: 24, y: 4, w: 2, h: 2 },   // large mushroom base
+    { x: 38, y: 8, w: 2, h: 2 }    // large mushroom base
+  ];
+  for (const b of blockers) {
+    for (let y = b.y; y < b.y + b.h; y++) {
+      for (let x = b.x; x < b.x + b.w; x++) {
+        if (isInsideMap(scene, x, y, 1)) map[y][x] = makeTile('caveWall');
       }
     }
   }
 
-  // Carve wide, deliberate paths between rooms.
-  carveCuratedPath(scene, map, 7, 8, 18, 8, 2);
-  carveCuratedPath(scene, map, 18, 8, 28, 8, 2);
-  carveCuratedPath(scene, map, 18, 8, 22, 16, 2);
-  carveCuratedPath(scene, map, 22, 16, 37, 14, 2);
-  carveCuratedPath(scene, map, 28, 8, 37, 14, 2);
+  // Portals.
+  const entry = { x: 4, y: 5 };
+  const down = { x: 37, y: 5 };
+  carveSafePortalPad(scene, map, entry.x, entry.y, 1);
+  carveSafePortalPad(scene, map, down.x, down.y, 1);
+  map[entry.y][entry.x] = makeTile('exitUp', { targetLevel: 0 });
+  map[down.y][down.x] = makeTile('exitDown', { targetLevel: 2, requiredPickaxeTier: 1 });
 
-  // Portal pads must stay open.
-  carveSafePortalPad(scene, map, entry.x, entry.y, 2);
-  carveSafePortalPad(scene, map, down.x, down.y, 2);
-
-  // Only stone ore deposits exist on Level 1. These are larger-than-one-tile
-  // clusters made of regular stone blocks so the current mining/inventory logic
-  // still works.
+  // Level 1: stone ore only. Use largeOreChunk so it reads like a deposit,
+  // but keep requiredTier 0 so hands can recover stone if needed.
+  const stoneDeposits = [
+    { x: 13, y: 17 },
+    { x: 22, y: 10 },
+    { x: 31, y: 16 },
+    { x: 9, y: 12 },
+    { x: 35, y: 20 }
+  ];
   for (const deposit of stoneDeposits) {
-    placeCuratedStoneDeposit(scene, map, deposit.x, deposit.y);
+    placeCuratedStoneOreChunk(scene, map, deposit.x, deposit.y);
   }
 
-  // Non-blocking decorations give Spore flavor without changing collision.
-  for (const spot of decorSpots) {
-    const tile = map[spot.y]?.[spot.x];
-    if (!tile || tile.type !== 'floor') continue;
-    if (spot.ch === 'M') Object.assign(tile, { decor: 'glowMushroom', poi: true });
-    if (spot.ch === 'P') Object.assign(tile, { decor: 'sporePods', poi: true });
-    if (spot.ch === 'R') Object.assign(tile, { decor: 'fungusPatch' });
-    if (spot.ch === 'G') Object.assign(tile, { decor: 'sporeGarden', poi: true });
-  }
-
-  // Wall decor along visible cave edges.
-  addCuratedSporeWallDecor(scene, map);
-
-  // A few soft torches/glow points for readability.
-  for (const t of [{ x: 8, y: 9 }, { x: 18, y: 6 }, { x: 25, y: 15 }, { x: 36, y: 13 }]) {
-    if (map[t.y]?.[t.x]?.type === 'floor') map[t.y][t.x] = makeTile('torch', { roomId: findCuratedLevel1RoomId(rooms, t.x, t.y) });
-  }
-
-  map.entrySpawn = { x: entry.x, y: entry.y };
+  map.entrySpawn = { x: 8, y: 12 };
   map.downSpawn = { x: down.x, y: down.y };
-  map[entry.y][entry.x] = makeTile('exitUp', { targetLevel: 0, roomId: 0 });
-  map[down.y][down.x] = makeTile('exitDown', { targetLevel: 2, requiredPickaxeTier: 1, roomId: 4 });
-
   map.landmarks.push(
-    { type: 'levelIntro', x: entry.x, y: entry.y, roomId: 0 },
-    { type: 'mushroomGrove', x: 18, y: 7, roomId: 1 },
-    { type: 'sporePit', x: 23, y: 16, roomId: 3 }
+    { type: 'authoredSporeIntro', x: 8, y: 12 },
+    { type: 'stoneDeposit', x: 13, y: 17 },
+    { type: 'stoneDeposit', x: 22, y: 10 },
+    { type: 'stoneDeposit', x: 31, y: 16 }
   );
 
   applyBiomeToMap(map, biome);
-  map.visualDecorVersion = 100;
+  map.visualDecorVersion = 200;
   return map;
+}
+
+function placeCuratedStoneOreChunk(scene, map, cx, cy) {
+  const ore = getLargeOreChunkDef('stone');
+  const points = [
+    { x: cx, y: cy, anchor: true },
+    { x: cx + 1, y: cy },
+    { x: cx - 1, y: cy },
+    { x: cx, y: cy + 1 },
+    { x: cx + 1, y: cy + 1 },
+    { x: cx, y: cy - 1 }
+  ];
+  for (const p of points) {
+    if (!isInsideMap(scene, p.x, p.y, 1)) continue;
+    const t = map[p.y]?.[p.x];
+    if (!t || t.type === 'exitUp' || t.type === 'exitDown') continue;
+    map[p.y][p.x] = makeTile('largeOreChunk', {
+      oreId: 'stone',
+      hardness: ore.hardness,
+      hp: ore.hp,
+      maxHp: ore.hp,
+      biome: 'sporeGrotto',
+      chunkAnchor: !!p.anchor
+    });
+  }
 }
 
 function findCuratedLevel1RoomId(rooms, x, y) {

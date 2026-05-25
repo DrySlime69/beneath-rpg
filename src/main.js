@@ -121,6 +121,9 @@ class GameScene extends Phaser.Scene {
     });
 
     this.worldLayer = this.add.graphics().setDepth(1);
+    this.staticLevelLayer = this.add.container(0, 0).setDepth(1.06);
+    this.staticLevelBackgroundKey = '';
+    this.staticLevelBackgroundImage = null;
     if (typeof setupTerrainRenderer === 'function') setupTerrainRenderer(this);
     if (typeof setupAssetSpriteLayer === 'function') setupAssetSpriteLayer(this);
     this.playerLayer = this.add.graphics().setDepth(5);

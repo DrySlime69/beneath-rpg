@@ -848,6 +848,46 @@ function drawMiner(scene) {
   scene.playerLayer.fillStyle(0xffc94a, 0.85);
   scene.playerLayer.fillCircle(scene.player.x + dir.x * 11, scene.player.y + dir.y * 11, 3);
 }
+
+function isStaticAuthoredMineLevel(scene) {
+  return !!(scene && scene.currentMapName === 'mine' && scene.map && scene.map.staticAuthoredLevel && scene.map.staticBackgroundKey);
+}
+
+function refreshStaticAuthoredBackground(scene) {
+  if (!scene || !scene.staticLevelLayer) return;
+  const key = isStaticAuthoredMineLevel(scene) ? scene.map.staticBackgroundKey : '';
+  if (scene.staticLevelBackgroundKey === key && scene.staticLevelBackgroundImage) return;
+  scene.staticLevelLayer.removeAll(true);
+  scene.staticLevelBackgroundImage = null;
+  scene.staticLevelBackgroundKey = key;
+  if (!key || !scene.textures || !scene.textures.exists(key)) return;
+  const image = scene.add.image(0, 0, key).setOrigin(0, 0);
+  image.setDisplaySize(scene.mapWidth * scene.tileSize, scene.mapHeight * scene.tileSize);
+  image.setDepth(1.06);
+  scene.staticLevelLayer.add(image);
+  scene.staticLevelBackgroundImage = image;
+}
+
+function drawStaticAuthoredMineInteractionLayer(scene) {
+  // The authored background supplies the cave art. This draws only gameplay
+  // state that must visibly change, such as mined deposit holes.
+  if (!scene || !scene.map) return;
+  for (let y = 0; y < scene.mapHeight; y++) {
+    for (let x = 0; x < scene.mapWidth; x++) {
+      const tile = scene.map[y]?.[x];
+      if (!tile) continue;
+      if (tile.type === 'floor' && tile.wasMined) {
+        scene.worldLayer.fillStyle(0x1f241d, 0.55);
+        scene.worldLayer.fillEllipse(
+          x * scene.tileSize + scene.tileSize / 2,
+          y * scene.tileSize + scene.tileSize / 2,
+          scene.tileSize * 0.9,
+          scene.tileSize * 0.55
+        );
+      }
+    }
+  }
+}
 function redraw(scene) {
   scene.worldLayer.clear();
   scene.playerLayer.clear();
@@ -857,6 +897,29 @@ function redraw(scene) {
 
   scene.worldLayer.fillStyle(0x020202);
   scene.worldLayer.fillRect(0, 0, worldWidth, worldHeight);
+
+  refreshStaticAuthoredBackground(scene);
+
+  if (isStaticAuthoredMineLevel(scene)) {
+    drawStaticAuthoredMineInteractionLayer(scene);
+    if (typeof refreshTerrainSprites === 'function') refreshTerrainSprites(scene);
+    if (typeof refreshAssetSprites === 'function') refreshAssetSprites(scene);
+
+    const target = getTargetTile(scene, 1);
+    const targetTile = getTile(scene, target.x, target.y);
+    if (targetTile && !['floor', 'homeFloor', 'teleportPad', 'exitUp', 'exitDown'].includes(targetTile.type)) {
+      scene.playerLayer.lineStyle(1, 0xffcc66, 0.55);
+      scene.playerLayer.strokeRect(target.x * scene.tileSize + 2, target.y * scene.tileSize + 2, scene.tileSize - 4, scene.tileSize - 4);
+    }
+    drawEnemies(scene);
+    drawMiner(scene);
+    drawAmbientEffects(scene);
+    return;
+  } else if (scene.staticLevelLayer) {
+    scene.staticLevelLayer.removeAll(true);
+    scene.staticLevelBackgroundImage = null;
+    scene.staticLevelBackgroundKey = '';
+  }
 
   const playerTileX = scene.player.x / scene.tileSize;
   const playerTileY = scene.player.y / scene.tileSize;

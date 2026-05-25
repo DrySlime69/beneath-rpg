@@ -24,6 +24,7 @@ const BIOME_ASSET_FILES = [
 
 function preloadGameAssets(scene) {
   if (typeof preloadTerrainAssets === 'function') preloadTerrainAssets(scene);
+  scene.load.image('level_spore_1_bg', 'assets/levels/spore_level1_background.png');
   BIOME_ASSET_FILES.forEach(key => {
     scene.load.image(key, BIOME_ASSET_BASE + key + '.png');
   });
