@@ -30,6 +30,44 @@ function fillAuthoredOpenFloor(scene, map) {
   }
 }
 
+function fillLevel1ImageCollision(scene, map) {
+  // The level art is now one authored image. This mask keeps gameplay inside
+  // the painted cavern while leaving all visible pixels to the background PNG.
+  const cx = scene.mapWidth / 2;
+  const cy = scene.mapHeight / 2 + 1.5;
+  const rx = scene.mapWidth * 0.45;
+  const ry = scene.mapHeight * 0.40;
+
+  for (let y = 0; y < scene.mapHeight; y++) {
+    for (let x = 0; x < scene.mapWidth; x++) {
+      const nx = (x + 0.5 - cx) / rx;
+      const ny = (y + 0.5 - cy) / ry;
+      const wave =
+        Math.sin((x + 3) * 0.55) * 0.045 +
+        Math.cos((y + 5) * 0.47) * 0.040 +
+        Math.sin((x + y) * 0.31) * 0.030;
+      const inside = (nx * nx + ny * ny) < (1.0 + wave);
+      map[y][x] = makeTile(inside ? 'floor' : 'caveWall');
+    }
+  }
+
+  // Cut in a few shallow wall notches matching the jagged painted boundary.
+  [
+    { x: 6, y: 6, r: 4 }, { x: 16, y: 4, r: 3 }, { x: 28, y: 3, r: 3 },
+    { x: 42, y: 4, r: 4 }, { x: 53, y: 9, r: 3 }, { x: 55, y: 30, r: 4 },
+    { x: 43, y: 40, r: 4 }, { x: 30, y: 42, r: 3 }, { x: 16, y: 40, r: 4 },
+    { x: 5, y: 30, r: 4 }
+  ].forEach(n => {
+    for (let yy = n.y - n.r; yy <= n.y + n.r; yy++) {
+      for (let xx = n.x - n.r; xx <= n.x + n.r; xx++) {
+        if (!isInsideMap(scene, xx, yy, 0)) continue;
+        const d = Phaser.Math.Distance.Between(xx, yy, n.x, n.y);
+        if (d < n.r) map[yy][xx] = makeTile('caveWall');
+      }
+    }
+  });
+}
+
 function addBlockerRect(scene, map, x, y, w, h) {
   for (let yy = y; yy < y + h; yy++) {
     for (let xx = x; xx < x + w; xx++) {
@@ -88,8 +126,8 @@ function createAuthoredSporeLevel1Map(scene) {
   // composed into one large open room background. No ore, no props, no mushrooms,
   // no wall decor, no room generator, no corridor generator.
   map.generationMode = 'authoredFloorOnlyTileset';
-  map.generationVersion = 502;
-  map.curatedLevelId = 'spore_grotto_01_floor_only_v3';
+  map.generationVersion = 600;
+  map.curatedLevelId = 'spore_grotto_01_authored_image_bg';
   map.staticAuthoredLevel = true;
   map.staticBackgroundKey = 'level_spore_1_bg';
   map.maxMineLevel = MINE_MAX_LEVEL;
@@ -97,15 +135,15 @@ function createAuthoredSporeLevel1Map(scene) {
   map.connections = [];
   map.landmarks = [];
 
-  // Gameplay collision is also floor-only. The entire level is walkable for now.
-  fillAuthoredOpenFloor(scene, map);
+  // Gameplay collision is invisible. The image supplies all visible cave/floor art.
+  fillLevel1ImageCollision(scene, map);
 
-  // Spawn near center so you can judge the floor art immediately.
+  // Spawn near center so you can judge the authored image immediately.
   map.entrySpawn = { x: Math.floor(scene.mapWidth / 2), y: Math.floor(scene.mapHeight / 2) };
   map.downSpawn = { x: Math.floor(scene.mapWidth / 2), y: Math.floor(scene.mapHeight / 2) };
 
   applyBiomeToMap(map, biome);
-  map.visualDecorVersion = 502;
+  map.visualDecorVersion = 600;
   return map;
 }
 

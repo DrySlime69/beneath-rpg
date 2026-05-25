@@ -11,9 +11,9 @@ class GameScene extends Phaser.Scene {
   create() {
     window.__beneathActiveScene = this;
     this.tileSize = 26;
-    this.mapWidth = 44;
-    this.mapHeight = 24;
-    this.mineWidth = 44;
+    this.mapWidth = 60;
+    this.mapHeight = 45;
+    this.mineWidth = 60;
 
     this.player = {
       x: 2.5 * this.tileSize,
