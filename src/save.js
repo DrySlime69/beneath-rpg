@@ -427,7 +427,7 @@ function ensureBiomeDataOnLoadedMaps(scene) {
     // Level 1 has been rebooted into a curated Spore Grotto intro map.
     // Replace old procedural/paint-overlay Level 1 saves so players do not
     // keep the broken legacy visuals or old mixed resource deposits.
-    if (level === 1 && map?.curatedLevelId !== 'spore_grotto_01_static' && typeof createMineMap === 'function') {
+    if (level === 1 && map?.curatedLevelId !== 'spore_grotto_01_floor_only_v3' && typeof createMineMap === 'function') {
       map = createMineMap(scene, 1);
       scene.mineMaps[levelKey] = map;
     }

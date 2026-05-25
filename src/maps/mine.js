@@ -88,8 +88,8 @@ function createAuthoredSporeLevel1Map(scene) {
   // composed into one large open room background. No ore, no props, no mushrooms,
   // no wall decor, no room generator, no corridor generator.
   map.generationMode = 'authoredFloorOnlyTileset';
-  map.generationVersion = 501;
-  map.curatedLevelId = 'spore_grotto_01_floor_only_open_room';
+  map.generationVersion = 502;
+  map.curatedLevelId = 'spore_grotto_01_floor_only_v3';
   map.staticAuthoredLevel = true;
   map.staticBackgroundKey = 'level_spore_1_bg';
   map.maxMineLevel = MINE_MAX_LEVEL;
@@ -105,7 +105,7 @@ function createAuthoredSporeLevel1Map(scene) {
   map.downSpawn = { x: Math.floor(scene.mapWidth / 2), y: Math.floor(scene.mapHeight / 2) };
 
   applyBiomeToMap(map, biome);
-  map.visualDecorVersion = 501;
+  map.visualDecorVersion = 502;
   return map;
 }
 
