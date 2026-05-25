@@ -1,227 +1,758 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #050505;
+  font-family: monospace;
+}
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-  />
+canvas {
+  display: block;
+  margin: auto;
+  image-rendering: pixelated;
+}
 
-  <title>Beneath - Mining RPG Prototype</title>
+#ui {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 9999;
+  pointer-events: none;
+  color: white;
+}
 
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.js"></script>
+#message {
+  color: #ffcc66;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid white;
+  padding: 6px 8px;
+  margin-bottom: 10px;
+  min-width: 230px;
+  min-height: 18px;
+  font-size: 15px;
+}
 
-  <link rel="stylesheet" href="style.css" />
-</head>
 
-<body>
-  <!-- UI -->
-  <div id="ui">
-    <div id="message"></div>
+#healthText {
+  color: #ff7777;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid white;
+  padding: 6px 8px;
+  margin-bottom: 10px;
+  min-width: 120px;
+  font-size: 15px;
+}
 
-    <div id="inventory">
-      <div class="slot"></div>
-      <div class="slot"></div>
-      <div class="slot"></div>
-      <div class="slot"></div>
-      <div class="slot"></div>
-      <div class="slot"></div>
-      <div class="slot"></div>
-      <div class="slot"></div>
-    </div>
-  </div>
+#inventory {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: 68px;
+  grid-template-rows: repeat(8, 68px);
+  gap: 8px;
+}
 
-  <!-- Inventory -->
-  <div id="inventoryScreen">
-    <div id="inventoryPanel">
-      <h2>Inventory</h2>
+.slot,
+.invSlot {
+  width: 68px;
+  height: 68px;
+  background: rgba(5, 5, 5, 0.95);
+  border: 2px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.15;
+  box-sizing: border-box;
+  white-space: pre-line;
+  user-select: none;
+}
 
-      <div class="inventoryLabel">
-        Hotbar
-      </div>
 
-      <div id="hotbarGrid"></div>
+.slot.selectedHotbar,
+.invSlot.selectedHotbar {
+  border-color: #ffd866;
+  box-shadow: 0 0 12px rgba(255, 216, 102, 0.8);
+}
 
-      <div class="inventoryLabel">
-        Backpack
-      </div>
+.slot {
+  cursor: pointer;
+}
 
-      <div id="backpackGrid"></div>
+#inventoryScreen,
+#craftingScreen,
+#craftingTableScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.82);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
 
-      <div id="inventoryHint">
-        I = close inventory. T = teleport. P = place selected home object. X = pick up faced home object.
-      </div>
-    </div>
-  </div>
+#craftingScreen,
+#craftingTableScreen {
+  z-index: 10001;
+}
 
-  <!-- Furnace -->
-  <div id="craftingScreen">
-    <div id="craftingPanel">
-      <h2>Furnace</h2>
+#inventoryPanel {
+  width: min(1040px, 94vw);
+  background: rgba(12, 8, 5, 0.96);
+  border: 3px solid white;
+  padding: 18px;
+  box-sizing: border-box;
+}
 
-      <div id="furnaceLayout">
-        <div id="furnaceRecipeGrid">
-          <button
-            class="furnaceRecipeSlot selected"
-            data-recipe="copperBar"
-          >
-            Copper Bar
-          </button>
-        </div>
+.inventoryLabel {
+  margin: 12px 0 6px 0;
+  color: #ffcc66;
+}
 
-        <div id="furnaceRecipeDetails">
-          <h3 id="selectedFurnaceRecipeName">
-            Copper Bar
-          </h3>
+#inventoryContent {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
+}
 
-          <div id="selectedFurnaceRecipeDescription">
-            Smelt copper ore into a usable copper bar.
-          </div>
+#inventorySidePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
 
-          <div id="selectedFurnaceRecipeRequirements">
-            Requires: 5 Copper Ore + 1 Coal
-          </div>
+#inventoryItemDetails {
+  min-height: 276px;
+  background: rgba(0, 0, 0, 0.32);
+  border: 2px solid #777777;
+  padding: 12px;
+  box-sizing: border-box;
+  line-height: 1.35;
+}
 
-          <label for="copperBarAmount">
-            Amount:
-          </label>
+#inventoryItemDetails h3 {
+  margin: 0 0 8px 0;
+  color: #ffcc66;
+}
 
-          <input
-            id="copperBarAmount"
-            type="range"
-            min="1"
-            max="10"
-            value="1"
-          />
+#inventoryDetailInfo,
+#inventoryDetailStats,
+#inventoryDetailRecipe {
+  white-space: pre-line;
+  margin-top: 10px;
+  color: #dddddd;
+}
 
-          <div id="copperBarAmountLabel">
-            1
-          </div>
+#inventoryDetailStats {
+  color: #ffffff;
+}
 
-          <button id="craftCopperBars">
-            Start Crafting
-          </button>
+#inventoryDetailRecipe {
+  color: #cccccc;
+  font-size: 13px;
+}
 
-          <div id="furnaceQueue">
-            <h3>In Progress</h3>
+.invSlot.inventorySelected {
+  border-color: #66ccff;
+  box-shadow: 0 0 10px rgba(102, 204, 255, 0.65);
+}
 
-            <div id="furnaceQueueItem">
-              Empty
-            </div>
+#deleteItemDropZone {
+  width: 152px;
+  min-height: 132px;
+  margin: 10px 0 0 auto;
+  background: rgba(95, 8, 8, 0.78);
+  border: 3px dashed #ff5555;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #ff6666;
+  box-sizing: border-box;
+  user-select: none;
+  cursor: grabbing;
+}
 
-            <div id="furnaceProgressOuter">
-              <div id="furnaceProgressInner"></div>
-            </div>
-          </div>
+#deleteItemDropZone * {
+  pointer-events: none;
+}
 
-          <div id="furnaceOutput">
-            <h3>Completed</h3>
+#deleteItemDropZone.dragOverDelete {
+  background: rgba(150, 20, 20, 0.88);
+  border-color: #ff6666;
+  color: white;
+  box-shadow: 0 0 14px rgba(255, 80, 80, 0.7);
+}
 
-            <div id="furnaceOutputItem">
-              Empty
-            </div>
+.deleteItemIcon {
+  width: 78px;
+  height: 78px;
+  border: 4px solid currentColor;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  font-weight: bold;
+  line-height: 1;
+  margin-bottom: 8px;
+}
 
-            <button id="collectFurnaceOutput">
-              Collect
-            </button>
-          </div>
-        </div>
-      </div>
+.deleteItemLabel {
+  font-size: 14px;
+  color: #ffbbbb;
+}
 
-      <button id="closeCraftingMenu">
-        Close
-      </button>
-    </div>
-  </div>
+#deleteItemConfirmScreen {
+  z-index: 12000;
+}
 
-  <!-- Crafting Table -->
-  <div id="craftingTableScreen">
-    <div id="craftingTablePanel">
-      <h2>Crafting Table</h2>
+#hotbarGrid {
+  display: grid;
+  grid-template-columns: repeat(8, 68px);
+  gap: 8px;
+  margin-bottom: 14px;
+}
 
-      <div id="craftingTableLayout">
-        <div id="craftingRecipeGrid">
-          <button
-            class="craftRecipeSlot"
-            data-recipe="stonePickaxe"
-          >
-            Stone Pickaxe
-          </button>
+#backpackGrid {
+  display: grid;
+  grid-template-columns: repeat(8, 68px);
+  grid-template-rows: repeat(3, 68px);
+  gap: 8px;
+}
 
-          <button
-            class="craftRecipeSlot"
-            data-recipe="copperPickaxe"
-          >
-            Copper Pickaxe
-          </button>
+.invSlot {
+  border-color: #777777;
+  cursor: grab;
+}
 
-          <button
-            class="craftRecipeSlot"
-            data-recipe="furnace"
-          >
-            Furnace
-          </button>
-        </div>
+.invSlot.dragging {
+  opacity: 0.45;
+  border-color: #ffcc66;
+}
 
-        <div id="craftingRecipeDetails">
-          <h3 id="selectedRecipeName">
-            Select a Recipe
-          </h3>
+.invSlot.dropTarget {
+  border-color: #66ccff;
+}
 
-          <div id="selectedRecipeDescription">
-            Choose a recipe from the grid.
-          </div>
+#inventoryHint {
+  margin-top: 12px;
+  color: #cccccc;
+  font-size: 13px;
+}
 
-          <div id="selectedRecipeRequirements"></div>
+/* Furnace Menu */
 
-         <button id="craftSelectedRecipe">
-  Start Crafting
-</button>
+#craftingPanel {
+  width: min(720px, 94vw);
+  background: rgba(12, 8, 5, 0.96);
+  border: 3px solid white;
+  padding: 18px;
+  box-sizing: border-box;
+  color: white;
+}
 
-<div id="tableCraftQueue">
-  <h3>In Progress</h3>
+#furnaceLayout {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 18px;
+}
 
-  <div id="tableQueueItem">
-    Empty
-  </div>
+#furnaceRecipeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 120px);
+  gap: 12px;
+  align-content: start;
+}
 
-  <div id="tableProgressOuter">
-    <div id="tableProgressInner"></div>
-  </div>
-</div>
+.furnaceRecipeSlot {
+  width: 120px;
+  height: 120px;
+  background: rgba(55, 20, 12, 0.95);
+  color: white;
+  border: 2px solid #777777;
+  font-family: monospace;
+  cursor: pointer;
+}
 
-<div id="tableCraftOutput">
-  <h3>Completed</h3>
+.furnaceRecipeSlot:hover,
+.furnaceRecipeSlot.selected {
+  border-color: #ffcc66;
+  background: rgba(110, 35, 20, 0.95);
+}
 
-  <div id="tableOutputItem">
-    Empty
-  </div>
+#furnaceRecipeDetails {
+  border: 2px solid #777777;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  min-height: 320px;
+}
 
-  <button id="collectTableOutput">
-    Collect
-  </button>
-</div>
-        </div>
-      </div>
+#selectedFurnaceRecipeName,
+#selectedRecipeName {
+  color: #ffcc66;
+  margin-top: 0;
+}
 
-      <button id="closeCraftingTable">
-        Close
-      </button>
-    </div>
-  </div>
+#selectedFurnaceRecipeDescription,
+#selectedFurnaceRecipeRequirements,
+#selectedRecipeDescription,
+#selectedRecipeRequirements {
+  margin-bottom: 14px;
+  color: #cccccc;
+}
 
-  <!-- Scripts -->
-  <script src="src/ui.js"></script>
-  <script src="src/inventory.js"></script>
+#copperBarAmount {
+  width: 100%;
+  margin-top: 10px;
+}
 
-  <script src="src/maps/home.js"></script>
-  <script src="src/maps/mine.js"></script>
+#copperBarAmountLabel {
+  margin: 6px 0 10px 0;
+  color: #ffcc66;
+}
 
-  <script src="src/world.js"></script>
-  <script src="src/player.js"></script>
-  <script src="src/crafting.js"></script>
-  <script src="src/base.js"></script>
-  <script src="src/main.js"></script>
-</body>
-</html>
+#furnaceQueue,
+#furnaceOutput {
+  margin-top: 18px;
+  border-top: 1px solid #777777;
+  padding-top: 12px;
+}
+
+#furnaceQueue h3,
+#furnaceOutput h3 {
+  margin: 0 0 8px 0;
+  color: #ffcc66;
+}
+
+#furnaceQueueItem,
+#furnaceOutputItem {
+  margin-bottom: 8px;
+  color: white;
+}
+
+#furnaceProgressOuter {
+  width: 100%;
+  height: 18px;
+  border: 2px solid white;
+  background: #111111;
+}
+
+#furnaceProgressInner {
+  width: 0%;
+  height: 100%;
+  background: #cc8844;
+}
+
+#craftCopperBars,
+#collectFurnaceOutput,
+#closeCraftingMenu {
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  background: #aa6633;
+  color: white;
+  border: 2px solid white;
+  font-family: monospace;
+  cursor: pointer;
+}
+
+/* Crafting Table Menu */
+
+#craftingTablePanel {
+  width: min(720px, 94vw);
+  background: rgba(12, 8, 5, 0.96);
+  border: 3px solid white;
+  padding: 18px;
+  box-sizing: border-box;
+  color: white;
+}
+
+#craftingTableLayout {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 18px;
+}
+
+#craftingRecipeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 120px);
+  gap: 12px;
+  align-content: start;
+}
+
+.craftRecipeSlot {
+  width: 120px;
+  height: 120px;
+  background: rgba(40, 28, 18, 0.95);
+  color: white;
+  border: 2px solid #777777;
+  font-family: monospace;
+  cursor: pointer;
+}
+
+.craftRecipeSlot:hover,
+.craftRecipeSlot.selected {
+  border-color: #ffcc66;
+  background: rgba(80, 52, 28, 0.95);
+}
+
+#craftingRecipeDetails {
+  border: 2px solid #777777;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  min-height: 220px;
+}
+
+#craftSelectedRecipe,
+#closeCraftingTable {
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  background: #8b5a2b;
+  color: white;
+  border: 2px solid white;
+  font-family: monospace;
+  cursor: pointer;
+}
+
+#tableCraftQueue,
+#tableCraftOutput {
+  margin-top: 18px;
+  border-top: 1px solid #777777;
+  padding-top: 12px;
+}
+
+#tableCraftQueue h3,
+#tableCraftOutput h3 {
+  margin: 0 0 8px 0;
+  color: #ffcc66;
+}
+
+#tableQueueItem,
+#tableOutputItem {
+  margin-bottom: 8px;
+  color: white;
+}
+
+#tableProgressOuter {
+  width: 100%;
+  height: 18px;
+  border: 2px solid white;
+  background: #111111;
+}
+
+#tableProgressInner {
+  width: 0%;
+  height: 100%;
+  background: #66aa88;
+}
+
+#craftCopperBars:hover,
+#collectFurnaceOutput:hover,
+#closeCraftingMenu:hover,
+#craftSelectedRecipe:hover,
+#closeCraftingTable:hover {
+  filter: brightness(1.2);
+}
+
+/* ESC / Save Menu */
+.menuOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 11000;
+  background: rgba(0, 0, 0, 0.82);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.menuPanel {
+  width: min(420px, 90vw);
+  background: rgba(12, 8, 5, 0.97);
+  border: 3px solid white;
+  padding: 22px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.smallMenuPanel {
+  width: min(360px, 88vw);
+}
+
+.menuPanel h2 {
+  color: #ffcc66;
+  margin-top: 0;
+}
+
+.menuPanel button {
+  width: 100%;
+  padding: 13px;
+  margin-top: 10px;
+  background: #8b5a2b;
+  color: white;
+  border: 2px solid white;
+  font-family: monospace;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.menuPanel button:hover {
+  filter: brightness(1.18);
+}
+
+.blankMenuButton {
+  opacity: 0.45;
+  cursor: default !important;
+}
+
+.bottomMenuButton {
+  margin-top: 24px !important;
+  background: #442211 !important;
+}
+
+#saveSlotGrid,
+#loadSlotGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.saveSlotButton span,
+.loadSlotButton span {
+  color: #cccccc;
+  font-size: 12px;
+}
+
+/* Developer Testing Item Catalog */
+.devItemsOpenButton {
+  width: 100%;
+  padding: 10px;
+  margin: 0 0 12px 0;
+  background: #225577;
+  color: white;
+  border: 2px solid white;
+  font-family: monospace;
+  cursor: pointer;
+}
+
+#devItemScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 10003;
+  background: rgba(0, 0, 0, 0.86);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+#devItemPanel {
+  width: min(980px, 96vw);
+  max-height: 92vh;
+  background: rgba(10, 8, 6, 0.98);
+  border: 3px solid white;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+#devItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+#devItemHeader h2 {
+  margin: 0;
+  color: #ffcc66;
+}
+
+#closeDevItemsButton,
+#addDevItemButton,
+.devCategoryButton,
+.devItemButton {
+  font-family: monospace;
+  color: white;
+  border: 2px solid white;
+  cursor: pointer;
+}
+
+#closeDevItemsButton {
+  background: #663333;
+  padding: 8px 14px;
+}
+
+#devItemLayout {
+  display: grid;
+  grid-template-columns: 150px 250px 1fr;
+  gap: 14px;
+  min-height: 420px;
+}
+
+#devCategoryTabs,
+#devItemList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 70vh;
+}
+
+.devCategoryButton,
+.devItemButton {
+  min-height: 42px;
+  padding: 8px;
+  background: rgba(25, 25, 25, 0.95);
+  text-align: left;
+}
+
+.devCategoryButton.selected,
+.devItemButton.selected {
+  border-color: #ffd866;
+  background: rgba(95, 64, 24, 0.95);
+}
+
+#devItemDetails {
+  border: 2px solid #777777;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 14px;
+  overflow-y: auto;
+}
+
+#devItemName {
+  color: #ffcc66;
+  margin-top: 0;
+}
+
+#devItemInfo,
+#devItemStats,
+#devItemRecipe {
+  margin-bottom: 14px;
+  color: #dddddd;
+  white-space: pre-line;
+}
+
+#devItemAmount {
+  width: 100%;
+  margin: 8px 0;
+}
+
+#devItemAmountLabel {
+  color: #ffcc66;
+  margin-bottom: 10px;
+}
+
+#addDevItemButton {
+  width: 100%;
+  padding: 12px;
+  background: #336633;
+}
+
+#chestScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 10002;
+  background: rgba(0, 0, 0, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  pointer-events: auto;
+}
+
+#chestPanel {
+  width: min(650px, 90vw);
+  background: rgba(12, 8, 5, 0.97);
+  border: 3px solid white;
+  padding: 18px;
+  box-sizing: border-box;
+}
+
+#chestHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+#chestHeader h2 { margin: 0; }
+
+#chestGrid {
+  display: grid;
+  grid-template-columns: repeat(8, 68px);
+  gap: 8px;
+  justify-content: center;
+}
+
+#chestHint {
+  margin-top: 14px;
+  color: #cccccc;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Chest panel floats over the inventory instead of blocking it. */
+#chestScreen {
+  background: transparent;
+  pointer-events: none;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 80px 28px 0 0;
+  box-sizing: border-box;
+}
+
+#chestPanel {
+  pointer-events: auto;
+  width: min(650px, 52vw);
+}
+
+
+/* Developer Mine Level Warp */
+.devLevelWarpPanel {
+  width: min(760px, 94vw);
+  max-height: 88vh;
+  overflow: hidden;
+}
+
+.devHint {
+  color: #cccccc;
+  font-size: 13px;
+  margin-top: -6px;
+}
+
+#devLevelWarpGrid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 7px;
+  max-height: 58vh;
+  overflow-y: auto;
+  padding: 8px;
+  border: 2px solid rgba(255,255,255,0.35);
+  background: rgba(0,0,0,0.28);
+}
+
+.menuPanel .devLevelButton {
+  margin: 0;
+  padding: 10px 0;
+  min-width: 42px;
+  background: #23425d;
+  border: 2px solid #d7e9ff;
+  font-size: 14px;
+}
+
+.menuPanel .devLevelButton:hover {
+  background: #356d99;
+}
+
+.menuPanel .devLevelButton.currentDevLevel {
+  background: #c58b2c;
+  color: #111111;
+  border-color: #fff1aa;
+}

@@ -8,22 +8,23 @@ function handleMovement(scene, delta) {
   if (scene.cursors.up.isDown || scene.keys.w.isDown) dy -= 1;
   if (scene.cursors.down.isDown || scene.keys.s.isDown) dy += 1;
 
-  if (dx === 0 && dy === 0) return;
+  if (dx === 0 && dy === 0) {
+    notePlayerMovementVisual(scene, false);
+    return;
+  }
 
   const length = Math.hypot(dx, dy) || 1;
   dx /= length;
   dy /= length;
 
   scene.lastMoveDirection = getCardinalDirection(dx, dy);
+  notePlayerMovementVisual(scene, true);
+  spawnFootstepDust(scene);
 
   const distance = scene.player.speed * (delta / 1000);
   moveWithCollision(scene, dx * distance, 0);
   moveWithCollision(scene, 0, dy * distance);
 
-  const tile = getTileAtPixel(scene, scene.player.x, scene.player.y);
-  if (tile && (tile.type === 'exitUp' || tile.type === 'exitDown')) {
-    tryUseMineExit(scene, tile);
-  }
 }
 
 function getCardinalDirection(dx, dy) {
@@ -61,7 +62,7 @@ function collidesAt(scene, px, py) {
 }
 
 function isSolidTile(tile) {
-  return !['floor', 'homeFloor', 'teleportPad', 'exit', 'exitUp', 'exitDown'].includes(tile.type);
+  return !['floor', 'homeFloor', 'teleportPad', 'exit', 'exitUp', 'exitDown', 'torch'].includes(tile.type);
 }
 
 function getTileAtPixel(scene, px, py) {
@@ -95,24 +96,42 @@ function mineTargetTile(scene) {
   const tile = getTile(scene, target.x, target.y);
   if (!tile) return;
 
+  const selectedItem = getSelectedHotbarItem(scene);
+  const usingHands = !selectedItem;
+  const selectedPickaxe = getSelectedPickaxeItem(scene);
+
+  if (selectedItem && !selectedPickaxe) {
+    setMessage(scene, 'Select a pickaxe or empty hotbar slot to mine.');
+    return;
+  }
+
   scene.mineCooldown = true;
-  scene.time.delayedCall(scene.pickaxeTier === 1 ? 450 : 300, () => {
+  scene.time.delayedCall(getSelectedPickaxeDelay(scene), () => {
     scene.mineCooldown = false;
   });
 
   if (tile.type === 'stone') {
-    hitResource(scene, tile, target.x, target.y, 'stone', 'stone', 0x888888, '+10 Stone');
+    hitResource(scene, tile, target.x, target.y, 'stone', usingHands ? 'stone by hand' : 'stone', 0x888888, '+10 Stone');
+    return;
+  }
+
+  if (tile.type === 'wood') {
+    hitResource(scene, tile, target.x, target.y, 'wood', usingHands ? 'wood by hand' : 'wood', 0xaa7744, '+5 Wood', 5);
     return;
   }
 
   if (tile.type === 'coal') {
+    if (usingHands || getSelectedPickaxeTier(scene) <= 0) {
+      setMessage(scene, 'Need a Pickaxe to mine Coal. Empty hands can only mine stone and wood.');
+      return;
+    }
     hitResource(scene, tile, target.x, target.y, 'coal', 'coal', 0x222222, '+10 Coal');
     return;
   }
 
   if (tile.type === 'copper') {
-    if (scene.pickaxeTier < 2) {
-      setMessage(scene, 'Need Stone Pickaxe to mine Copper.');
+    if (usingHands || getSelectedPickaxeTier(scene) < 2) {
+      setMessage(scene, 'Select a Stone Pickaxe or better to mine Copper.');
       return;
     }
 
@@ -121,12 +140,22 @@ function mineTargetTile(scene) {
   }
 
   if (tile.type === 'copperWall') {
-    if (scene.pickaxeTier < 3) {
-      setMessage(scene, 'Need Copper Pickaxe to break Copper Wall.');
+    if (usingHands || getSelectedPickaxeTier(scene) < 3) {
+      setMessage(scene, 'Select a Copper Pickaxe to break Copper Wall.');
       return;
     }
 
     hitResource(scene, tile, target.x, target.y, 'copperOre', 'copper wall', 0xff8844, '+5 Copper Ore', 5);
+    return;
+  }
+
+  if (tile.type === 'largeOreChunk') {
+    const ore = getLargeOreChunkDef(tile.oreId);
+    if (usingHands || getSelectedPickaxeTier(scene) < ore.requiredTier) {
+      setMessage(scene, 'Need a stronger pickaxe to mine ' + ore.name + '.');
+      return;
+    }
+    hitResource(scene, tile, target.x, target.y, ore.inventoryKey, ore.name, ore.edge || ore.color, '+' + ore.yieldAmount + ' ' + ore.name, ore.yieldAmount);
     return;
   }
 
@@ -135,47 +164,28 @@ function mineTargetTile(scene) {
 }
 
 function hitResource(scene, tile, tx, ty, inventoryKey, label, particleColor, successMessage, yieldAmount = 10) {
-  scene.cameras.main.shake(40, 0.0015);
-  tile.hp -= scene.pickaxeDamage;
+  scene.cameras.main.shake(55, 0.0022);
+  const miningDamage = getPickaxeMiningDamage(scene);
+  tile.hp -= miningDamage;
+  damagePickaxeDurability(scene, 1);
   spawnParticles(scene, tx, ty, particleColor);
 
   if (tile.hp <= 0) {
-    scene.inventory[inventoryKey] += yieldAmount;
-    scene.map[ty][tx] = {
-      type: scene.currentMapName === 'home' ? 'homeFloor' : 'floor',
-      hardness: 0,
-      variation: Phaser.Math.Between(0, 3)
-    };
+    scene.inventory[inventoryKey] = (scene.inventory[inventoryKey] || 0) + yieldAmount;
+    scene.map[ty][tx] = makeTile(scene.currentMapName === 'home' ? 'homeFloor' : 'floor');
+    if (typeof markAssetSpritesDirty === 'function') markAssetSpritesDirty(scene);
+    spawnBreakBurst(scene, tx, ty, particleColor);
     setMessage(scene, successMessage);
   } else {
-    setMessage(scene, label + ' HP: ' + tile.hp + '/' + tile.maxHp);
+    setMessage(scene, label + ' HP: ' + Math.max(0, Math.ceil(tile.hp)) + '/' + tile.maxHp);
   }
 
   updateInventoryUI(scene);
 }
 
 function spawnParticles(scene, tx, ty, color) {
-  for (let i = 0; i < 6; i++) {
-    const particle = scene.add.rectangle(
-      tx * scene.tileSize + scene.tileSize / 2,
-      ty * scene.tileSize + scene.tileSize / 2,
-      4,
-      4,
-      color
-    );
-
-    particle.setDepth(20);
-    scene.tweens.add({
-      targets: particle,
-      x: particle.x + Phaser.Math.Between(-14, 14),
-      y: particle.y + Phaser.Math.Between(-14, 14),
-      alpha: 0,
-      duration: 400,
-      onComplete: () => particle.destroy()
-    });
-  }
+  spawnMiningParticles(scene, tx, ty, color, 8);
 }
-
 function tryUseMineExit(scene, tile) {
   if (scene.exitCooldown) return;
   scene.exitCooldown = true;

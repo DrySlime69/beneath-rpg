@@ -19,6 +19,8 @@ function createHomeMap(scene) {
   map[12][29] = makeTile('caveWall');
   map[12][37] = makeTile('caveWall');
 
+  // Home perimeter ambience is rendered by visuals.js so it never blocks placement/walking.
+
   map[7][33] = makeTile('craftingTable');
   map[8][33] = makeTile('teleportPad');
 

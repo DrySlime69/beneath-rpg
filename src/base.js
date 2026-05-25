@@ -22,23 +22,69 @@ function getHomeObjectInventoryStateKey(objectType) {
 }
 
 function getHomeObjectDisplayName(objectType) {
+  const def = getItemDef(objectType);
+  if (def?.name) return def.name;
   if (objectType === 'furnace') return 'Furnace';
   if (objectType === 'craftingTable') return 'Workbench';
   return 'Object';
 }
 
-function getFirstHotbarPlaceable(scene) {
-  for (let i = 0; i < scene.hotbarItems.length; i++) {
-    const item = scene.hotbarItems[i];
-    if (item && (item.id === 'furnace' || item.id === 'craftingTable')) {
-      return { item, slot: i };
-    }
-  }
+function isPlaceableHomeItem(item) {
+  const def = getItemDef(item?.id);
+  return !!def?.placeable;
+}
+
+function getSelectedHotbarPlaceable(scene) {
+  const slot = scene.selectedHotbarIndex || 0;
+  const item = scene.hotbarItems[slot];
+  if (isPlaceableHomeItem(item)) return { item, slot };
   return null;
 }
 
+function addItemToFirstOpenSlot(scene, item) {
+  for (let i = 0; i < scene.hotbarItems.length; i++) {
+    if (!scene.hotbarItems[i]) {
+      scene.hotbarItems[i] = item;
+      scene.selectedHotbarIndex = i;
+      return { area: 'hotbar', slot: i };
+    }
+  }
+
+  for (let i = 0; i < scene.backpackItems.length; i++) {
+    if (!scene.backpackItems[i]) {
+      scene.backpackItems[i] = item;
+      return { area: 'backpack', slot: i };
+    }
+  }
+
+  return null;
+}
+
+function hasPlacedHomeObject(scene, objectType) {
+  if (!scene.map) return false;
+  return scene.map.some(row => row.some(tile => tile && tile.type === objectType));
+}
+
 function isHomeObject(tile) {
-  return tile && (tile.type === 'furnace' || tile.type === 'craftingTable');
+  return tile && !!getItemDef(tile.type)?.placeable;
+}
+
+function isChestTile(tile) {
+  return tile && !!getItemDef(tile.type)?.storageSlots;
+}
+
+function createPlacedHomeObjectTile(objectType) {
+  const def = getItemDef(objectType);
+  const extra = {};
+  if (def?.storageSlots) {
+    extra.storageSlots = def.storageSlots;
+    extra.storage = Array(def.storageSlots).fill(null);
+  }
+  return makeTile(objectType, extra);
+}
+
+function chestHasItems(tile) {
+  return !!(tile?.storage || []).some(item => !!item);
 }
 
 function placeHeldHomeObject(scene) {
@@ -47,9 +93,9 @@ function placeHeldHomeObject(scene) {
     return;
   }
 
-  const held = getFirstHotbarPlaceable(scene);
+  const held = getSelectedHotbarPlaceable(scene);
   if (!held) {
-    setMessage(scene, 'Move a Furnace or Workbench to the hotbar first.');
+    setMessage(scene, 'Select a placeable home item in your hotbar first.');
     return;
   }
 
@@ -57,7 +103,7 @@ function placeHeldHomeObject(scene) {
   const stateKey = getHomeObjectInventoryStateKey(objectType);
   const objectName = getHomeObjectDisplayName(objectType);
 
-  if (!scene[stateKey]) {
+  if (stateKey && !scene[stateKey]) {
     setMessage(scene, objectName + ' is already placed. Pick it up first.');
     return;
   }
@@ -70,9 +116,9 @@ function placeHeldHomeObject(scene) {
     return;
   }
 
-  scene.map[target.y][target.x] = makeTile(objectType);
+  scene.map[target.y][target.x] = createPlacedHomeObjectTile(objectType);
   scene.hotbarItems[held.slot] = null;
-  scene[stateKey] = false;
+  if (stateKey) scene[stateKey] = false;
 
   setMessage(scene, 'Placed ' + objectName + '.');
   updateInventoryUI(scene);
@@ -92,7 +138,7 @@ function pickupHomeObject(scene) {
   const tile = getTile(scene, target.x, target.y);
 
   if (!isHomeObject(tile)) {
-    setMessage(scene, 'Face a Furnace or Workbench, then press X to pick it up.');
+    setMessage(scene, 'Face a home object, then press X to pick it up.');
     return;
   }
 
@@ -102,18 +148,33 @@ function pickupHomeObject(scene) {
     return;
   }
 
+  if (isChestTile(tile) && chestHasItems(tile)) {
+    setMessage(scene, 'Empty this chest before picking it up.');
+    return;
+  }
+
   const stateKey = getHomeObjectInventoryStateKey(tile.type);
   const objectName = getHomeObjectDisplayName(tile.type);
 
-  if (scene[stateKey]) {
+  if (stateKey && scene[stateKey]) {
     setMessage(scene, objectName + ' is already in your inventory.');
     return;
   }
 
-  scene[stateKey] = true;
+  const added = addItemToFirstOpenSlot(scene, { id: tile.type });
+  if (!added) {
+    setMessage(scene, 'No inventory space for ' + objectName + '.');
+    return;
+  }
+
+  if (stateKey) scene[stateKey] = true;
   scene.map[target.y][target.x] = makeTile('homeFloor');
 
-  setMessage(scene, 'Picked up ' + objectName + '. Move it to the hotbar and press P to place it.');
+  if (added.area === 'hotbar') {
+    setMessage(scene, 'Picked up ' + objectName + ' into hotbar slot ' + (added.slot + 1) + '.');
+  } else {
+    setMessage(scene, 'Picked up ' + objectName + ', but your hotbar was full so it went to backpack.');
+  }
   updateInventoryUI(scene);
 }
 
@@ -133,6 +194,11 @@ function handleInteract(scene) {
 
   if (tile.type === 'craftingTable') {
     toggleCraftingTableMenu(scene);
+    return;
+  }
+
+  if (isChestTile(tile)) {
+    toggleChestMenu(scene, tile);
     return;
   }
 
@@ -173,6 +239,77 @@ function closeCraftingMenu(scene) {
   if (scene.craftingScreen) scene.craftingScreen.style.display = 'none';
 }
 
+
+function getAllPlacedChests(scene) {
+  const maps = [];
+  if (scene.homeMap) maps.push(scene.homeMap);
+  if (scene.currentMapName === 'home' && scene.map && scene.map !== scene.homeMap) maps.push(scene.map);
+
+  const chests = [];
+  maps.forEach(map => {
+    if (!map) return;
+    map.forEach(row => row.forEach(tile => {
+      if (isChestTile(tile)) {
+        const slots = tile.storageSlots || getItemDef(tile.type)?.storageSlots || 8;
+        if (!tile.storage) tile.storage = Array(slots).fill(null);
+        while (tile.storage.length < slots) tile.storage.push(null);
+        chests.push(tile);
+      }
+    }));
+  });
+  return chests;
+}
+
+function getAvailableCraftingResourceAmount(scene, itemId) {
+  let total = scene.inventory?.[itemId] || 0;
+  getAllPlacedChests(scene).forEach(chest => {
+    (chest.storage || []).forEach(item => {
+      if (item?.id === itemId) total += item.amount || 0;
+    });
+  });
+  return total;
+}
+
+function hasCraftingResources(scene, costs) {
+  return Object.entries(costs || {}).every(([itemId, amount]) => getAvailableCraftingResourceAmount(scene, itemId) >= amount);
+}
+
+function consumeCraftingResources(scene, costs) {
+  if (!hasCraftingResources(scene, costs)) return false;
+
+  for (const [itemId, amountNeeded] of Object.entries(costs || {})) {
+    let remaining = amountNeeded;
+
+    const fromInventory = Math.min(scene.inventory?.[itemId] || 0, remaining);
+    if (fromInventory > 0) {
+      scene.inventory[itemId] -= fromInventory;
+      remaining -= fromInventory;
+    }
+
+    if (remaining <= 0) continue;
+
+    const chests = getAllPlacedChests(scene);
+    for (const chest of chests) {
+      for (let i = 0; i < (chest.storage || []).length; i++) {
+        const item = chest.storage[i];
+        if (!item || item.id !== itemId) continue;
+
+        const take = Math.min(item.amount || 0, remaining);
+        item.amount -= take;
+        remaining -= take;
+
+        if ((item.amount || 0) <= 0) chest.storage[i] = null;
+        if (remaining <= 0) break;
+      }
+      if (remaining <= 0) break;
+    }
+  }
+
+  ensureVisibleStackableItems(scene);
+  if (scene.chestOpen) updateChestSlots(scene);
+  return true;
+}
+
 function craftCopperBars(scene) {
   if (scene.furnaceQueue.length > 0) {
     setMessage(scene, 'Furnace already working.');
@@ -183,18 +320,13 @@ function craftCopperBars(scene) {
   const neededCopperOre = amount * 5;
   const neededCoal = amount;
 
-  if (scene.inventory.copperOre < neededCopperOre) {
-    setMessage(scene, 'Not enough Copper Ore.');
+  const costs = { copperOre: neededCopperOre, coal: neededCoal };
+  if (!hasCraftingResources(scene, costs)) {
+    setMessage(scene, 'Need ' + formatCosts(costs) + '. Inventory and home chests both count.');
     return;
   }
 
-  if (scene.inventory.coal < neededCoal) {
-    setMessage(scene, 'Not enough Coal.');
-    return;
-  }
-
-  scene.inventory.copperOre -= neededCopperOre;
-  scene.inventory.coal -= neededCoal;
+  consumeCraftingResources(scene, costs);
   scene.furnaceQueue.push({
     item: 'Copper Bar',
     amount,
@@ -258,26 +390,7 @@ function collectFurnaceOutput(scene) {
   updateFurnaceMenu(scene);
 }
 
-const craftingTableRecipes = {
-  stonePickaxe: {
-    name: 'Stone Pickaxe',
-    description: 'A stronger pickaxe that can break copper ore blocks.',
-    requirements: '15 Stone',
-    timePerItem: 10000
-  },
-  copperPickaxe: {
-    name: 'Copper Pickaxe',
-    description: 'Breaks copper walls and unlocks Mine Level 6.',
-    requirements: '10 Copper Bars + 20 Stone',
-    timePerItem: 15000
-  },
-  furnace: {
-    name: 'Furnace',
-    description: 'A placeable workstation used to smelt ores into bars.',
-    requirements: '20 Stone',
-    timePerItem: 15000
-  }
-};
+const craftingTableRecipes = getCraftingTableRecipes();
 
 function toggleCraftingTableMenu(scene) {
   if (scene.craftingTableOpen) {
@@ -330,43 +443,19 @@ function startCraftingTableRecipe(scene) {
   }
 
   const recipe = craftingTableRecipes[recipeId];
+  if (!recipe) return;
 
-  if (recipeId === 'stonePickaxe') {
-    if (scene.pickaxeTier >= 2) {
-      setMessage(scene, 'Stone Pickaxe already crafted.');
-      return;
-    }
-    if (scene.inventory.stone < 15) {
-      setMessage(scene, 'Need 15 Stone.');
-      return;
-    }
-    scene.inventory.stone -= 15;
+  if (recipeId === 'furnace' && (scene.hasFurnace || hasPlacedHomeObject(scene, 'furnace'))) {
+    setMessage(scene, 'You already have a Furnace.');
+    return;
   }
 
-  if (recipeId === 'copperPickaxe') {
-    if (scene.pickaxeTier >= 3) {
-      setMessage(scene, 'Copper Pickaxe already crafted.');
-      return;
-    }
-    if (scene.inventory.copperBars < 10 || scene.inventory.stone < 20) {
-      setMessage(scene, 'Need 10 Copper Bars and 20 Stone.');
-      return;
-    }
-    scene.inventory.copperBars -= 10;
-    scene.inventory.stone -= 20;
+  if (!hasCraftingResources(scene, recipe.costs || {})) {
+    setMessage(scene, 'Need ' + formatCosts(recipe.costs) + '. Inventory and home chests both count.');
+    return;
   }
 
-  if (recipeId === 'furnace') {
-    if (scene.hasFurnace) {
-      setMessage(scene, 'Furnace already crafted or in backpack.');
-      return;
-    }
-    if (scene.inventory.stone < 20) {
-      setMessage(scene, 'Need 20 Stone.');
-      return;
-    }
-    scene.inventory.stone -= 20;
-  }
+  consumeCraftingResources(scene, recipe.costs || {});
 
   scene.tableQueue.push({
     item: recipe.name,
@@ -389,7 +478,7 @@ function updateCraftingTableQueue(scene, delta) {
   job.elapsed += delta;
 
   if (job.elapsed >= job.timePerItem) {
-    scene.tableOutput[job.recipeId] += 1;
+    scene.tableOutput[job.recipeId] = (scene.tableOutput[job.recipeId] || 0) + 1;
     scene.tableQueue.shift();
     setMessage(scene, 'Craft complete.');
   }
@@ -410,38 +499,74 @@ function updateCraftingTableUI(scene) {
   }
 
   const output = [];
-  if (scene.tableOutput.stonePickaxe > 0) output.push('Stone Pickaxe x' + scene.tableOutput.stonePickaxe);
-  if (scene.tableOutput.copperPickaxe > 0) output.push('Copper Pickaxe x' + scene.tableOutput.copperPickaxe);
-  if (scene.tableOutput.furnace > 0) output.push('Furnace x' + scene.tableOutput.furnace);
+  Object.entries(scene.tableOutput || {}).forEach(([id, amount]) => {
+    if (amount > 0) output.push(getItemName(id) + ' x' + amount);
+  });
   scene.tableOutputItem.textContent = output.join(' ') || 'Empty';
 }
 
 function collectCraftingTableOutput(scene) {
-  if (scene.tableOutput.stonePickaxe <= 0 && scene.tableOutput.copperPickaxe <= 0 && scene.tableOutput.furnace <= 0) {
+  const outputs = Object.entries(scene.tableOutput || {}).filter(([, amount]) => amount > 0);
+  if (outputs.length === 0) {
     setMessage(scene, 'No completed items.');
     return;
   }
 
-  if (scene.tableOutput.stonePickaxe > 0) {
-    scene.pickaxeTier = Math.max(scene.pickaxeTier, 2);
-    scene.pickaxeDamage = Math.max(scene.pickaxeDamage, 2);
-    scene.tableOutput.stonePickaxe = 0;
-  }
+  for (const [itemId, amount] of outputs) {
+    const def = getItemDef(itemId);
 
-  if (scene.tableOutput.copperPickaxe > 0) {
-    scene.pickaxeTier = Math.max(scene.pickaxeTier, 3);
-    scene.pickaxeDamage = Math.max(scene.pickaxeDamage, 3);
-    scene.maxUnlockedMineLevel = Math.max(scene.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS, FIRST_LOCKED_MINE_LEVEL);
-    if (!scene.mineMaps[FIRST_LOCKED_MINE_LEVEL]) scene.mineMaps[FIRST_LOCKED_MINE_LEVEL] = createMineMap(scene, FIRST_LOCKED_MINE_LEVEL);
-    scene.tableOutput.copperPickaxe = 0;
-  }
+    if (def?.toolType === 'pickaxe') {
+      for (let i = 0; i < amount; i++) {
+        const added = addItemToFirstOpenSlot(scene, createItemInstance(itemId));
+        if (!added) {
+          setMessage(scene, 'No inventory space for ' + def.name + '.');
+          updateInventoryUI(scene);
+          updateCraftingTableUI(scene);
+          return;
+        }
+        scene.tableOutput[itemId] -= 1;
+      }
+      scene.pickaxeTier = Math.max(scene.pickaxeTier || 0, def.tier);
+      scene.pickaxeDamage = Math.max(scene.pickaxeDamage || 0, def.miningDamage);
+      scene.pickaxeDurabilityMax = getPickaxeDurabilityMax(scene.pickaxeTier);
+      scene.pickaxeDurability = scene.pickaxeDurabilityMax;
+      if (def.tier >= 3) {
+        scene.maxUnlockedMineLevel = Math.max(scene.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS, FIRST_LOCKED_MINE_LEVEL);
+        if (!scene.mineMaps[FIRST_LOCKED_MINE_LEVEL]) scene.mineMaps[FIRST_LOCKED_MINE_LEVEL] = createMineMap(scene, FIRST_LOCKED_MINE_LEVEL);
+      }
+      continue;
+    }
 
-  if (scene.tableOutput.furnace > 0) {
-    scene.hasFurnace = true;
-    scene.tableOutput.furnace = 0;
+    if (def?.category === 'weapons') {
+      for (let i = 0; i < amount; i++) {
+        const added = addItemToFirstOpenSlot(scene, createItemInstance(itemId));
+        if (!added) {
+          setMessage(scene, 'No inventory space for ' + def.name + '.');
+          updateInventoryUI(scene);
+          updateCraftingTableUI(scene);
+          return;
+        }
+        scene.tableOutput[itemId] -= 1;
+      }
+      continue;
+    }
+
+    if (def?.placeable) {
+      const added = addItemToFirstOpenSlot(scene, { id: itemId });
+      if (!added) {
+        setMessage(scene, 'No inventory space for ' + def.name + '.');
+        updateInventoryUI(scene);
+        updateCraftingTableUI(scene);
+        return;
+      }
+      if (itemId === 'furnace') scene.hasFurnace = true;
+      if (itemId === 'craftingTable') scene.hasCraftingTable = true;
+      scene.tableOutput[itemId] = 0;
+    }
   }
 
   updateInventoryUI(scene);
   updateCraftingTableUI(scene);
   setMessage(scene, 'Items collected.');
 }
+

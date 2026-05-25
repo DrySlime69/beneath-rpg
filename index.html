@@ -1,343 +1,399 @@
-function createEmptyMap(scene, width, height) {
-  const map = [];
-  for (let y = 0; y < height; y++) {
-    const row = [];
-    for (let x = 0; x < width; x++) {
-      row.push(makeTile('caveWall'));
-    }
-    map.push(row);
-  }
-  return map;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
 
-function makeTile(type, extra = {}) {
-  const tile = {
-    type,
-    hardness: type === 'caveWall' ? 999 : 0,
-    variation: Phaser.Math ? Phaser.Math.Between(0, 4) : 0,
-    detailSeed: Phaser.Math ? Phaser.Math.Between(0, 9999) : 0,
-    ...extra
-  };
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
 
-  if (type === 'stone') Object.assign(tile, { hardness: 1, hp: 4, maxHp: 4 });
-  if (type === 'coal') Object.assign(tile, { hardness: 1, hp: 3, maxHp: 3 });
-  if (type === 'copper') Object.assign(tile, { hardness: 2, hp: 10, maxHp: 10 });
-  if (type === 'copperWall') Object.assign(tile, { hardness: 3, hp: 14, maxHp: 14 });
-  if (type === 'furnace' || type === 'craftingTable') tile.hardness = 999;
-  if (type === 'exit' || type === 'exitUp' || type === 'exitDown') tile.hardness = 999;
-  return tile;
-}
+  <title>Beneath - Mining RPG Prototype</title>
 
-function generateMaps(scene) {
-  scene.mineLevel = 1;
-  scene.maxUnlockedMineLevel = STARTING_UNLOCKED_MINE_LEVELS;
-  scene.mineMaps = {};
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.js"></script>
 
-  for (let level = 1; level <= STARTING_UNLOCKED_MINE_LEVELS; level++) {
-    scene.mineMaps[level] = createMineMap(scene, level);
-  }
+  <link rel="stylesheet" href="style.css" />
+</head>
 
-  scene.homeMap = createHomeMap(scene);
-  scene.currentMapName = 'mine';
-  scene.map = scene.mineMaps[scene.mineLevel];
-}
+<body>
+  <!-- UI -->
+  <div id="ui">
+    <div id="message"></div>
+    <div id="healthText">HP 100/100</div>
 
-function getMineMap(scene, level) {
-  if (!scene.mineMaps[level]) scene.mineMaps[level] = createMineMap(scene, level);
-  return scene.mineMaps[level];
-}
+    <div id="inventory">
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+      <div class="slot"></div>
+    </div>
+  </div>
 
-function switchToMine(scene, level = scene.mineLevel || 1) {
-  scene.mineLevel = Phaser.Math.Clamp(level, 1, 99);
-  scene.map = getMineMap(scene, scene.mineLevel);
-  scene.currentMapName = 'mine';
-  setCameraBounds(scene);
-}
+  <!-- Inventory -->
+  <div id="inventoryScreen">
+    <div id="inventoryPanel">
+      <h2>Inventory</h2>
 
-function switchToHome(scene) {
-  scene.map = scene.homeMap;
-  scene.currentMapName = 'home';
-  setCameraBounds(scene);
-}
+      <button id="openDevItemsButton" class="devItemsOpenButton">Testing Item Catalog</button>
 
-function setCameraBounds(scene) {
-  if (!scene.cameras || !scene.cameras.main) return;
-  scene.cameras.main.setBounds(0, 0, scene.mapWidth * scene.tileSize, scene.mapHeight * scene.tileSize);
-}
+      <div id="inventoryContent">
+        <div id="inventoryLists">
+          <div class="inventoryLabel">
+            Hotbar
+          </div>
 
-function darkenColor(color, factor) {
-  const r = Math.floor(((color >> 16) & 255) * factor);
-  const g = Math.floor(((color >> 8) & 255) * factor);
-  const b = Math.floor((color & 255) * factor);
-  return (r << 16) + (g << 8) + b;
-}
+          <div id="hotbarGrid"></div>
 
-function tintColor(color, amount) {
-  const r = Math.min(255, ((color >> 16) & 255) + amount);
-  const g = Math.min(255, ((color >> 8) & 255) + amount);
-  const b = Math.min(255, (color & 255) + amount);
-  return (r << 16) + (g << 8) + b;
-}
+          <div class="inventoryLabel">
+            Backpack
+          </div>
 
-function seededNoise(x, y, seed = 0) {
-  let n = x * 374761393 + y * 668265263 + seed * 1442695041;
-  n = (n ^ (n >> 13)) * 1274126177;
-  n = n ^ (n >> 16);
-  return Math.abs(n % 10000) / 10000;
-}
+          <div id="backpackGrid"></div>
+        </div>
 
-function getTileBaseColor(tile) {
-  if (tile.type === 'floor') return tile.variation % 2 ? 0x151515 : 0x101010;
-  if (tile.type === 'homeFloor') return tile.variation % 2 ? 0x211911 : 0x18120d;
-  if (tile.type === 'teleportPad') return 0x3344aa;
-  if (tile.type === 'furnace') return 0xff4422;
-  if (tile.type === 'craftingTable') return 0x8b5a2b;
-  if (tile.type === 'caveWall') return tile.variation % 2 ? 0x321c10 : 0x25140b;
-  if (tile.type === 'exit' || tile.type === 'exitDown') return 0x00aa00;
-  if (tile.type === 'exitUp') return 0x2255cc;
-  if (tile.type === 'stone') return 0x5a5a5a;
-  if (tile.type === 'coal') return 0x333333;
-  if (tile.type === 'copper') return 0xaa6633;
-  if (tile.type === 'copperWall') return 0x7f3f24;
-  return 0x000000;
-}
+        <div id="inventorySidePanel">
+          <div id="inventoryItemDetails">
+            <h3 id="inventoryDetailName">Select an item</h3>
+            <div id="inventoryDetailInfo">Click an item to view its details.</div>
+            <div id="inventoryDetailStats"></div>
+            <div id="inventoryDetailRecipe"></div>
+          </div>
 
-function isWallLike(tile) {
-  return tile && ['caveWall', 'stone', 'coal', 'copper', 'copperWall'].includes(tile.type);
-}
+          <div id="deleteItemDropZone" title="Drag an item here to delete it">
+            <div class="deleteItemIcon">✕</div>
+            <div class="deleteItemLabel">Delete Item</div>
+          </div>
+        </div>
+      </div>
 
-function isWalkableTile(tile) {
-  return tile && ['floor', 'homeFloor', 'teleportPad', 'exit', 'exitUp', 'exitDown'].includes(tile.type);
-}
+      <div id="inventoryHint">
+        I = close inventory. T = teleport. P = place selected home object. X = pick up faced home object.
+      </div>
+    </div>
+  </div>
 
-function getWallMask(scene, x, y) {
-  const top = isWallLike(getTile(scene, x, y - 1));
-  const right = isWallLike(getTile(scene, x + 1, y));
-  const bottom = isWallLike(getTile(scene, x, y + 1));
-  const left = isWallLike(getTile(scene, x - 1, y));
-  return { top, right, bottom, left };
-}
 
-function getWallVisualColors(tile) {
-  if (tile.type === 'stone') return { base: 0x5a5a5a, edge: 0xa8a8a8, shadow: 0x262626, speck: 0xc0c0c0 };
-  if (tile.type === 'coal') return { base: 0x303030, edge: 0x686868, shadow: 0x111111, speck: 0x777777 };
-  if (tile.type === 'copper') return { base: 0x9b5a2e, edge: 0xffb066, shadow: 0x3a1b12, speck: 0xffaa55 };
-  if (tile.type === 'copperWall') return { base: 0x71381f, edge: 0xff8844, shadow: 0x28110b, speck: 0xff9a58 };
-  return { base: 0x2b180d, edge: 0x7a5238, shadow: 0x0b0503, speck: 0x56321e };
-}
+  <!-- Developer Testing Item Catalog -->
+  <div id="devItemScreen">
+    <div id="devItemPanel">
+      <div id="devItemHeader">
+        <h2>Testing Item Catalog</h2>
+        <button id="closeDevItemsButton">Close</button>
+      </div>
 
-function drawAutotiledWall(scene, tile, x, y, brightness) {
-  if (!isWallLike(tile)) return;
+      <div id="devItemLayout">
+        <div id="devCategoryTabs"></div>
+        <div id="devItemList"></div>
 
-  const px = x * scene.tileSize;
-  const py = y * scene.tileSize;
-  const s = scene.tileSize;
-  const mask = getWallMask(scene, x, y);
-  const colors = getWallVisualColors(tile);
-  const seed = tile.detailSeed || tile.variation || 0;
-  const n1 = seededNoise(x, y, seed);
-  const n2 = seededNoise(x + 17, y - 9, seed);
+        <div id="devItemDetails">
+          <h3 id="devItemName">Select an item</h3>
+          <div id="devItemInfo">Choose a category and item to inspect it.</div>
+          <div id="devItemStats"></div>
+          <div id="devItemRecipe"></div>
 
-  const base = darkenColor(colors.base, brightness);
-  const edge = darkenColor(colors.edge, brightness);
-  const shadow = darkenColor(colors.shadow, Math.min(1, brightness + 0.2));
+          <label for="devItemAmount">Amount</label>
+          <input id="devItemAmount" type="range" min="1" max="99" value="1" />
+          <div id="devItemAmountLabel">1</div>
 
-  const insetTop = mask.top ? 0 : 2 + Math.floor(n1 * 3);
-  const insetBottom = mask.bottom ? 0 : 2 + Math.floor(n2 * 3);
-  const insetLeft = mask.left ? 0 : 2 + Math.floor(seededNoise(x - 3, y, seed) * 3);
-  const insetRight = mask.right ? 0 : 2 + Math.floor(seededNoise(x, y + 5, seed) * 3);
+          <button id="addDevItemButton">Add to Inventory</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Delete Item Confirmation -->
+  <div id="deleteItemConfirmScreen" class="menuOverlay">
+    <div class="menuPanel smallMenuPanel">
+      <h2>Delete item?</h2>
+      <p id="deleteItemConfirmText">Are you sure you want to delete this item?</p>
+      <button id="confirmDeleteItemYes">Yes</button>
+      <button id="confirmDeleteItemNo">No</button>
+    </div>
+  </div>
 
-  scene.worldLayer.fillStyle(base);
-  scene.worldLayer.fillRect(px + insetLeft, py + insetTop, s - insetLeft - insetRight, s - insetTop - insetBottom);
 
-  // Dark cavities against open floor make square tile joins read as rounded cave edges.
-  scene.worldLayer.fillStyle(shadow, 0.62);
-  if (!mask.top) scene.worldLayer.fillRect(px + 3 + Math.floor(n1 * 3), py, s - 7, 5);
-  if (!mask.bottom) scene.worldLayer.fillRect(px + 3, py + s - 5, s - 7 - Math.floor(n2 * 3), 5);
-  if (!mask.left) scene.worldLayer.fillRect(px, py + 4, 5, s - 8);
-  if (!mask.right) scene.worldLayer.fillRect(px + s - 5, py + 4, 5, s - 8);
 
-  // Highlight rims only where wall touches walkable space.
-  scene.worldLayer.lineStyle(1, edge, 0.72);
-  if (!mask.top) scene.worldLayer.lineBetween(px + 5, py + insetTop + 1, px + s - 6, py + Math.max(2, insetTop));
-  if (!mask.left) scene.worldLayer.lineBetween(px + insetLeft + 1, py + 5, px + Math.max(2, insetLeft), py + s - 6);
-  scene.worldLayer.lineStyle(1, shadow, 0.55);
-  if (!mask.bottom) scene.worldLayer.lineBetween(px + 5, py + s - insetBottom - 1, px + s - 6, py + s - Math.max(2, insetBottom));
-  if (!mask.right) scene.worldLayer.lineBetween(px + s - insetRight - 1, py + 5, px + s - Math.max(2, insetRight), py + s - 6);
+  <!-- Chest Storage -->
+  <div id="chestScreen">
+    <div id="chestPanel">
+      <div id="chestHeader">
+        <h2 id="chestTitle">Chest Storage</h2>
+        <button id="closeChestButton">Close</button>
+      </div>
+      <div id="chestGrid"></div>
+      <div id="chestHint">Drag items between the chest, hotbar, and backpack. X picks up an empty chest.</div>
+    </div>
+  </div>
 
-  // Rounded inner-corner shadows remove the checkerboard feel at cave bends.
-  scene.worldLayer.fillStyle(shadow, 0.5);
-  if (!mask.top && !mask.left) scene.worldLayer.fillCircle(px + 4, py + 4, 5);
-  if (!mask.top && !mask.right) scene.worldLayer.fillCircle(px + s - 4, py + 4, 5);
-  if (!mask.bottom && !mask.left) scene.worldLayer.fillCircle(px + 4, py + s - 4, 5);
-  if (!mask.bottom && !mask.right) scene.worldLayer.fillCircle(px + s - 4, py + s - 4, 5);
-}
+  <!-- Furnace -->
+  <div id="craftingScreen">
+    <div id="craftingPanel">
+      <h2>Furnace</h2>
 
-function drawFloorDetails(scene, tile, x, y, brightness) {
-  if (!isWalkableTile(tile)) return;
+      <div id="furnaceLayout">
+        <div id="furnaceRecipeGrid">
+          <button
+            class="furnaceRecipeSlot selected"
+            data-recipe="copperBar"
+          >
+            Copper Bar
+          </button>
+        </div>
 
-  const px = x * scene.tileSize;
-  const py = y * scene.tileSize;
-  const s = scene.tileSize;
-  const seed = tile.detailSeed || tile.variation || 0;
-  const floorColor = tile.type === 'homeFloor' ? 0x3a2a19 : 0x222222;
-  const pebbleColor = darkenColor(floorColor, brightness * 0.85);
-  const lightPebble = darkenColor(tintColor(floorColor, 25), brightness * 0.8);
+        <div id="furnaceRecipeDetails">
+          <h3 id="selectedFurnaceRecipeName">
+            Copper Bar
+          </h3>
 
-  // Ground texture speckles, deterministic per tile so it does not shimmer.
-  scene.worldLayer.fillStyle(pebbleColor, 0.45);
-  if (seededNoise(x, y, seed) > 0.25) scene.worldLayer.fillRect(px + 5, py + 6, 2, 2);
-  if (seededNoise(x + 11, y + 4, seed) > 0.5) scene.worldLayer.fillRect(px + 17, py + 15, 3, 1);
-  scene.worldLayer.fillStyle(lightPebble, 0.35);
-  if (seededNoise(x - 8, y + 13, seed) > 0.62) scene.worldLayer.fillRect(px + 10, py + 20, 2, 2);
+          <div id="selectedFurnaceRecipeDescription">
+            Smelt copper ore into a usable copper bar.
+          </div>
 
-  // Ambient occlusion beside nearby walls makes caves feel naturally carved.
-  const top = isWallLike(getTile(scene, x, y - 1));
-  const right = isWallLike(getTile(scene, x + 1, y));
-  const bottom = isWallLike(getTile(scene, x, y + 1));
-  const left = isWallLike(getTile(scene, x - 1, y));
-  scene.worldLayer.fillStyle(0x000000, scene.currentMapName === 'home' ? 0.08 : 0.18);
-  if (top) scene.worldLayer.fillRect(px, py, s, 5);
-  if (bottom) scene.worldLayer.fillRect(px, py + s - 5, s, 5);
-  if (left) scene.worldLayer.fillRect(px, py, 5, s);
-  if (right) scene.worldLayer.fillRect(px + s - 5, py, 5, s);
-}
+          <div id="selectedFurnaceRecipeRequirements">
+            Requires: 5 Copper Ore + 1 Coal
+          </div>
 
-function drawTileDetails(scene, tile, x, y, brightness) {
-  const px = x * scene.tileSize;
-  const py = y * scene.tileSize;
-  const size = scene.tileSize;
+          <label for="copperBarAmount">
+            Amount:
+          </label>
 
-  drawFloorDetails(scene, tile, x, y, brightness);
-  drawAutotiledWall(scene, tile, x, y, brightness);
+          <input
+            id="copperBarAmount"
+            type="range"
+            min="1"
+            max="10"
+            value="1"
+          />
 
-  if (tile.type === 'caveWall') {
-    scene.worldLayer.fillStyle(darkenColor(0x56321e, brightness), 0.55);
-    scene.worldLayer.fillRect(px + 5, py + 5, 4 + tile.variation, 3);
-    scene.worldLayer.fillRect(px + 15, py + 13, 5, 4);
-    if ((tile.detailSeed || 0) % 2 === 0) scene.worldLayer.fillRect(px + 8, py + 19, 3, 2);
-  }
+          <div id="copperBarAmountLabel">
+            1
+          </div>
 
-  if (tile.type === 'stone') {
-    scene.worldLayer.lineStyle(1, darkenColor(0xbbbbbb, brightness), 0.8);
-    scene.worldLayer.lineBetween(px + 5, py + 8, px + 14, py + 14);
-    scene.worldLayer.lineBetween(px + 14, py + 14, px + 21, py + 9);
-    scene.worldLayer.lineBetween(px + 8, py + 20, px + 17, py + 17);
-  }
+          <button id="craftCopperBars">
+            Start Crafting
+          </button>
 
-  if (tile.type === 'coal') {
-    scene.worldLayer.fillStyle(darkenColor(0x777777, brightness));
-    scene.worldLayer.fillRect(px + 6, py + 7, 3, 3);
-    scene.worldLayer.fillRect(px + 17, py + 13, 3, 3);
-    scene.worldLayer.fillRect(px + 11, py + 20, 2, 2);
-  }
+          <div id="furnaceQueue">
+            <h3>In Progress</h3>
 
-  if (tile.type === 'copper' || tile.type === 'copperWall') {
-    scene.worldLayer.fillStyle(darkenColor(tile.type === 'copperWall' ? 0xff8844 : 0xffaa55, brightness));
-    scene.worldLayer.fillRect(px + 5, py + 6, 4, 4);
-    scene.worldLayer.fillRect(px + 16, py + 9, 3, 3);
-    scene.worldLayer.fillRect(px + 9, py + 18, 4, 3);
-    scene.worldLayer.fillRect(px + 20, py + 19, 2, 2);
-  }
+            <div id="furnaceQueueItem">
+              Empty
+            </div>
 
-  if (tile.type === 'craftingTable') {
-    scene.worldLayer.fillStyle(darkenColor(0x6b3f1d, brightness));
-    scene.worldLayer.fillRect(px + 4, py + 6, size - 8, 8);
-    scene.worldLayer.fillStyle(darkenColor(0xb8793a, brightness));
-    scene.worldLayer.fillRect(px + 5, py + 5, size - 10, 4);
-    scene.worldLayer.fillStyle(darkenColor(0x4a2a12, brightness));
-    scene.worldLayer.fillRect(px + 6, py + 15, 4, 8);
-    scene.worldLayer.fillRect(px + size - 10, py + 15, 4, 8);
-  }
+            <div id="furnaceProgressOuter">
+              <div id="furnaceProgressInner"></div>
+            </div>
+          </div>
 
-  if (tile.type === 'furnace') {
-    const isWorking = scene.furnaceQueue && scene.furnaceQueue.length > 0;
-    scene.worldLayer.fillStyle(darkenColor(0x5a1a12, brightness));
-    scene.worldLayer.fillRect(px + 4, py + 4, size - 8, size - 8);
-    scene.worldLayer.fillStyle(darkenColor(0x2a0c08, brightness));
-    scene.worldLayer.fillRect(px + 8, py + 8, size - 16, size - 16);
-    scene.worldLayer.fillStyle(darkenColor(isWorking ? 0xffff88 : 0xffaa44, brightness));
-    scene.worldLayer.fillRect(px + 10, py + 11, size - 20, size - 20);
-  }
+          <div id="furnaceOutput">
+            <h3>Completed</h3>
 
-  if (tile.type === 'teleportPad') {
-    scene.worldLayer.lineStyle(2, darkenColor(0x88aaff, brightness), 0.9);
-    scene.worldLayer.strokeCircle(px + size / 2, py + size / 2, 8);
-    scene.worldLayer.strokeCircle(px + size / 2, py + size / 2, 4);
-  }
+            <div id="furnaceOutputItem">
+              Empty
+            </div>
 
-  if (tile.type === 'exit' || tile.type === 'exitDown' || tile.type === 'exitUp') {
-    scene.worldLayer.fillStyle(darkenColor(tile.type === 'exitUp' ? 0x001d48 : 0x002800, brightness));
-    scene.worldLayer.fillCircle(px + size / 2, py + size / 2, 10);
-    scene.worldLayer.lineStyle(2, darkenColor(tile.type === 'exitUp' ? 0x66aaff : 0x44ff77, brightness), 0.8);
-    scene.worldLayer.strokeCircle(px + size / 2, py + size / 2, 11);
-  }
-}
+            <button id="collectFurnaceOutput">
+              Collect
+            </button>
+          </div>
+        </div>
+      </div>
 
-function drawMiner(scene) {
-  const px = scene.player.x - scene.tileSize / 2;
-  const py = scene.player.y - scene.tileSize / 2;
-  const size = scene.tileSize;
+      <button id="closeCraftingMenu">
+        Close
+      </button>
+    </div>
+  </div>
 
-  scene.playerLayer.fillStyle(0x111111, 0.35);
-  scene.playerLayer.fillEllipse(scene.player.x, scene.player.y + 10, 20, 7);
+  <!-- Crafting Table -->
+  <div id="craftingTableScreen">
+    <div id="craftingTablePanel">
+      <h2>Crafting Table</h2>
 
-  scene.playerLayer.fillStyle(0x3366cc);
-  scene.playerLayer.fillRect(px + 7, py + 11, size - 14, size - 8);
-  scene.playerLayer.fillStyle(0xffcc88);
-  scene.playerLayer.fillRect(px + 8, py + 7, size - 16, 8);
-  scene.playerLayer.fillStyle(0xd8b000);
-  scene.playerLayer.fillRect(px + 7, py + 4, size - 14, 5);
-  scene.playerLayer.fillStyle(0xffffaa);
-  scene.playerLayer.fillRect(px + size / 2 - 2, py + 3, 4, 3);
-  scene.playerLayer.fillStyle(0x111111);
-  scene.playerLayer.fillRect(px + 7, py + size - 4, 5, 3);
-  scene.playerLayer.fillRect(px + size - 12, py + size - 4, 5, 3);
+      <div id="craftingTableLayout">
+        <div id="craftingRecipeGrid">
+          <button
+            class="craftRecipeSlot"
+            data-recipe="stonePickaxe"
+          >
+            Stone Pickaxe
+          </button>
 
-  scene.playerLayer.fillStyle(0xffaa00);
-  scene.playerLayer.fillRect(
-    scene.player.x - 2 + scene.lastMoveDirection.x * 11,
-    scene.player.y - 2 + scene.lastMoveDirection.y * 11,
-    4,
-    4
-  );
-}
+          <button
+            class="craftRecipeSlot"
+            data-recipe="copperPickaxe"
+          >
+            Copper Pickaxe
+          </button>
 
-function redraw(scene) {
-  scene.worldLayer.clear();
-  scene.playerLayer.clear();
+          <button
+            class="craftRecipeSlot"
+            data-recipe="stoneSword"
+          >
+            Stone Sword
+          </button>
 
-  const worldWidth = scene.mapWidth * scene.tileSize;
-  const worldHeight = scene.mapHeight * scene.tileSize;
+          <button
+            class="craftRecipeSlot"
+            data-recipe="copperSword"
+          >
+            Copper Sword
+          </button>
 
-  scene.worldLayer.fillStyle(0x020202);
-  scene.worldLayer.fillRect(0, 0, worldWidth, worldHeight);
+          <button
+            class="craftRecipeSlot"
+            data-recipe="furnace"
+          >
+            Furnace
+          </button>
+        </div>
 
-  const playerTileX = scene.player.x / scene.tileSize;
-  const playerTileY = scene.player.y / scene.tileSize;
+        <div id="craftingRecipeDetails">
+          <h3 id="selectedRecipeName">
+            Select a Recipe
+          </h3>
 
-  for (let y = 0; y < scene.mapHeight; y++) {
-    for (let x = 0; x < scene.mapWidth; x++) {
-      const tile = scene.map[y][x];
-      const distance = Phaser.Math.Distance.Between(x + 0.5, y + 0.5, playerTileX, playerTileY);
-      const lightRadius = scene.currentMapName === 'home' ? 10.5 : 8.5;
-      const minBrightness = scene.currentMapName === 'home' ? 0.26 : 0.14;
-      const lightStrength = Phaser.Math.Clamp(1 - distance / lightRadius, 0, 1);
-      const brightness = minBrightness + lightStrength * lightStrength * (1 - minBrightness);
-      const color = darkenColor(getTileBaseColor(tile), brightness);
+          <div id="selectedRecipeDescription">
+            Choose a recipe from the grid.
+          </div>
 
-      scene.worldLayer.fillStyle(color);
-      scene.worldLayer.fillRect(x * scene.tileSize, y * scene.tileSize, scene.tileSize, scene.tileSize);
-      drawTileDetails(scene, tile, x, y, brightness);
-    }
-  }
+          <div id="selectedRecipeRequirements"></div>
 
-  const target = getTargetTile(scene, 1);
-  const targetTile = getTile(scene, target.x, target.y);
-  if (targetTile && !['floor', 'homeFloor', 'teleportPad', 'exitUp', 'exitDown'].includes(targetTile.type)) {
-    scene.playerLayer.lineStyle(1, 0xffcc66, 0.45);
-    scene.playerLayer.strokeRect(target.x * scene.tileSize + 2, target.y * scene.tileSize + 2, scene.tileSize - 4, scene.tileSize - 4);
-  }
+         <button id="craftSelectedRecipe">
+  Start Crafting
+</button>
 
-  drawMiner(scene);
-}
+<div id="tableCraftQueue">
+  <h3>In Progress</h3>
+
+  <div id="tableQueueItem">
+    Empty
+  </div>
+
+  <div id="tableProgressOuter">
+    <div id="tableProgressInner"></div>
+  </div>
+</div>
+
+<div id="tableCraftOutput">
+  <h3>Completed</h3>
+
+  <div id="tableOutputItem">
+    Empty
+  </div>
+
+  <button id="collectTableOutput">
+    Collect
+  </button>
+</div>
+        </div>
+      </div>
+
+      <button id="closeCraftingTable">
+        Close
+      </button>
+    </div>
+  </div>
+
+
+
+  <!-- ESC Main Menu -->
+  <div id="pauseMenuScreen" class="menuOverlay">
+    <div class="menuPanel">
+      <h2>Beneath</h2>
+      <button id="openSaveMenu">Save</button>
+      <button id="openLoadMenu">Load</button>
+      <button class="blankMenuButton">---</button>
+      <button class="blankMenuButton">---</button>
+      <button class="blankMenuButton">---</button>
+      <button id="exitPauseMenu" class="bottomMenuButton">Exit</button>
+    </div>
+  </div>
+
+  <!-- Save Slots Menu -->
+  <div id="saveMenuScreen" class="menuOverlay">
+    <div class="menuPanel">
+      <h2>Save Game</h2>
+      <div id="saveSlotGrid">
+        <button class="saveSlotButton" data-slot="1">Save Slot 1<br><span>Empty</span></button>
+        <button class="saveSlotButton" data-slot="2">Save Slot 2<br><span>Empty</span></button>
+        <button class="saveSlotButton" data-slot="3">Save Slot 3<br><span>Empty</span></button>
+      </div>
+      <button id="exitSaveMenu" class="bottomMenuButton">Exit</button>
+    </div>
+  </div>
+
+  <!-- Load Slots Menu -->
+  <div id="loadMenuScreen" class="menuOverlay">
+    <div class="menuPanel">
+      <h2>Load Game</h2>
+      <div id="loadSlotGrid">
+        <button class="loadSlotButton" data-slot="1">Save Slot 1<br><span>Empty</span></button>
+        <button class="loadSlotButton" data-slot="2">Save Slot 2<br><span>Empty</span></button>
+        <button class="loadSlotButton" data-slot="3">Save Slot 3<br><span>Empty</span></button>
+      </div>
+      <button id="exitLoadMenu" class="bottomMenuButton">Exit</button>
+    </div>
+  </div>
+
+  <!-- Load Confirmation -->
+  <div id="loadConfirmScreen" class="menuOverlay">
+    <div class="menuPanel smallMenuPanel">
+      <h2>Load save file?</h2>
+      <p id="loadSlotLabel">Save Slot</p>
+      <p>Are you sure you want to load this save file?<br>All unsaved progress will be lost.</p>
+      <button id="confirmLoadYes">Yes</button>
+      <button id="confirmLoadNo">No</button>
+      <button id="exitLoadConfirmMenu" class="bottomMenuButton">Exit</button>
+    </div>
+  </div>
+
+  <!-- Overwrite Confirmation -->
+  <div id="overwriteConfirmScreen" class="menuOverlay">
+    <div class="menuPanel smallMenuPanel">
+      <h2>Overwrite save file?</h2>
+      <p id="overwriteSlotLabel">Save Slot</p>
+      <button id="confirmOverwriteYes">Yes</button>
+      <button id="confirmOverwriteNo">No</button>
+      <button id="exitOverwriteMenu" class="bottomMenuButton">Exit</button>
+    </div>
+  </div>
+
+
+  <!-- Developer Mine Level Warp -->
+  <div id="devLevelWarpScreen" class="menuOverlay">
+    <div class="menuPanel devLevelWarpPanel">
+      <h2>Dev Mine Level Warp</h2>
+      <p class="devHint">Click a level to warp directly to that mine floor.</p>
+      <div id="devLevelWarpGrid"></div>
+      <button id="closeDevLevelWarp" class="bottomMenuButton">Exit</button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="src/items.js"></script>
+  <script src="src/ui.js"></script>
+  <script src="src/inventory.js"></script>
+
+  <script src="src/maps/home.js"></script>
+  <script src="src/biomes.js"></script>
+  <script src="src/assets.js"></script>
+  <script src="src/maps/mine.js"></script>
+
+  <script src="src/terrain_renderer.js"></script>
+  <script src="src/world.js"></script>
+  <script src="src/visuals.js"></script>
+  <script src="src/player.js"></script>
+  <script src="src/crafting.js"></script>
+  <script src="src/base.js"></script>
+  <script src="src/weapons.js"></script>
+  <script src="src/combat.js"></script>
+  <script src="src/save.js"></script>
+  <script src="src/dev_inventory.js"></script>
+  <script src="src/dev_level_warp.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>
