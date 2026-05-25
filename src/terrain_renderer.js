@@ -79,11 +79,14 @@ function refreshTerrainSprites(scene, force = false) {
 
   if (!isSporeTerrainScene(scene)) return;
 
-  // Render in strict order. Avoid room-sized images: they caused the visual
-  // corruption/overlap shown in testing.
-  addSporeSoftRoomGroundTint(scene);
-  addSporeTerrainChunks(scene);
+  // Render in strict order. The visible cave is now composed from organic
+  // room fields + edge silhouettes. We intentionally avoid square room plates,
+  // square wall sprites, and repeated 4x4 texture stamps because those made the
+  // cave look like stacked rectangles.
+  addSporeOrganicRoomFields(scene);
+  addSporeOrganicCorridorFields(scene);
   addSporeFloorDecals(scene);
+  addSporeCaveEdgeSilhouettes(scene);
   addSporeRoomSetPieces(scene);
   addSporeWallSetPieces(scene);
 
@@ -124,6 +127,120 @@ function countVisualFloors(scene, startX, startY, width, height) {
     }
   }
   return count;
+}
+
+function isOpenSporeTile(scene, x, y) {
+  const tile = scene.map?.[y]?.[x];
+  return isVisualFloorTile(tile);
+}
+
+function isEdgeWallTile(scene, x, y) {
+  const tile = scene.map?.[y]?.[x];
+  if (!tile || tile.type !== 'caveWall') return false;
+  return isOpenSporeTile(scene, x + 1, y) || isOpenSporeTile(scene, x - 1, y) ||
+    isOpenSporeTile(scene, x, y + 1) || isOpenSporeTile(scene, x, y - 1) ||
+    isOpenSporeTile(scene, x + 1, y + 1) || isOpenSporeTile(scene, x - 1, y + 1) ||
+    isOpenSporeTile(scene, x + 1, y - 1) || isOpenSporeTile(scene, x - 1, y - 1);
+}
+
+function addSporeOrganicRoomFields(scene) {
+  if (!scene.map?.rooms || !scene.terrainChunkLayer) return;
+  const s = scene.tileSize;
+  for (const room of scene.map.rooms) {
+    const cx = (room.cx + 0.5) * s;
+    const cy = (room.cy + 0.5) * s;
+    const h = terrainHash(room.cx || 0, room.cy || 0, (room.id || 0) + 2024);
+    const type = normalizeSporeRoomType(room.type);
+    const accent = type === 'floodedGrotto' ? 0x1fb9b0 :
+      type === 'fungalNest' ? 0x5c3f77 :
+      type === 'sporePit' ? 0x249565 :
+      type === 'rootCavern' ? 0x6c5533 :
+      type === 'mushroomGrove' ? 0x3f6f31 : 0x334b31;
+    const g = scene.add.graphics();
+
+    // Dark outer shell makes the room edge feel like cave shadow, not a square.
+    g.fillStyle(0x000000, 0.30);
+    g.fillEllipse(cx, cy, (room.w + 4.5) * s, (room.h + 4.0) * s);
+    g.fillStyle(0x07100d, 0.94);
+    g.fillEllipse(cx, cy, (room.w + 2.8) * s, (room.h + 2.5) * s);
+    g.fillStyle(accent, 0.34);
+    g.fillEllipse(cx, cy, (room.w + 0.55) * s, (room.h + 0.35) * s);
+    g.fillStyle(0x1f2d22, 0.70);
+    g.fillEllipse(cx, cy, (room.w - 1.0) * s, (room.h - 1.0) * s);
+
+    // Break symmetry with overlapping organic stains. No hard rectangles.
+    for (let i = 0; i < 7; i++) {
+      const ox = (((h >> (i * 3)) % 17) - 8) * s * 0.22;
+      const oy = (((h >> (i * 4 + 2)) % 15) - 7) * s * 0.18;
+      const ww = (room.w * (0.22 + ((h >> i) % 5) * 0.035)) * s;
+      const hh = (room.h * (0.16 + ((h >> (i + 5)) % 5) * 0.028)) * s;
+      g.fillStyle(i % 3 === 0 ? 0x82f77d : (i % 3 === 1 ? 0x1a8f75 : 0x111b16), i % 3 === 0 ? 0.07 : 0.18);
+      g.fillEllipse(cx + ox, cy + oy, ww, hh);
+    }
+    g.setDepth(1.08);
+    scene.terrainChunkLayer.add(g);
+  }
+}
+
+function addSporeOrganicCorridorFields(scene) {
+  if (!scene.map?.connections || !scene.map?.rooms || !scene.terrainChunkLayer) return;
+  const s = scene.tileSize;
+  const roomsById = new Map(scene.map.rooms.map(room => [room.id, room]));
+  for (const link of scene.map.connections) {
+    const a = roomsById.get(link.from);
+    const b = roomsById.get(link.to);
+    if (!a || !b) continue;
+    const ax = (a.cx + 0.5) * s, ay = (a.cy + 0.5) * s;
+    const bx = (b.cx + 0.5) * s, by = (b.cy + 0.5) * s;
+    const dx = bx - ax, dy = by - ay;
+    const len = Math.max(s * 2, Math.sqrt(dx * dx + dy * dy));
+    const angle = Math.atan2(dy, dx);
+    const g = scene.add.graphics();
+    // Use ellipses along the path rather than long rectangular strips.
+    const steps = Math.max(3, Math.floor(len / (s * 2.2)));
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const x = ax + dx * t;
+      const y = ay + dy * t;
+      const h = terrainHash(Math.floor(x / s), Math.floor(y / s), i + 902);
+      g.fillStyle(0x07100d, 0.92);
+      g.fillEllipse(x, y, s * (3.2 + (h % 3) * 0.25), s * (2.0 + ((h >> 3) % 3) * 0.22));
+      g.fillStyle(0x27452d, 0.35);
+      g.fillEllipse(x, y, s * (2.4 + (h % 4) * 0.16), s * (1.35 + ((h >> 5) % 4) * 0.13));
+    }
+    g.rotation = angle * 0.06; // tiny irregularity, not a directional rectangle
+    g.setDepth(1.075);
+    scene.terrainChunkLayer.add(g);
+  }
+}
+
+function addSporeCaveEdgeSilhouettes(scene) {
+  if (!scene.terrainWallLayer) return;
+  const s = scene.tileSize;
+  const g = scene.add.graphics();
+  for (let y = 1; y < scene.mapHeight - 1; y++) {
+    for (let x = 1; x < scene.mapWidth - 1; x++) {
+      if (!isEdgeWallTile(scene, x, y)) continue;
+      const cx = x * s + s / 2;
+      const cy = y * s + s / 2;
+      const h = terrainHash(x, y, 4040);
+      // dark rock mass around openings
+      g.fillStyle(0x020807, 0.92);
+      g.fillEllipse(cx + ((h % 7) - 3), cy + (((h >> 3) % 7) - 3), s * (1.12 + (h % 4) * 0.08), s * (1.05 + ((h >> 2) % 4) * 0.08));
+      // moss/fungal lip only when touching floor
+      const touchesFloor = isOpenSporeTile(scene, x, y + 1) || isOpenSporeTile(scene, x, y - 1) || isOpenSporeTile(scene, x + 1, y) || isOpenSporeTile(scene, x - 1, y);
+      if (touchesFloor) {
+        g.fillStyle(0x315b2e, 0.44);
+        g.fillEllipse(cx + ((h >> 4) % 9) - 4, cy + ((h >> 7) % 9) - 4, s * 0.74, s * 0.32);
+        if (h % 100 < 22) {
+          g.fillStyle(0x92df63, 0.52);
+          g.fillCircle(cx + ((h >> 9) % 18) - 9, cy + ((h >> 12) % 18) - 9, 1.4 + (h % 3));
+        }
+      }
+    }
+  }
+  g.setDepth(1.31);
+  scene.terrainWallLayer.add(g);
 }
 
 
@@ -338,22 +455,8 @@ function addSporeWallSetPieces(scene) {
 }
 
 function addSporeTerrainChunks(scene) {
-  const s = scene.tileSize;
-  // Large overlapping chunks hide the 1-tile grid while collision/mining stays tile based.
-  for (let y = 0; y < scene.mapHeight; y += 4) {
-    for (let x = 0; x < scene.mapWidth; x += 4) {
-      const floorCount = countVisualFloors(scene, x, y, 5, 5);
-      if (floorCount < 7) continue;
-      const h = terrainHash(x, y, scene.mineLevel || 1);
-      const key = 'spore_floor_chunk_' + (h % 8);
-      const img = scene.add.image((x + 2.5) * s, (y + 2.5) * s, key);
-      img.setDisplaySize(s * 3.2, s * 3.2);
-      img.setOrigin(0.5);
-      img.setAlpha(0.42 + ((h % 6) / 100));
-      img.setAngle([0, 90, 180, 270][h % 4]);
-      scene.terrainChunkLayer.add(img);
-    }
-  }
+  // Deprecated: the old implementation stamped square 4x4 texture chunks and
+  // made the cave read as a block collage. Kept as a no-op for compatibility.
 }
 
 function addSporeFloorDecals(scene) {
@@ -396,14 +499,13 @@ function addTerrainSpriteForTile(scene, tile, x, y) {
 
   if (isVisualWallTile(tile)) {
     if (tile.type === 'caveWall') {
-      const mask = wallMaskValue(scene, x, y);
-      const img = scene.add.image(cx, cy, 'spore_wall_' + mask);
-      img.setDisplaySize(s + 2, s + 2);
-      img.setOrigin(0.5);
-      img.setAlpha(0.98);
-      scene.terrainWallLayer.add(img);
-      addSporeEdgeShadowSprites(scene, x, y);
-      addSporeWallShadowBlob(scene, x, y);
+      // Do NOT draw a square wall tile per caveWall. Organic cave silhouettes are
+      // drawn in addSporeCaveEdgeSilhouettes. Per-tile wall sprites were the main
+      // reason the map looked like blocky rectangles.
+      if (isEdgeWallTile(scene, x, y)) {
+        addSporeEdgeShadowSprites(scene, x, y);
+        addSporeWallShadowBlob(scene, x, y);
+      }
     }
   }
 }
