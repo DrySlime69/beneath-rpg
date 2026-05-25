@@ -261,9 +261,13 @@ function carveSafePortalPad(scene, map, cx, cy, radius = 2) {
 }
 
 function addRoomBasedBiomeDecorations(scene, map, biome, level, rooms) {
-  // Use existing decor functions first, then add room-theme metadata so later art
-  // passes can place proper large painted floors/set pieces per room.
+  // Spore Grotto now uses room-level sprite set pieces from room metadata.
+  // Do not place old single-tile decor there; it fights the painted art direction.
   addBiomeDecorations(scene, map, biome, level);
+  if (biome && biome.id === 'sporeGrotto') {
+    map.visualDecorVersion = 4;
+    return;
+  }
 
   for (const room of rooms) {
     if (room.role === 'entrance' || room.role === 'exit') continue;

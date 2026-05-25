@@ -131,6 +131,13 @@ function applyBiomeToMap(map, biome) {
 }
 
 function addBiomeDecorations(scene, map, biome, level) {
+  if (biome && biome.id === 'sporeGrotto') {
+    // Spore Grotto now uses room-scale painted set pieces instead of old
+    // single-tile random decor. Keep ore chunks, but do not scatter legacy props.
+    clearLegacySporeDecor(map);
+    addLargeOreChunks(scene, map, biome, level);
+    return;
+  }
   const floorTiles = [];
   const wallTiles = [];
   for (let y = 2; y < scene.mapHeight - 2; y++) {
@@ -166,6 +173,21 @@ function addBiomeDecorations(scene, map, biome, level) {
   decorateWall(65 + Phaser.Math.Between(0, 20));
   addLargeOreChunks(scene, map, biome, level);
   addBiomePointOfInterest(scene, map, biome, level);
+}
+
+function clearLegacySporeDecor(map) {
+  if (!map || map.biomeId !== 'sporeGrotto') return;
+  for (let y = 0; y < map.length; y++) {
+    for (let x = 0; x < (map[y] || []).length; x++) {
+      const tile = map[y][x];
+      if (!tile) continue;
+      if (tile.decor && tile.type === 'floor') {
+        delete tile.decor;
+        delete tile.poi;
+      }
+      if (tile.wallDecor) delete tile.wallDecor;
+    }
+  }
 }
 
 function touchesWalkableTile(map, x, y) {
@@ -234,6 +256,14 @@ function ensureBiomeVisualDecor(scene, map, level) {
   if (!map) return;
   const biome = getBiomeById(map.biomeId) || getBiomeForLevel(level || 1);
   applyBiomeToMap(map, biome);
+  if (biome && biome.id === 'sporeGrotto' && map.visualDecorVersion < 4) {
+    clearLegacySporeDecor(map);
+    // Add a fresh, minimal large-ore pass for old saves without restoring
+    // the removed tile-by-tile mushroom decor.
+    addLargeOreChunks(scene, map, biome, level || 1);
+    map.visualDecorVersion = 4;
+    return;
+  }
   if (map.visualDecorVersion >= 3) return;
 
   // Add an obvious biome pass to old/generated maps without destroying mined paths.

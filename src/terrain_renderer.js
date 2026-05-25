@@ -15,7 +15,11 @@ const SPORE_TERRAIN_ASSETS = [
   'room_plate_rootCavern_0','room_plate_rootCavern_1','room_plate_rootCavern_2',
   'room_plate_fungalNest_0','room_plate_fungalNest_1','room_plate_fungalNest_2',
   'room_plate_quietChamber_0','room_plate_quietChamber_1','room_plate_quietChamber_2',
-  'room_plate_floodedGrotto_0','room_plate_floodedGrotto_1','room_plate_floodedGrotto_2'
+  'room_plate_floodedGrotto_0','room_plate_floodedGrotto_1','room_plate_floodedGrotto_2',
+  'prop_giant_mushroom_0','prop_giant_mushroom_1','prop_giant_mushroom_2',
+  'prop_mushroom_cluster_0','prop_mushroom_cluster_1','prop_mushroom_cluster_2',
+  'prop_spore_pool','prop_fungal_nest','prop_root_curtain','prop_spore_bulbs',
+  'prop_wall_moss_cascade','prop_wall_glow_vines','prop_wall_fungal_shelf'
 ];
 
 function preloadTerrainAssets(scene) {
@@ -79,6 +83,8 @@ function refreshTerrainSprites(scene, force = false) {
   addSporeCorridorBlends(scene);
   addSporeHeroFloorDecals(scene);
   addSporeFloorDecals(scene);
+  addSporeRoomSetPieces(scene);
+  addSporeWallSetPieces(scene);
 
   for (let y = 0; y < scene.mapHeight; y++) {
     for (let x = 0; x < scene.mapWidth; x++) {
@@ -236,6 +242,79 @@ function addSporeCorridorBlends(scene) {
     img.setAngle(Math.atan2(dy, dx) * 180 / Math.PI);
     img.setDepth(1.045);
     scene.terrainChunkLayer.add(img);
+  }
+}
+
+function addSporeRoomSetPieces(scene) {
+  if (!scene.map?.rooms || !scene.terrainOverlayLayer) return;
+  const s = scene.tileSize;
+  for (const room of scene.map.rooms) {
+    if (!room || room.role === 'entrance' || room.role === 'exit') continue;
+    const type = normalizeSporeRoomType(room.type);
+    const h = terrainHash(room.cx || 0, room.cy || 0, (room.id || 0) + 4411);
+    const cx = (room.cx + 0.5) * s;
+    const cy = (room.cy + 0.5) * s;
+
+    const placements = [];
+    if (type === 'mushroomGrove') {
+      placements.push(['prop_giant_mushroom_' + (h % 3), cx - room.w * s * 0.20, cy - room.h * s * 0.05, s * 4.3, s * 5.6, 1]);
+      placements.push(['prop_mushroom_cluster_' + ((h >> 3) % 3), cx + room.w * s * 0.22, cy + room.h * s * 0.22, s * 3.1, s * 2.6, 1]);
+      placements.push(['prop_spore_bulbs', cx + room.w * s * 0.05, cy - room.h * s * 0.28, s * 2.4, s * 2.4, 0.95]);
+    } else if (type === 'sporePit') {
+      placements.push(['prop_spore_pool', cx, cy + room.h * s * 0.10, s * 5.2, s * 3.1, 1]);
+      placements.push(['prop_spore_bulbs', cx - room.w * s * 0.28, cy - room.h * s * 0.18, s * 2.5, s * 2.5, 0.95]);
+      placements.push(['prop_mushroom_cluster_' + (h % 3), cx + room.w * s * 0.30, cy + room.h * s * 0.16, s * 2.7, s * 2.1, 0.95]);
+    } else if (type === 'rootCavern') {
+      placements.push(['prop_root_curtain', cx - room.w * s * 0.22, cy - room.h * s * 0.16, s * 4.4, s * 3.8, 0.96]);
+      placements.push(['prop_giant_mushroom_' + ((h >> 2) % 3), cx + room.w * s * 0.24, cy + room.h * s * 0.10, s * 3.3, s * 4.3, 0.92]);
+    } else if (type === 'fungalNest') {
+      placements.push(['prop_fungal_nest', cx, cy + room.h * s * 0.05, s * 5.1, s * 3.8, 1]);
+      placements.push(['prop_mushroom_cluster_' + (h % 3), cx - room.w * s * 0.30, cy + room.h * s * 0.22, s * 2.9, s * 2.4, 0.95]);
+      placements.push(['prop_mushroom_cluster_' + ((h >> 4) % 3), cx + room.w * s * 0.30, cy + room.h * s * 0.22, s * 2.9, s * 2.4, 0.95]);
+    } else if (type === 'floodedGrotto') {
+      placements.push(['prop_spore_pool', cx - room.w * s * 0.12, cy + room.h * s * 0.12, s * 5.8, s * 3.4, 1]);
+      placements.push(['prop_giant_mushroom_' + ((h >> 5) % 3), cx + room.w * s * 0.30, cy - room.h * s * 0.06, s * 3.2, s * 4.2, 0.9]);
+    } else {
+      placements.push(['prop_mushroom_cluster_' + (h % 3), cx - room.w * s * 0.24, cy + room.h * s * 0.18, s * 2.9, s * 2.4, 0.9]);
+      if (h % 2 === 0) placements.push(['prop_spore_bulbs', cx + room.w * s * 0.22, cy - room.h * s * 0.18, s * 2.1, s * 2.1, 0.82]);
+    }
+
+    for (const [key, x, y, w, ht, alpha] of placements) {
+      if (!scene.textures.exists(key)) continue;
+      const img = scene.add.image(x, y, key);
+      img.setDisplaySize(w, ht);
+      img.setOrigin(0.5, 0.72);
+      img.setAlpha(alpha);
+      img.setDepth(2.15 + (y / 100000));
+      scene.terrainOverlayLayer.add(img);
+    }
+  }
+}
+
+function addSporeWallSetPieces(scene) {
+  if (!scene.map?.rooms || !scene.terrainOverlayLayer) return;
+  const s = scene.tileSize;
+  for (const room of scene.map.rooms) {
+    const h = terrainHash(room.cx || 0, room.cy || 0, (room.id || 0) + 7733);
+    const wallKeys = ['prop_wall_moss_cascade','prop_wall_glow_vines','prop_wall_fungal_shelf'];
+    const count = room.role === 'standard' ? 2 : 1;
+    for (let i = 0; i < count; i++) {
+      const key = wallKeys[(h + i) % wallKeys.length];
+      if (!scene.textures.exists(key)) continue;
+      const side = (h + i * 7) % 4;
+      let x = (room.cx + 0.5) * s;
+      let y = (room.cy + 0.5) * s;
+      if (side === 0) { x = (room.x + 1 + (h % Math.max(1, room.w - 2))) * s; y = (room.y + 0.7) * s; }
+      if (side === 1) { x = (room.x + room.w - 0.5) * s; y = (room.y + 1 + (h % Math.max(1, room.h - 2))) * s; }
+      if (side === 2) { x = (room.x + 1 + (h % Math.max(1, room.w - 2))) * s; y = (room.y + room.h - 0.3) * s; }
+      if (side === 3) { x = (room.x + 0.5) * s; y = (room.y + 1 + (h % Math.max(1, room.h - 2))) * s; }
+      const img = scene.add.image(x, y, key);
+      img.setDisplaySize(s * 3.0, s * 3.0);
+      img.setOrigin(0.5);
+      img.setAlpha(0.78);
+      img.setDepth(1.95 + y / 100000);
+      scene.terrainOverlayLayer.add(img);
+    }
   }
 }
 
