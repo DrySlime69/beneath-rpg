@@ -101,9 +101,39 @@ function seededNoise(x, y, seed = 0) {
   return Math.abs(n % 10000) / 10000;
 }
 
+function lerpColor(a, b, t) {
+  t = Phaser.Math.Clamp(t, 0, 1);
+  const ar = (a >> 16) & 255;
+  const ag = (a >> 8) & 255;
+  const ab = a & 255;
+  const br = (b >> 16) & 255;
+  const bg = (b >> 8) & 255;
+  const bb = b & 255;
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const bl = Math.round(ab + (bb - ab) * t);
+  return (r << 16) + (g << 8) + bl;
+}
+
+function isSporeGrottoTile(tile) {
+  return tile && (tile.biome === 'sporeGrotto' || getBiomeById(tile.biome || '')?.id === 'sporeGrotto');
+}
+
+function getSporeFloorColor(tile, x = 0, y = 0) {
+  const seed = tile?.detailSeed || tile?.variation || 0;
+  const n = seededNoise(x, y, seed);
+  if (n > 0.84) return 0x45643b; // moss islands
+  if (n > 0.66) return 0x3a5a42; // damp green soil
+  if (n < 0.18) return 0x253a2f; // shadowed loam
+  return 0x315038;
+}
+
 function getTileBaseColor(tile) {
   const biome = getBiomeById(tile?.biome || 'dirtCaves');
-  if (tile.type === 'floor' || tile.type === 'torch') return tile.variation % 2 ? tintColor(biome.floor, 8) : biome.floor;
+  if (tile.type === 'floor' || tile.type === 'torch') {
+    if (biome.id === 'sporeGrotto') return getSporeFloorColor(tile, tile.detailSeed || 0, tile.variation || 0);
+    return tile.variation % 2 ? tintColor(biome.floor, 8) : biome.floor;
+  }
   if (tile.type === 'homeFloor') return tile.variation % 2 ? 0x3a2617 : 0x2a1c12;
   if (tile.type === 'teleportPad') return 0x3344aa;
   if (tile.type === 'furnace') return 0xff4422;
@@ -156,6 +186,88 @@ function getWallVisualColors(tile) {
   return biome.wall;
 }
 
+
+function drawSporeFloorTerrain(scene, tile, x, y, brightness) {
+  if (!isSporeGrottoTile(tile) || scene.currentMapName !== 'mine') return;
+  const px = x * scene.tileSize;
+  const py = y * scene.tileSize;
+  const s = scene.tileSize;
+  const seed = tile.detailSeed || tile.variation || 0;
+  const n1 = seededNoise(x, y, seed);
+  const n2 = seededNoise(x + 19, y - 7, seed);
+
+  // Organic moss/fungus patches break up the flat rectangle look.
+  if (n1 > 0.38) {
+    const patch = n1 > 0.78 ? 0x5f7f3e : 0x426b3f;
+    scene.worldLayer.fillStyle(darkenColor(patch, Math.min(1, brightness + 0.08)), 0.34);
+    scene.worldLayer.fillEllipse(px + 8 + Math.floor(n2 * 14), py + 10 + Math.floor(n1 * 9), 16 + Math.floor(n1 * 9), 7 + Math.floor(n2 * 5));
+  }
+
+  if (n2 > 0.58) {
+    scene.worldLayer.fillStyle(darkenColor(0x6f4f88, brightness), 0.18);
+    scene.worldLayer.fillEllipse(px + 12, py + 17, 18, 6);
+  }
+
+  // Tiny glowing spores embedded in the floor, not big props yet.
+  if (seededNoise(x - 31, y + 11, seed) > 0.82) {
+    const pulse = 0.85 + Math.sin((scene.visualTime || 0) * 0.004 + x * 0.7 + y) * 0.12;
+    scene.worldLayer.fillStyle(0xbfff74, 0.08 * pulse);
+    scene.worldLayer.fillCircle(px + 10 + Math.floor(n1 * 10), py + 8 + Math.floor(n2 * 12), 10);
+    scene.worldLayer.fillStyle(darkenColor(0xdfff9d, Math.min(1, brightness + 0.22)), 0.62 * pulse);
+    scene.worldLayer.fillRect(px + 10 + Math.floor(n1 * 10), py + 8 + Math.floor(n2 * 12), 2, 2);
+  }
+
+  // Fine moss pixels. Deterministic so the world does not shimmer.
+  scene.worldLayer.fillStyle(darkenColor(0xa7d86e, Math.min(1, brightness + 0.05)), 0.32);
+  if (seededNoise(x + 8, y + 4, seed) > 0.35) scene.worldLayer.fillRect(px + 4, py + 6, 2, 1);
+  if (seededNoise(x - 5, y + 12, seed) > 0.48) scene.worldLayer.fillRect(px + 18, py + 20, 3, 1);
+  if (seededNoise(x + 2, y - 15, seed) > 0.62) scene.worldLayer.fillRect(px + 11, py + 14, 1, 2);
+}
+
+function drawSporeWallTerrain(scene, tile, x, y, brightness, mask) {
+  if (!isSporeGrottoTile(tile) || tile.type !== 'caveWall') return;
+  const px = x * scene.tileSize;
+  const py = y * scene.tileSize;
+  const s = scene.tileSize;
+  const seed = tile.detailSeed || tile.variation || 0;
+  const n1 = seededNoise(x, y, seed);
+  const n2 = seededNoise(x + 13, y - 21, seed);
+
+  // Soft fungus skin layer over the cave wall.
+  scene.worldLayer.fillStyle(darkenColor(lerpColor(0x2f4c35, 0x426735, n1), brightness), 0.26);
+  scene.worldLayer.fillEllipse(px + 7 + n1 * 14, py + 8 + n2 * 12, 18 + n2 * 8, 9 + n1 * 5);
+
+  // Brighter moss rim only where the wall borders open floor.
+  scene.worldLayer.lineStyle(2, darkenColor(0xa7df6e, Math.min(1, brightness + 0.05)), 0.46);
+  if (!mask.top) scene.worldLayer.lineBetween(px + 4, py + 5, px + s - 5, py + 4 + Math.floor(n1 * 2));
+  if (!mask.left) scene.worldLayer.lineBetween(px + 4, py + 5, px + 4 + Math.floor(n2 * 2), py + s - 5);
+
+  // Vein-like fungal cracks/glow, subtle but readable.
+  if (n1 > 0.45) {
+    const pulse = 0.9 + Math.sin((scene.visualTime || 0) * 0.003 + x + y) * 0.08;
+    scene.worldLayer.lineStyle(1, darkenColor(0xcaff85, Math.min(1, brightness + 0.2)), 0.22 * pulse);
+    scene.worldLayer.lineBetween(px + 5, py + 10, px + 12, py + 13);
+    scene.worldLayer.lineBetween(px + 12, py + 13, px + 18, py + 8 + Math.floor(n2 * 8));
+  }
+
+  // Deep lower shadow adds carved depth.
+  if (!mask.bottom) {
+    scene.worldLayer.fillStyle(0x020704, 0.34);
+    scene.worldLayer.fillRect(px + 2, py + s - 6, s - 4, 6);
+  }
+}
+
+function drawSporeWallSpeckles(scene, tile, x, y, brightness) {
+  const px = x * scene.tileSize;
+  const py = y * scene.tileSize;
+  const seed = tile.detailSeed || tile.variation || 0;
+  scene.worldLayer.fillStyle(darkenColor(0xd9ff9c, Math.min(1, brightness + 0.12)), 0.36);
+  if (seededNoise(x, y, seed) > 0.28) scene.worldLayer.fillRect(px + 6, py + 6, 3, 2);
+  if (seededNoise(x + 7, y - 4, seed) > 0.55) scene.worldLayer.fillRect(px + 16, py + 12, 4, 2);
+  scene.worldLayer.fillStyle(darkenColor(0x6ca34c, brightness), 0.35);
+  if (seededNoise(x - 5, y + 9, seed) > 0.5) scene.worldLayer.fillRect(px + 9, py + 20, 4, 2);
+}
+
 function drawAutotiledWall(scene, tile, x, y, brightness) {
   if (!isWallLike(tile)) return;
 
@@ -201,6 +313,8 @@ function drawAutotiledWall(scene, tile, x, y, brightness) {
   if (!mask.top && !mask.right) scene.worldLayer.fillCircle(px + s - 4, py + 4, 5);
   if (!mask.bottom && !mask.left) scene.worldLayer.fillCircle(px + 4, py + s - 4, 5);
   if (!mask.bottom && !mask.right) scene.worldLayer.fillCircle(px + s - 4, py + s - 4, 5);
+
+  drawSporeWallTerrain(scene, tile, x, y, brightness, mask);
 }
 
 function drawFloorDetails(scene, tile, x, y, brightness) {
@@ -215,13 +329,17 @@ function drawFloorDetails(scene, tile, x, y, brightness) {
   const pebbleColor = darkenColor(floorColor, brightness * 0.85);
   const lightPebble = darkenColor(tintColor(floorColor, 25), brightness * 0.8);
 
+  if (isSporeGrottoTile(tile) && scene.currentMapName === 'mine') {
+    drawSporeFloorTerrain(scene, tile, x, y, brightness);
+  }
+
   // Ground texture speckles, deterministic per tile so it does not shimmer.
   scene.worldLayer.fillStyle(pebbleColor, 0.45);
   if (seededNoise(x, y, seed) > 0.25) scene.worldLayer.fillRect(px + 5, py + 6, 2, 2);
   if (seededNoise(x + 11, y + 4, seed) > 0.5) scene.worldLayer.fillRect(px + 17, py + 15, 3, 1);
   scene.worldLayer.fillStyle(lightPebble, 0.35);
   if (seededNoise(x - 8, y + 13, seed) > 0.62) scene.worldLayer.fillRect(px + 10, py + 20, 2, 2);
-  if (scene.currentMapName === 'mine') {
+  if (scene.currentMapName === 'mine' && !isSporeGrottoTile(tile)) {
     scene.worldLayer.lineStyle(1, darkenColor(0x3a3a3a, brightness), 0.26);
     if (seededNoise(x + 29, y - 4, seed) > 0.72) scene.worldLayer.lineBetween(px + 4, py + 12, px + 13, py + 10);
     if (seededNoise(x - 14, y + 21, seed) > 0.78) scene.worldLayer.lineBetween(px + 13, py + 21, px + 22, py + 17);
@@ -252,11 +370,15 @@ function drawTileDetails(scene, tile, x, y, brightness) {
   }
 
   if (tile.type === 'caveWall') {
-    const wc = getWallVisualColors(tile);
-    scene.worldLayer.fillStyle(darkenColor(wc.speck || wc.edge, brightness), 0.48);
-    scene.worldLayer.fillRect(px + 5, py + 5, 4 + tile.variation, 3);
-    scene.worldLayer.fillRect(px + 15, py + 13, 5, 4);
-    if ((tile.detailSeed || 0) % 2 === 0) scene.worldLayer.fillRect(px + 8, py + 19, 3, 2);
+    if (isSporeGrottoTile(tile)) {
+      drawSporeWallSpeckles(scene, tile, x, y, brightness);
+    } else {
+      const wc = getWallVisualColors(tile);
+      scene.worldLayer.fillStyle(darkenColor(wc.speck || wc.edge, brightness), 0.48);
+      scene.worldLayer.fillRect(px + 5, py + 5, 4 + tile.variation, 3);
+      scene.worldLayer.fillRect(px + 15, py + 13, 5, 4);
+      if ((tile.detailSeed || 0) % 2 === 0) scene.worldLayer.fillRect(px + 8, py + 19, 3, 2);
+    }
     if (tile.wallDecor) drawWallDecoration(scene, tile, x, y, brightness);
   }
 
