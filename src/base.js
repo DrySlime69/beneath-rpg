@@ -1,0 +1,572 @@
+
+function useTeleportStone(scene) {
+  if (scene.currentMapName === 'mine') {
+    scene.mineReturnPosition = { x: scene.player.x, y: scene.player.y, level: scene.mineLevel || 1 };
+    switchToHome(scene);
+    scene.player.x = scene.homePosition.x;
+    scene.player.y = scene.homePosition.y;
+    setMessage(scene, 'Teleported home.');
+  } else {
+    switchToMine(scene, scene.mineReturnPosition.level || 1);
+    scene.player.x = scene.mineReturnPosition.x;
+    scene.player.y = scene.mineReturnPosition.y;
+    setMessage(scene, 'Returned to Mine Level ' + scene.mineLevel + '.');
+  }
+}
+
+
+function getHomeObjectInventoryStateKey(objectType) {
+  if (objectType === 'furnace') return 'hasFurnace';
+  if (objectType === 'craftingTable') return 'hasCraftingTable';
+  return null;
+}
+
+function getHomeObjectDisplayName(objectType) {
+  const def = getItemDef(objectType);
+  if (def?.name) return def.name;
+  if (objectType === 'furnace') return 'Furnace';
+  if (objectType === 'craftingTable') return 'Workbench';
+  return 'Object';
+}
+
+function isPlaceableHomeItem(item) {
+  const def = getItemDef(item?.id);
+  return !!def?.placeable;
+}
+
+function getSelectedHotbarPlaceable(scene) {
+  const slot = scene.selectedHotbarIndex || 0;
+  const item = scene.hotbarItems[slot];
+  if (isPlaceableHomeItem(item)) return { item, slot };
+  return null;
+}
+
+function addItemToFirstOpenSlot(scene, item) {
+  for (let i = 0; i < scene.hotbarItems.length; i++) {
+    if (!scene.hotbarItems[i]) {
+      scene.hotbarItems[i] = item;
+      scene.selectedHotbarIndex = i;
+      return { area: 'hotbar', slot: i };
+    }
+  }
+
+  for (let i = 0; i < scene.backpackItems.length; i++) {
+    if (!scene.backpackItems[i]) {
+      scene.backpackItems[i] = item;
+      return { area: 'backpack', slot: i };
+    }
+  }
+
+  return null;
+}
+
+function hasPlacedHomeObject(scene, objectType) {
+  if (!scene.map) return false;
+  return scene.map.some(row => row.some(tile => tile && tile.type === objectType));
+}
+
+function isHomeObject(tile) {
+  return tile && !!getItemDef(tile.type)?.placeable;
+}
+
+function isChestTile(tile) {
+  return tile && !!getItemDef(tile.type)?.storageSlots;
+}
+
+function createPlacedHomeObjectTile(objectType) {
+  const def = getItemDef(objectType);
+  const extra = {};
+  if (def?.storageSlots) {
+    extra.storageSlots = def.storageSlots;
+    extra.storage = Array(def.storageSlots).fill(null);
+  }
+  return makeTile(objectType, extra);
+}
+
+function chestHasItems(tile) {
+  return !!(tile?.storage || []).some(item => !!item);
+}
+
+function placeHeldHomeObject(scene) {
+  if (scene.currentMapName !== 'home') {
+    setMessage(scene, 'Placeable items can only be placed at home.');
+    return;
+  }
+
+  const held = getSelectedHotbarPlaceable(scene);
+  if (!held) {
+    setMessage(scene, 'Select a placeable home item in your hotbar first.');
+    return;
+  }
+
+  const objectType = held.item.id;
+  const stateKey = getHomeObjectInventoryStateKey(objectType);
+  const objectName = getHomeObjectDisplayName(objectType);
+
+  if (stateKey && !scene[stateKey]) {
+    setMessage(scene, objectName + ' is already placed. Pick it up first.');
+    return;
+  }
+
+  const target = getTargetTile(scene, 1);
+  const tile = getTile(scene, target.x, target.y);
+
+  if (!tile || tile.type !== 'homeFloor') {
+    setMessage(scene, 'Place it on an open home floor tile.');
+    return;
+  }
+
+  scene.map[target.y][target.x] = createPlacedHomeObjectTile(objectType);
+  scene.hotbarItems[held.slot] = null;
+  if (stateKey) scene[stateKey] = false;
+
+  setMessage(scene, 'Placed ' + objectName + '.');
+  updateInventoryUI(scene);
+}
+
+function placeFurnace(scene) {
+  placeHeldHomeObject(scene);
+}
+
+function pickupHomeObject(scene) {
+  if (scene.currentMapName !== 'home') {
+    setMessage(scene, 'You can only pick up furniture at home.');
+    return;
+  }
+
+  const target = getTargetTile(scene, 1);
+  const tile = getTile(scene, target.x, target.y);
+
+  if (!isHomeObject(tile)) {
+    setMessage(scene, 'Face a home object, then press X to pick it up.');
+    return;
+  }
+
+  if ((tile.type === 'furnace' && scene.furnaceQueue.length > 0) ||
+      (tile.type === 'craftingTable' && scene.tableQueue.length > 0)) {
+    setMessage(scene, 'Wait for crafting to finish before moving this.');
+    return;
+  }
+
+  if (isChestTile(tile) && chestHasItems(tile)) {
+    setMessage(scene, 'Empty this chest before picking it up.');
+    return;
+  }
+
+  const stateKey = getHomeObjectInventoryStateKey(tile.type);
+  const objectName = getHomeObjectDisplayName(tile.type);
+
+  if (stateKey && scene[stateKey]) {
+    setMessage(scene, objectName + ' is already in your inventory.');
+    return;
+  }
+
+  const added = addItemToFirstOpenSlot(scene, { id: tile.type });
+  if (!added) {
+    setMessage(scene, 'No inventory space for ' + objectName + '.');
+    return;
+  }
+
+  if (stateKey) scene[stateKey] = true;
+  scene.map[target.y][target.x] = makeTile('homeFloor');
+
+  if (added.area === 'hotbar') {
+    setMessage(scene, 'Picked up ' + objectName + ' into hotbar slot ' + (added.slot + 1) + '.');
+  } else {
+    setMessage(scene, 'Picked up ' + objectName + ', but your hotbar was full so it went to backpack.');
+  }
+  updateInventoryUI(scene);
+}
+
+function handleInteract(scene) {
+  const target = getTargetTile(scene, 1);
+  const tile = getTile(scene, target.x, target.y);
+
+  if (!tile) {
+    setMessage(scene, 'Nothing to interact with.');
+    return;
+  }
+
+  if (tile.type === 'furnace') {
+    toggleCraftingMenu(scene);
+    return;
+  }
+
+  if (tile.type === 'craftingTable') {
+    toggleCraftingTableMenu(scene);
+    return;
+  }
+
+  if (isChestTile(tile)) {
+    toggleChestMenu(scene, tile);
+    return;
+  }
+
+  if (tile.type === 'exitUp' || tile.type === 'exitDown') {
+    tryUseMineExit(scene, tile);
+    return;
+  }
+
+  if (tile.type === 'teleportPad') {
+    useTeleportStone(scene);
+    return;
+  }
+
+  setMessage(scene, 'Nothing to interact with.');
+}
+
+function toggleCraftingMenu(scene) {
+  if (scene.craftingOpen) {
+    closeCraftingMenu(scene);
+    return;
+  }
+
+  const target = getTargetTile(scene, 1);
+  const tile = getTile(scene, target.x, target.y);
+
+  if (!tile || tile.type !== 'furnace') {
+    setMessage(scene, 'Face the furnace to craft.');
+    return;
+  }
+
+  scene.craftingOpen = true;
+  scene.craftingScreen.style.display = 'flex';
+  updateFurnaceMenu(scene);
+}
+
+function closeCraftingMenu(scene) {
+  scene.craftingOpen = false;
+  if (scene.craftingScreen) scene.craftingScreen.style.display = 'none';
+}
+
+
+function getAllPlacedChests(scene) {
+  const maps = [];
+  if (scene.homeMap) maps.push(scene.homeMap);
+  if (scene.currentMapName === 'home' && scene.map && scene.map !== scene.homeMap) maps.push(scene.map);
+
+  const chests = [];
+  maps.forEach(map => {
+    if (!map) return;
+    map.forEach(row => row.forEach(tile => {
+      if (isChestTile(tile)) {
+        const slots = tile.storageSlots || getItemDef(tile.type)?.storageSlots || 8;
+        if (!tile.storage) tile.storage = Array(slots).fill(null);
+        while (tile.storage.length < slots) tile.storage.push(null);
+        chests.push(tile);
+      }
+    }));
+  });
+  return chests;
+}
+
+function getAvailableCraftingResourceAmount(scene, itemId) {
+  let total = scene.inventory?.[itemId] || 0;
+  getAllPlacedChests(scene).forEach(chest => {
+    (chest.storage || []).forEach(item => {
+      if (item?.id === itemId) total += item.amount || 0;
+    });
+  });
+  return total;
+}
+
+function hasCraftingResources(scene, costs) {
+  return Object.entries(costs || {}).every(([itemId, amount]) => getAvailableCraftingResourceAmount(scene, itemId) >= amount);
+}
+
+function consumeCraftingResources(scene, costs) {
+  if (!hasCraftingResources(scene, costs)) return false;
+
+  for (const [itemId, amountNeeded] of Object.entries(costs || {})) {
+    let remaining = amountNeeded;
+
+    const fromInventory = Math.min(scene.inventory?.[itemId] || 0, remaining);
+    if (fromInventory > 0) {
+      scene.inventory[itemId] -= fromInventory;
+      remaining -= fromInventory;
+    }
+
+    if (remaining <= 0) continue;
+
+    const chests = getAllPlacedChests(scene);
+    for (const chest of chests) {
+      for (let i = 0; i < (chest.storage || []).length; i++) {
+        const item = chest.storage[i];
+        if (!item || item.id !== itemId) continue;
+
+        const take = Math.min(item.amount || 0, remaining);
+        item.amount -= take;
+        remaining -= take;
+
+        if ((item.amount || 0) <= 0) chest.storage[i] = null;
+        if (remaining <= 0) break;
+      }
+      if (remaining <= 0) break;
+    }
+  }
+
+  ensureVisibleStackableItems(scene);
+  if (scene.chestOpen) updateChestSlots(scene);
+  return true;
+}
+
+function craftCopperBars(scene) {
+  if (scene.furnaceQueue.length > 0) {
+    setMessage(scene, 'Furnace already working.');
+    return;
+  }
+
+  const amount = Number(scene.copperBarAmountSlider.value);
+  const neededCopperOre = amount * 5;
+  const neededCoal = amount;
+
+  const costs = { copperOre: neededCopperOre, coal: neededCoal };
+  if (!hasCraftingResources(scene, costs)) {
+    setMessage(scene, 'Need ' + formatCosts(costs) + '. Inventory and home chests both count.');
+    return;
+  }
+
+  consumeCraftingResources(scene, costs);
+  scene.furnaceQueue.push({
+    item: 'Copper Bar',
+    amount,
+    completed: 0,
+    timePerItem: 5000,
+    elapsed: 0
+  });
+
+  setMessage(scene, 'Started crafting ' + amount + ' Copper Bar(s).');
+  updateInventoryUI(scene);
+  updateFurnaceMenu(scene);
+}
+
+function updateFurnaceQueue(scene, delta) {
+  if (!scene.furnaceQueue || scene.furnaceQueue.length === 0) return;
+
+  const job = scene.furnaceQueue[0];
+  job.elapsed += delta;
+
+  while (job.elapsed >= job.timePerItem && job.completed < job.amount) {
+    job.elapsed -= job.timePerItem;
+    job.completed += 1;
+    scene.furnaceOutput.copperBars += 1;
+  }
+
+  if (job.completed >= job.amount) {
+    scene.furnaceQueue.shift();
+    setMessage(scene, 'Furnace job complete.');
+  }
+
+  if (scene.craftingOpen) updateFurnaceMenu(scene);
+}
+
+function updateFurnaceMenu(scene) {
+  if (!scene.furnaceQueueItem || !scene.furnaceProgressInner || !scene.furnaceOutputItem) return;
+
+  if (!scene.furnaceQueue || scene.furnaceQueue.length === 0) {
+    scene.furnaceQueueItem.textContent = 'Empty';
+    scene.furnaceProgressInner.style.width = '0%';
+  } else {
+    const job = scene.furnaceQueue[0];
+    const progress = Math.min(job.elapsed / job.timePerItem, 1);
+    scene.furnaceQueueItem.textContent = job.item + ' ' + job.completed + '/' + job.amount;
+    scene.furnaceProgressInner.style.width = progress * 100 + '%';
+  }
+
+  scene.furnaceOutputItem.textContent =
+    scene.furnaceOutput.copperBars > 0 ? 'Copper Bars x' + scene.furnaceOutput.copperBars : 'Empty';
+}
+
+function collectFurnaceOutput(scene) {
+  if (scene.furnaceOutput.copperBars <= 0) {
+    setMessage(scene, 'No completed items.');
+    return;
+  }
+
+  scene.inventory.copperBars += scene.furnaceOutput.copperBars;
+  setMessage(scene, 'Collected ' + scene.furnaceOutput.copperBars + ' Copper Bar(s).');
+  scene.furnaceOutput.copperBars = 0;
+  updateInventoryUI(scene);
+  updateFurnaceMenu(scene);
+}
+
+const craftingTableRecipes = getCraftingTableRecipes();
+
+function toggleCraftingTableMenu(scene) {
+  if (scene.craftingTableOpen) {
+    closeCraftingTableMenu(scene);
+    return;
+  }
+
+  const target = getTargetTile(scene, 1);
+  const tile = getTile(scene, target.x, target.y);
+
+  if (!tile || tile.type !== 'craftingTable') {
+    setMessage(scene, 'Face the crafting table.');
+    return;
+  }
+
+  scene.craftingTableOpen = true;
+  scene.craftingTableScreen.style.display = 'flex';
+  updateCraftingTableUI(scene);
+}
+
+function closeCraftingTableMenu(scene) {
+  scene.craftingTableOpen = false;
+  if (scene.craftingTableScreen) scene.craftingTableScreen.style.display = 'none';
+}
+
+function selectCraftingTableRecipe(scene, recipeId) {
+  const recipe = craftingTableRecipes[recipeId];
+  if (!recipe) return;
+
+  scene.selectedCraftingTableRecipe = recipeId;
+  document.getElementById('selectedRecipeName').textContent = recipe.name;
+  document.getElementById('selectedRecipeDescription').textContent = recipe.description;
+  document.getElementById('selectedRecipeRequirements').textContent = 'Requires: ' + recipe.requirements;
+
+  scene.craftingRecipeButtons.forEach(button => {
+    button.classList.toggle('selected', button.dataset.recipe === recipeId);
+  });
+}
+
+function startCraftingTableRecipe(scene) {
+  const recipeId = scene.selectedCraftingTableRecipe;
+  if (!recipeId) {
+    setMessage(scene, 'Select a recipe first.');
+    return;
+  }
+
+  if (scene.tableQueue.length > 0) {
+    setMessage(scene, 'Crafting table busy.');
+    return;
+  }
+
+  const recipe = craftingTableRecipes[recipeId];
+  if (!recipe) return;
+
+  if (recipeId === 'furnace' && (scene.hasFurnace || hasPlacedHomeObject(scene, 'furnace'))) {
+    setMessage(scene, 'You already have a Furnace.');
+    return;
+  }
+
+  if (!hasCraftingResources(scene, recipe.costs || {})) {
+    setMessage(scene, 'Need ' + formatCosts(recipe.costs) + '. Inventory and home chests both count.');
+    return;
+  }
+
+  consumeCraftingResources(scene, recipe.costs || {});
+
+  scene.tableQueue.push({
+    item: recipe.name,
+    recipeId,
+    amount: 1,
+    completed: 0,
+    timePerItem: recipe.timePerItem,
+    elapsed: 0
+  });
+
+  setMessage(scene, 'Crafting started.');
+  updateInventoryUI(scene);
+  updateCraftingTableUI(scene);
+}
+
+function updateCraftingTableQueue(scene, delta) {
+  if (!scene.tableQueue || scene.tableQueue.length === 0) return;
+
+  const job = scene.tableQueue[0];
+  job.elapsed += delta;
+
+  if (job.elapsed >= job.timePerItem) {
+    scene.tableOutput[job.recipeId] = (scene.tableOutput[job.recipeId] || 0) + 1;
+    scene.tableQueue.shift();
+    setMessage(scene, 'Craft complete.');
+  }
+
+  if (scene.craftingTableOpen) updateCraftingTableUI(scene);
+}
+
+function updateCraftingTableUI(scene) {
+  if (!scene.tableQueueItem || !scene.tableProgressInner || !scene.tableOutputItem) return;
+
+  if (!scene.tableQueue || scene.tableQueue.length === 0) {
+    scene.tableQueueItem.textContent = 'Empty';
+    scene.tableProgressInner.style.width = '0%';
+  } else {
+    const job = scene.tableQueue[0];
+    scene.tableQueueItem.textContent = job.item;
+    scene.tableProgressInner.style.width = Math.min(job.elapsed / job.timePerItem, 1) * 100 + '%';
+  }
+
+  const output = [];
+  Object.entries(scene.tableOutput || {}).forEach(([id, amount]) => {
+    if (amount > 0) output.push(getItemName(id) + ' x' + amount);
+  });
+  scene.tableOutputItem.textContent = output.join(' ') || 'Empty';
+}
+
+function collectCraftingTableOutput(scene) {
+  const outputs = Object.entries(scene.tableOutput || {}).filter(([, amount]) => amount > 0);
+  if (outputs.length === 0) {
+    setMessage(scene, 'No completed items.');
+    return;
+  }
+
+  for (const [itemId, amount] of outputs) {
+    const def = getItemDef(itemId);
+
+    if (def?.toolType === 'pickaxe') {
+      for (let i = 0; i < amount; i++) {
+        const added = addItemToFirstOpenSlot(scene, createItemInstance(itemId));
+        if (!added) {
+          setMessage(scene, 'No inventory space for ' + def.name + '.');
+          updateInventoryUI(scene);
+          updateCraftingTableUI(scene);
+          return;
+        }
+        scene.tableOutput[itemId] -= 1;
+      }
+      scene.pickaxeTier = Math.max(scene.pickaxeTier || 0, def.tier);
+      scene.pickaxeDamage = Math.max(scene.pickaxeDamage || 0, def.miningDamage);
+      scene.pickaxeDurabilityMax = getPickaxeDurabilityMax(scene.pickaxeTier);
+      scene.pickaxeDurability = scene.pickaxeDurabilityMax;
+      if (def.tier >= 3) {
+        scene.maxUnlockedMineLevel = Math.max(scene.maxUnlockedMineLevel || STARTING_UNLOCKED_MINE_LEVELS, FIRST_LOCKED_MINE_LEVEL);
+        if (!scene.mineMaps[FIRST_LOCKED_MINE_LEVEL]) scene.mineMaps[FIRST_LOCKED_MINE_LEVEL] = createMineMap(scene, FIRST_LOCKED_MINE_LEVEL);
+      }
+      continue;
+    }
+
+    if (def?.category === 'weapons') {
+      for (let i = 0; i < amount; i++) {
+        const added = addItemToFirstOpenSlot(scene, createItemInstance(itemId));
+        if (!added) {
+          setMessage(scene, 'No inventory space for ' + def.name + '.');
+          updateInventoryUI(scene);
+          updateCraftingTableUI(scene);
+          return;
+        }
+        scene.tableOutput[itemId] -= 1;
+      }
+      continue;
+    }
+
+    if (def?.placeable) {
+      const added = addItemToFirstOpenSlot(scene, { id: itemId });
+      if (!added) {
+        setMessage(scene, 'No inventory space for ' + def.name + '.');
+        updateInventoryUI(scene);
+        updateCraftingTableUI(scene);
+        return;
+      }
+      if (itemId === 'furnace') scene.hasFurnace = true;
+      if (itemId === 'craftingTable') scene.hasCraftingTable = true;
+      scene.tableOutput[itemId] = 0;
+    }
+  }
+
+  updateInventoryUI(scene);
+  updateCraftingTableUI(scene);
+  setMessage(scene, 'Items collected.');
+}
+
