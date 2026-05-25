@@ -21,3 +21,6 @@ Important files:
 - `assets/levels/spore_floor_tileset_32.png` — repeatable source floor tileset strip
 
 Run locally by opening `index.html`, or push the full folder contents to GitHub Pages.
+
+
+Update: Level 1 floor art has been rebuilt as a darker cobblestone Spore Grotto floor background using the included repeatable 32x32 floor tileset. No props, ore, enemies, or decorations are placed.
